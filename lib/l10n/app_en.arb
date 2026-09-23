@@ -1,0 +1,1202 @@
+{
+  "@@locale": "en",
+  "appTitle": "Sotto",
+  "statusOrganizing": "Organizing…",
+  "statusRehearsedTimes": "Rehearsed ×{count}",
+  "@statusRehearsedTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statusRehearsed": "Rehearsed",
+  "statusStructured": "Structured",
+  "statusDraft": "Draft",
+  "timeJustNow": "Just now",
+  "timeMinutesAgo": "{minutes} min ago",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "{hours} h ago",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "timeEditedMinutesAgo": "Edited {minutes} min ago",
+  "@timeEditedMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "timeEditedHoursAgo": "Edited {hours} h ago",
+  "@timeEditedHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "timeYesterday": "Yesterday",
+  "timeToday": "Today",
+  "actionGoLive": "Go live or end session",
+  "actionGoLiveSub": "Starts from the section chosen in pre-flight",
+  "actionPause": "Pause or resume following",
+  "actionPauseSub": "Freezes the script; your place is kept",
+  "actionNextBeat": "Next beat",
+  "actionNextBeatSub": "One breath forward — works while following",
+  "actionPrevBeat": "Previous beat",
+  "actionPrevBeatSub": "Also holds following for 3 seconds",
+  "actionNextSection": "Next section",
+  "actionPrevSection": "Previous section",
+  "actionAsk": "Ask a question",
+  "actionAskSub": "Listens to the room until it goes quiet",
+  "actionSend": "Send answer to chat",
+  "actionSendSub": "Hold for half a second, so it can't fire by accident",
+  "actionReadAloud": "Read answer aloud",
+  "actionReadAloudSub": "Plays in your headphones only",
+  "actionDismiss": "Dismiss answer",
+  "actionDismissSub": "Returns to the script where you left it",
+  "actionHistory": "Questions history",
+  "actionHide": "Hide overlay instantly",
+  "actionHideSub": "No animation. Press again to bring it back.",
+  "actionClickThrough": "Click-through",
+  "actionClickThroughSub": "The overlay stops catching the mouse",
+  "actionTextBigger": "Text size up",
+  "actionTextSmaller": "Text size down",
+  "actionMoveDisplay": "Move to next display",
+  "actionMoveDisplaySub": "Remembers a position per display",
+  "keySpace": "Space",
+  "modShiftShort": "Shift",
+  "modShift": "Shift",
+  "modOption": "Option",
+  "modCommand": "Command",
+  "providerCompatible": "OpenAI-compatible",
+  "untitledScript": "Untitled script",
+  "sectionOpening": "Opening",
+  "sectionFallback": "Section",
+  "newSectionTitle": "New section",
+  "cueSlide": "SLIDE",
+  "cuePause": "PAUSE",
+  "cueDemo": "DEMO",
+  "cueNote": "NOTE",
+  "copyTitle": "{title} copy",
+  "@copyTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "importUnsupported": "Sotto can import .docx, .pdf, .md and .txt files.",
+  "importNoText": "{name} has no text Sotto can read.",
+  "@importNoText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "importNoBody": "This .docx file has no document body.",
+  "pastedScript": "Pasted script",
+  "pastedText": "Pasted text",
+  "dialogImportScript": "Import a script",
+  "llmRejected": "The request was rejected",
+  "llmBadKey": "{provider} rejected the API key. Check it in Settings → Integrations.",
+  "@llmBadKey": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "llmNoModel": "Model not found. Check the model name in Settings → Integrations.",
+  "llmRateLimit": "{provider} is rate-limiting requests. Try again in a moment.",
+  "@llmRateLimit": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "llmServerError": "{provider} is having trouble right now ({status}).",
+  "@llmServerError": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      },
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "llmFailed": "Request failed ({status})",
+  "@llmFailed": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "llmRefusal": "The model declined to answer this question.",
+  "llmTimeout": "{provider} did not respond in time.",
+  "@llmTimeout": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "llmOffline": "No connection to {provider}. Answers need the internet; the script still follows your voice offline.",
+  "@llmOffline": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "llmUnreachable": "Could not reach {provider}: {error}",
+  "@llmUnreachable": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "llmGenericError": "{provider} returned an error.",
+  "@llmGenericError": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "llmAiServer": "The AI server",
+  "modelStreamingEn": "English · streaming",
+  "modelStreamingEnDesc": "Follows your voice word by word",
+  "modelStreamingEnLight": "English · streaming (light)",
+  "modelStreamingEnLightDesc": "For older or low-power machines",
+  "modelWhisperBase": "Whisper base",
+  "modelWhisperBaseDesc": "Question transcripts in 99 languages; also follows non-English scripts",
+  "modelWhisperTurbo": "Whisper large-v3 turbo",
+  "modelWhisperTurboDesc": "Most accurate question transcripts; needs a fast machine",
+  "modelDownloadFailed": "Download failed ({status}).",
+  "@modelDownloadFailed": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "modelIncomplete": "The model archive was incomplete.",
+  "modelOffline": "No internet connection. Models download once, then work offline.",
+  "engineUnavailable": "Unavailable",
+  "engineOnDeviceStreaming": "On-device · streaming",
+  "engineOnDeviceWhisper": "On-device · Whisper",
+  "engineCloud": "Cloud",
+  "engineModelsMissing": "Speech models are not installed yet. Download them in Settings → Voice & following.",
+  "engineCloudKeyMissing": "Add a speech-to-text API key in Settings → Integrations to use the cloud engine.",
+  "sttEngineFailed": "Speech engine failed to start: {error}",
+  "@sttEngineFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sttNoModel": "No transcription model installed.",
+  "sttStopped": "Speech engine stopped.",
+  "sttBadKey": "The speech-to-text API key was rejected.",
+  "sttCloudFailed": "Cloud transcription failed ({status}).",
+  "@sttCloudFailed": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "micPermission": "Sotto needs microphone access. Allow it in System Settings → Privacy.",
+  "noticeShortcutsTaken": "{count, plural, =1{1 shortcut is taken by another app} other{{count} shortcuts are taken by another app}}",
+  "@noticeShortcutsTaken": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noticeNoSpeechForQuestions": "Questions need a speech engine — see Settings → Voice & following.",
+  "noticeNoQuestion": "Didn't catch a question",
+  "answerNeedsKey": "Add an API key in Settings → Integrations to draft answers.",
+  "noticeCopiedForChat": "Copied — paste into the meeting chat",
+  "noticeAnswerCopied": "Answer copied",
+  "readyNoMic": "No microphone",
+  "readyHotkeysOnly": "Hotkeys only",
+  "readyAdvanceManual": "Advance: manual",
+  "readyCloud": "Cloud · {langs}",
+  "@readyCloud": {
+    "placeholders": {
+      "langs": {
+        "type": "String"
+      }
+    }
+  },
+  "readyAddSttKey": "Add a speech-to-text key in Integrations",
+  "readyOnDevice": "On-device · {langs}",
+  "@readyOnDevice": {
+    "placeholders": {
+      "langs": {
+        "type": "String"
+      }
+    }
+  },
+  "readyDownloadModels": "Download speech models in Voice & following",
+  "readyHotkeys": "Hotkeys {chord}",
+  "@readyHotkeys": {
+    "placeholders": {
+      "chord": {
+        "type": "String"
+      }
+    }
+  },
+  "readyTakenByOther": "{count} taken by another app",
+  "@readyTakenByOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readyNoKey": "No API key",
+  "readyAddKey": "Add one in Integrations to draft answers",
+  "readyShareWindow": "Share a window",
+  "readyShareWarning": "Sharing your entire screen can capture the overlay on macOS 15+",
+  "sourceQaPrep": "Q&A prep",
+  "sourceGeneral": "General knowledge · verify",
+  "notInYourNotes": "Not in your notes.",
+  "sidebarShow": "Show sidebar",
+  "sidebarHide": "Hide sidebar",
+  "search": "Search",
+  "navHome": "Home",
+  "navAllScripts": "All scripts",
+  "navSessions": "Sessions",
+  "navArchive": "Archive",
+  "navCollections": "Collections",
+  "navSettings": "Settings",
+  "newCollection": "New collection",
+  "collectionName": "Collection name",
+  "liveReadiness": "Live readiness",
+  "readinessCount": "{passed} of {total}",
+  "@readinessCount": {
+    "placeholders": {
+      "passed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "dropHintDrop": "Drop a ",
+  "dropHintOr": " or ",
+  "dropHintPaste": " anywhere, or paste with  ",
+  "dropHintOrganize": "  — Sotto organizes it into sections, beats and cues.",
+  "browseFiles": "Browse files",
+  "import": "Import",
+  "newScript": "New script",
+  "upNext": "Up next",
+  "recentScripts": "Recent scripts",
+  "filterAll": "All",
+  "filterDrafts": "Drafts",
+  "filterReady": "Ready",
+  "gridView": "Grid view",
+  "listView": "List view",
+  "emptyNoScriptsHere": "No scripts here yet",
+  "emptyWriteOrDrop": "Write one, paste one, or drop a file anywhere in this window.",
+  "inMinutes": "in {minutes} min",
+  "@inMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "inHours": "in {hours} h",
+  "@inHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "sectionsCount": "{count, plural, =1{1 section} other{{count} sections}}",
+  "@sectionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "atYourPace": "{duration} at your pace ({wpm} wpm)",
+  "@atYourPace": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "wpm": {
+        "type": "int"
+      }
+    }
+  },
+  "rehearsedTimes": "{count, plural, =1{rehearsed once} =2{rehearsed twice} other{rehearsed {count} times}}",
+  "@rehearsedTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "prepDocsCount": "{count, plural, =1{1 prep document} other{{count} prep documents}}",
+  "@prepDocsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goLive": "Go live",
+  "rehearse": "Rehearse",
+  "notRehearsedYet": "Not rehearsed yet",
+  "lastRehearsal": "Last rehearsal {duration}",
+  "@lastRehearsal": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteCollection": "Delete collection",
+  "emptyNothingArchived": "Nothing archived",
+  "emptyNoScripts": "No scripts yet",
+  "emptyNoMatches": "No matches",
+  "emptyArchivedHint": "Archived scripts stay searchable here and never appear in Up next.",
+  "emptyNoMatchesHint": "Nothing in titles or script text matches \"{query}\".",
+  "@emptyNoMatchesHint": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "scriptsCount": "{count, plural, =1{1 script} other{{count} scripts}}",
+  "@scriptsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noCollection": "No collection",
+  "importedFinding": "Imported from {source}. Finding sections, beats and cues…",
+  "@importedFinding": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "importedFromText": "text",
+  "emptyScript": "Empty script",
+  "menuOpen": "Open",
+  "menuDuplicate": "Duplicate",
+  "menuMoveToCollection": "Move to collection",
+  "menuSchedule": "Schedule…",
+  "menuExportMarkdown": "Export as Markdown",
+  "menuArchive": "Archive",
+  "menuUnarchive": "Unarchive",
+  "delete": "Delete",
+  "cancel": "Cancel",
+  "exportScript": "Export script",
+  "deleteScriptTitle": "Delete “{title}”?",
+  "@deleteScriptTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteScriptBody": "Its Q&A history is deleted too. This can’t be undone.",
+  "emptyNoSessions": "No sessions yet",
+  "emptyNoSessionsHint": "Every live run and rehearsal lands here with its timing, so your pace keeps getting more accurate.",
+  "rehearsal": "Rehearsal",
+  "liveSession": "Live session",
+  "liveChip": "Live",
+  "wpmValue": "{wpm} wpm",
+  "@wpmValue": {
+    "placeholders": {
+      "wpm": {
+        "type": "int"
+      }
+    }
+  },
+  "questionsCount": "{count, plural, =1{1 question} other{{count} questions}}",
+  "@questionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteSession": "Delete session",
+  "overlayPreview": "Overlay preview",
+  "followCursor": "Follow cursor",
+  "layoutTicker": "Ticker",
+  "layoutStandard": "Standard",
+  "layoutColumn": "Column",
+  "layoutRail": "Rail",
+  "layoutAuto": "Auto",
+  "beatPosition": "Beat {section}.{beat} · {duration}",
+  "@beatPosition": {
+    "placeholders": {
+      "section": {
+        "type": "int"
+      },
+      "beat": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "noMoreCues": "No more cues",
+  "nextCueIn": "{count, plural, =1{Next cue: {cue} in 1 beat} other{Next cue: {cue} in {count} beats}}",
+  "@nextCueIn": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "cue": {
+        "type": "String"
+      }
+    }
+  },
+  "listenForWords": "Listen for these words",
+  "add": "Add",
+  "hintWordsExplain": "Names and numbers from this script are sent to speech recognition as hints.",
+  "remove": "Remove",
+  "hintWordPlaceholder": "A name or number, then Enter",
+  "deliveryCheck": "Delivery check",
+  "markAsReady": "Mark as ready",
+  "checkCuesOrdered": "Cues are in reading order",
+  "checkCuesBackwards": "Slide cues jump backwards",
+  "checkBeatsFit": "Every beat fits in one breath",
+  "checkLongBeats": "{count, plural, =1{1 long beat — over 28 words} other{{count} long beats — over 28 words}}",
+  "@checkLongBeats": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkNumbersSpoken": "Numbers written the way you say them",
+  "checkNumbersAbbreviated": "{count, plural, =1{1 beat with abbreviated numbers (write “48.2 million”, not “48.2M”)} other{{count} beats with abbreviated numbers (write “48.2 million”, not “48.2M”)}}",
+  "@checkNumbersAbbreviated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkEmptyBeats": "{count, plural, =1{1 empty beat} other{{count} empty beats}}",
+  "@checkEmptyBeats": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scriptMissing": "This script no longer exists.",
+  "backToLibrary": "Back to library",
+  "library": "Library",
+  "saved": "Saved",
+  "editing": "Editing…",
+  "tabWrite": "Write",
+  "tabQaPrep": "Q&A prep",
+  "tabRehearsals": "Rehearsals",
+  "structure": "Structure",
+  "organizeAgain": "Organize again — sections, beats and cues",
+  "addSection": "Add section",
+  "structureSummary": "{sections} sections · {beats} beats · {cues} cues",
+  "@structureSummary": {
+    "placeholders": {
+      "sections": {
+        "type": "int"
+      },
+      "beats": {
+        "type": "int"
+      },
+      "cues": {
+        "type": "int"
+      }
+    }
+  },
+  "timing": "Timing",
+  "plannedDuration": "{duration} planned",
+  "@plannedDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "setTarget": "set target",
+  "targetDuration": "{duration} target",
+  "@targetDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "paceNote": "At {wpm} wpm.",
+  "@paceNote": {
+    "placeholders": {
+      "wpm": {
+        "type": "int"
+      }
+    }
+  },
+  "paceNoteMeasured": "{count, plural, =1{At {wpm} wpm, measured over 1 rehearsal.} other{At {wpm} wpm, measured over {count} rehearsals.}}",
+  "@paceNoteMeasured": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "wpm": {
+        "type": "int"
+      }
+    }
+  },
+  "targetLength": "Target length",
+  "durationPlaceholder": "m:ss — empty to clear",
+  "save": "Save",
+  "deleteSection": "Delete section",
+  "timeForSection": "Time for “{title}”",
+  "@timeForSection": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "beatsAndCues": "{beats} beats · {cues} cues",
+  "@beatsAndCues": {
+    "placeholders": {
+      "beats": {
+        "type": "int"
+      },
+      "cues": {
+        "type": "int"
+      }
+    }
+  },
+  "wordsAtPace": "{words} words · {duration} at {wpm} wpm",
+  "@wordsAtPace": {
+    "placeholders": {
+      "words": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "wpm": {
+        "type": "int"
+      }
+    }
+  },
+  "beatWords": "Beat {section}.{beat} · {words} words",
+  "@beatWords": {
+    "placeholders": {
+      "section": {
+        "type": "int"
+      },
+      "beat": {
+        "type": "int"
+      },
+      "words": {
+        "type": "int"
+      }
+    }
+  },
+  "sectionHeader": "Section {index} of {count} · {duration} · starts at {start}",
+  "@sectionHeader": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "start": {
+        "type": "String"
+      }
+    }
+  },
+  "sectionTitle": "Section title",
+  "addBeat": "+  Add a beat",
+  "transitionTo": "→  Transition to  ",
+  "beatHint": "One breath of text. Type [SLIDE 3] or [PAUSE] for a cue.",
+  "cueMenuSlide": "Slide",
+  "cueMenuSlideNext": "Slide number +1",
+  "cueMenuSlidePrev": "Slide number −1",
+  "cueMenuPause": "Pause",
+  "cueMenuDemo": "Demo",
+  "cueMenuRemove": "Remove cue",
+  "addCue": "Add a cue",
+  "longBeat": "Long beat · {words} words. ",
+  "@longBeat": {
+    "placeholders": {
+      "words": {
+        "type": "int"
+      }
+    }
+  },
+  "longBeatPause": "Consider a pause for a natural breath.",
+  "longBeatSplitAfter": "Split after “{word}” for a natural breath?",
+  "@longBeatSplitAfter": {
+    "placeholders": {
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "ignore": "Ignore",
+  "split": "Split",
+  "keyPoints": "Key points",
+  "keyPointsNote": "Shown in Column layout and rehearsal",
+  "keyPointsHint": "One per line — the few things this section must land",
+  "addPrepDocument": "Add a prep document",
+  "pastedNotes": "Pasted notes {number}",
+  "@pastedNotes": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "suggestNeedsKey": "Add an API key in Settings → Integrations to suggest questions.",
+  "noQuestionsReturned": "The model returned no questions.",
+  "likelyQuestions": "Likely questions",
+  "suggestWithAi": "Suggest with AI",
+  "addQuestion": "Add question",
+  "likelyQuestionsNote": "When a live question matches one of these, its answer appears instantly — no model call.",
+  "noPreparedQuestions": "No prepared questions yet. Add the ones you dread most.",
+  "prepDocuments": "Prep documents",
+  "paste": "Paste",
+  "addFile": "Add file",
+  "prepDocumentsNote": "Answers can cite these. They stay on this computer; only excerpts relevant to a question are sent.",
+  "noPrepDocuments": "Board memos, contracts, FAQs — anything you might be asked about.",
+  "dismiss": "Dismiss",
+  "questionHint": "The question, as someone might ask it",
+  "deleteQuestion": "Delete question",
+  "answerHint": "Your answer. The first sentence becomes the headline.",
+  "wordsCount": "{count, plural, =1{1 word} other{{count} words}}",
+  "@wordsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "removeDocument": "Remove document",
+  "noRehearsalsYet": "No rehearsals yet",
+  "noRehearsalsHint": "Rehearse with the real overlay. Sotto times every section and learns your pace.",
+  "rehearseNow": "Rehearse now",
+  "latestRehearsal": "Latest rehearsal",
+  "latestSession": "Latest session",
+  "ofPlanned": " of {duration} planned",
+  "@ofPlanned": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "allRuns": "All runs",
+  "questionsAsked": "Questions asked",
+  "pfMicrophone": "Microphone",
+  "pfMicReady": "{device} · ready",
+  "@pfMicReady": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "pfNoInput": "No input device found",
+  "pfVoiceFollowing": "Voice following",
+  "pfTunedTo": "{engine} · tuned to {wpm} wpm",
+  "@pfTunedTo": {
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      },
+      "wpm": {
+        "type": "int"
+      }
+    }
+  },
+  "pfOverlay": "Overlay",
+  "pfOverlayDetail": "{placement} · {opacity}% · text {size}",
+  "@pfOverlayDetail": {
+    "placeholders": {
+      "placement": {
+        "type": "String"
+      },
+      "opacity": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "pfScreenSharing": "Screen sharing",
+  "pfShareProtected": "Sotto hides itself from captures where the OS allows it. On macOS 15 and later, sharing your entire screen can still capture the overlay — share only the slides window.",
+  "pfShareUnprotected": "Capture protection is off. Share only the slides window.",
+  "pfAnswers": "Answers",
+  "pfGrounded": "Grounded in this script",
+  "pfPlusPrepDocs": "{count, plural, =1{ + 1 prep document} other{ + {count} prep documents}}",
+  "@pfPlusPrepDocs": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pfQuestionLanguage": " · answers in the question’s language",
+  "pfMeetingChat": "Meeting chat",
+  "pfMeetingChatDetail": "Hold to copy an answer, then paste it into Zoom, Teams or Meet",
+  "pfChoose": "Choose",
+  "pfSetUp": "Set up",
+  "pfAdjust": "Adjust",
+  "pfAddKey": "Add key",
+  "pfSummary": "{duration} · {sections}",
+  "@pfSummary": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "sections": {
+        "type": "String"
+      }
+    }
+  },
+  "pfChecksPassed": " · {passed} of {total} checks passed",
+  "@pfChecksPassed": {
+    "placeholders": {
+      "passed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "closeEsc": "Close  esc",
+  "startFrom": "Start from",
+  "goLiveInstead": "Go live instead",
+  "rehearseInstead": "Rehearse instead",
+  "hintNextBeat": "next beat",
+  "hintAsk": "ask",
+  "hintHide": "hide instantly",
+  "placeUnderCamera": "Under the camera",
+  "placeTopLeft": "Top left",
+  "placeTopRight": "Top right",
+  "placeLeftEdge": "Left edge",
+  "placeCentered": "Centered",
+  "placeRightEdge": "Right edge",
+  "placeBottomLeft": "Bottom left",
+  "placeBottomCentre": "Bottom centre",
+  "placeBottomRight": "Bottom right",
+  "questions": "Questions",
+  "close": "Close",
+  "historyEmpty": "Questions you answer this session appear here.",
+  "outcomeCopied": "Copied for chat",
+  "outcomeReadAloud": "Read aloud",
+  "outcomeDismissed": "Dismissed",
+  "outcomeShown": "Shown",
+  "showAgain": "Show again",
+  "copy": "Copy",
+  "paused": "Paused",
+  "hotkeysOnly": "Hotkeys only",
+  "followingYourVoice": "Following your voice",
+  "standby": "Standby",
+  "onPace": "On pace",
+  "ahead": "Ahead",
+  "behind": "Behind",
+  "holding": "Holding",
+  "resume": "Resume",
+  "pause": "Pause",
+  "hideInstantly": "Hide instantly",
+  "endSession": "End session",
+  "listening": "Listening",
+  "done": "Done",
+  "askAway": "Ask away — Sotto is listening to the room.",
+  "transcribingQuestion": "Transcribing the question",
+  "draftingFrom": "Drafting from",
+  "noAnswerDrafted": "No answer drafted",
+  "provNotInNotes": "Not in your notes",
+  "provFromPrep": "From your Q&A prep",
+  "provFromScript": "From your script and prep notes",
+  "provGeneral": "Includes general knowledge — verify",
+  "predraftedInstant": "pre-drafted · instant",
+  "draftedIn": "drafted in {seconds} s",
+  "@draftedIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "copyForChat": "Copy for chat",
+  "readAloud": "Read aloud",
+  "draftAgain": "Draft again",
+  "copyAnswer": "Copy answer",
+  "upNextOverlay": "→  Up next · ",
+  "next": "Next",
+  "gettingReady": "Getting ready…",
+  "choosePlaceholder": "Choose…",
+  "setShortcuts": "Shortcuts",
+  "setAppearance": "Appearance",
+  "setVoice": "Voice & following",
+  "setAnswers": "Answers",
+  "setGeneral": "General",
+  "setIntegrations": "Integrations",
+  "setPrivacy": "Privacy & data",
+  "settings": "Settings",
+  "groupLive": "Live",
+  "groupApp": "App",
+  "versionBuild": "Sotto 1.0 (build 1)",
+  "searchSettings": "Search settings",
+  "resetToDefaults": "Reset to defaults",
+  "reset": "Reset",
+  "shortcutsDescription": "They work everywhere while you are live — even when Zoom or your slides have focus. Every shortcut shares one chord, so you only learn the letter.",
+  "filterShortcuts": "Filter shortcuts",
+  "groupOverlay": "Overlay",
+  "chord": "Chord",
+  "sottoChord": "Sotto chord",
+  "sottoChordSub": "Shared by every shortcut",
+  "altGrLayouts": "AltGr layouts",
+  "altGrLayoutsSub": "On layouts that type characters with Ctrl + Alt (Spanish, German, Polish…), pick Ctrl + Shift so shortcuts never swallow “@” or “€”.",
+  "sysPrevInputSource": "Select the previous input source",
+  "sysMoveSpaces": "Move between Spaces",
+  "sysSecurityOptions": "Security options",
+  "conflictAlreadyUsed": "Already used by “{action}”",
+  "@conflictAlreadyUsed": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictSystem": "Used by {os}: {meaning}",
+  "@conflictSystem": {
+    "placeholders": {
+      "os": {
+        "type": "String"
+      },
+      "meaning": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictOtherApp": "Taken by another app",
+  "pressAKey": "Press a key…",
+  "changeShortcutFor": "Change shortcut for {action}",
+  "@changeShortcutFor": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "pressToToggle": "Press to toggle",
+  "holdToTalk": "Hold to talk",
+  "hold": "hold",
+  "useAnyway": "Use anyway",
+  "chooseAnother": "Choose another",
+  "appearanceDescription": "How the overlay looks and where it lives. Every change previews live on the right.",
+  "theme": "Theme",
+  "app": "App",
+  "themeDark": "Dark",
+  "themeLight": "Light",
+  "themeAuto": "Auto",
+  "overlayThemeSub": "Dark disappears into slides and video.",
+  "matchApp": "Match app",
+  "readability": "Readability",
+  "textSize": "Text size",
+  "linesShown": "Lines shown",
+  "linesShownSub": "Before and after the line you are saying",
+  "opacity": "Opacity",
+  "opacitySub": "Below 70%, a plate appears behind the current line.",
+  "placement": "Placement",
+  "position": "Position",
+  "positionSub": "Keep your eyes near the lens",
+  "layout": "Layout",
+  "layoutSub": "Chosen automatically from the window size",
+  "rememberPosition": "Remember position per display",
+  "preview": "Preview",
+  "bgDarkSlide": "Dark slide",
+  "bgLightSlide": "Light slide",
+  "bgVideoCall": "Video call",
+  "writeToPreview": "Write a script to preview it here.",
+  "metricCurrentLine": "Current line, worst case",
+  "metricNextLine": "Next line, worst case",
+  "metricLineLength": "Line length at this size",
+  "motion": "Motion",
+  "scrolling": "Scrolling",
+  "scrollingSub": "Glide eases between beats; Step jumps.",
+  "scrollGlide": "Glide",
+  "scrollStep": "Step",
+  "reduceMotion": "Reduce motion",
+  "reduceMotionSub": "Also follows your system setting",
+  "blurBehind": "Blur behind the overlay",
+  "blurBehindSub": "Softens busy slides. Uses the system’s vibrancy on macOS and acrylic on Windows 11.",
+  "voiceDescription": "How Sotto listens to you while you present. On-device recognition keeps your voice on this computer.",
+  "stopTest": "Stop test",
+  "testWithScript": "Test with this script",
+  "microphone": "Microphone",
+  "noMicrophoneFound": "No microphone found",
+  "inputLevel": "Input level",
+  "inputLevelSub": "Speak normally — aim for the green zone",
+  "noiseSuppression": "Noise suppression",
+  "noiseSuppressionSub": "Filters fans, keyboards and echo from speakers",
+  "questionsComeFrom": "Questions come from",
+  "questionsComeFromSub": "In a video call, choose a loopback device (BlackHole, Stereo Mix) to capture the meeting’s audio",
+  "sameAsMicrophone": "Same as microphone",
+  "recognition": "Recognition",
+  "language": "Language",
+  "alsoRecognize": "Also recognize",
+  "alsoRecognizeSub": "For presenters who switch languages mid-talk",
+  "addLanguage": "Add a language",
+  "engine": "Engine",
+  "engineOnDeviceSub": "sherpa-onnx on this computer · no audio leaves it",
+  "engineCloudSub": "OpenAI-compatible speech-to-text · audio is uploaded while you speak",
+  "onDevice": "On-device",
+  "cloud": "Cloud",
+  "following": "Following",
+  "advance": "Advance",
+  "followMyVoice": "Follow my voice",
+  "timed": "Timed",
+  "manual": "Manual",
+  "moveOnWhenSaid": "Move on when I have said",
+  "moveOnWhenSaidSub": "Lower feels faster; higher never moves early",
+  "sensitivity": "Sensitivity",
+  "sensitivitySub": "High follows paraphrasing, but may jump on ad-libs",
+  "low": "Low",
+  "medium": "Medium",
+  "high": "High",
+  "holdStill": "Hold still while I ad-lib",
+  "holdStillSub": "Waits for you to return to the script",
+  "allowJumps": "Allow jumps between sections",
+  "allowJumpsSub": "If you skip ahead, the overlay follows",
+  "ready": "Ready",
+  "needsSetup": "Needs setup",
+  "onDeviceModels": "On-device models",
+  "onDeviceModelsFooter": "Downloaded once from the sherpa-onnx project, then used offline. Follow English live with a streaming model; Whisper transcribes questions and follows other languages.",
+  "installed": "Installed",
+  "removeModel": "Remove model",
+  "unpacking": "Unpacking",
+  "retry": "Retry",
+  "download": "Download",
+  "noSpeechEngine": "No speech engine is available.",
+  "liveCheck": "Live check",
+  "whatSottoHears": "What Sotto hears",
+  "listeningLower": "listening",
+  "listeningLag": "listening · {ms} ms since last word",
+  "@listeningLag": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "idle": "idle",
+  "checkWriteFirst": "Write a script first — the check follows your own words.",
+  "checkPressTest": "Press “Test with this script” and read “{title}” aloud.",
+  "@checkPressTest": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "heard": "Heard",
+  "positionConfidence": "Position confidence",
+  "beatProgress": "Beat progress",
+  "holdingWaiting": "Holding — waiting for you to return to the script",
+  "yourPace": "Your pace",
+  "wpm": "wpm",
+  "paceDefault": "default · rehearse to calibrate",
+  "paceFromRehearsals": "{count, plural, =1{from 1 rehearsal} other{from {count} rehearsals}}",
+  "@paceFromRehearsals": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recalibrate": "Recalibrate",
+  "slower": "Slower",
+  "faster": "Faster",
+  "answersDescription": "How live answers are drafted, grounded and delivered. Sotto drafts; you decide what the room hears.",
+  "grounding": "Grounding",
+  "groundingScriptOnly": "My script and prep documents only",
+  "groundingScriptOnlySub": "Safest. Says “Not in your notes” when it can’t answer.",
+  "groundingScriptFirst": "Script first, general knowledge when needed",
+  "groundingScriptFirstSub": "Anything outside your material is labeled “verify”.",
+  "showSources": "Show sources under every answer",
+  "style": "Style",
+  "length": "Length",
+  "lengthSub": "Talking points are faster to say than paragraphs",
+  "headline": "Headline",
+  "headlinePlus3": "Headline + 3",
+  "detailed": "Detailed",
+  "sameAsQuestion": "Same as the question",
+  "sameAsScript": "Same as the script",
+  "tone": "Tone",
+  "matchScript": "Match the script",
+  "conversational": "Conversational",
+  "formal": "Formal",
+  "listeningForQuestions": "Listening for questions",
+  "capture": "Capture",
+  "captureSub": "Only while you ask it to — never in the background",
+  "stopAfterSilence": "Stop after silence of",
+  "predraft": "Pre-draft likely questions",
+  "predraftSub": "From Q&A prep — matched answers appear instantly",
+  "delivery": "Delivery",
+  "readAloudThrough": "Read aloud through",
+  "readAloudThroughSub": "The room never hears it — wear headphones",
+  "headphonesOnly": "Headphones only",
+  "systemOutput": "System output",
+  "voice": "Voice",
+  "systemDefault": "System default",
+  "copyForChatAsks": "Copy for chat asks for",
+  "holdKeyHalfSecond": "Hold {keys} (0.5 s)",
+  "@holdKeyHalfSecond": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "copyThenPaste": "Copy, then paste",
+  "copyThenPasteSub": "Holding the send key places the answer on your clipboard as plain text. Paste it into the Zoom, Teams or Meet chat with one keystroke. Nothing is posted on your behalf.",
+  "whatLeaves": "What leaves this computer",
+  "leavesAudio": "Audio — yours or the room’s, when speech runs on-device.",
+  "leavesQuestion": "The text of the question and the excerpts used to answer it.",
+  "leavesNothingElse": "Nothing else: no script, no history, no account.",
+  "generalDescription": "Language, pace, storage and defaults. Everything Sotto keeps lives on this computer.",
+  "interface": "Interface",
+  "interfaceLanguage": "Language",
+  "interfaceLanguageSub": "System follows your computer’s language",
+  "langSystem": "System",
+  "pace": "Pace",
+  "wordsPerMinute": "Words per minute",
+  "wordsPerMinuteSub": "Used for timing until rehearsals calibrate it",
+  "storage": "Storage",
+  "dataFolder": "Data folder",
+  "copyPath": "Copy path",
+  "format": "Format",
+  "formatSub": "Scripts, settings, sessions and Q&A history are stored in a local database. API keys are stored in the system keychain.",
+  "resetAllSettings": "Reset all settings",
+  "resetAllSettingsSub": "Scripts, sessions and API keys are kept",
+  "aboutSotto": "About Sotto",
+  "aboutSottoBody": "From sotto voce — under the voice. A live presentation assistant that keeps your script under the camera, follows your voice line by line, and drafts an answer when the room asks a question.",
+  "versionLine": "Version 1.0 · build 1",
+  "typefaces": "Typefaces: Geist, Geist Mono, Atkinson Hyperlegible Next (SIL OFL)",
+  "addKeyFirst": "Add a key first.",
+  "connectedFirstToken": "Connected · first token in {seconds} s",
+  "@connectedFirstToken": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "inKeychain": "In keychain",
+  "integrationsDescription": "Answers use your own API key. It is stored in the system keychain and sent only to the provider you choose, only when a question is asked.",
+  "answersModel": "Answers model",
+  "provider": "Provider",
+  "apiKey": "API key",
+  "apiKeyOptional": "Optional for local servers such as Ollama or LM Studio",
+  "model": "Model",
+  "modelLowEffort": "Live answers run at low effort for speed",
+  "baseUrl": "Base URL",
+  "baseUrlSub": "Leave empty for {url}",
+  "@baseUrlSub": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "testConnection": "Test connection",
+  "test": "Test",
+  "cloudStt": "Cloud speech-to-text",
+  "cloudSttFooter": "Optional. Used when you choose the Cloud engine, or as a fallback when on-device models are not installed. Falls back to your OpenAI key if this one is empty.",
+  "compatible": "Compatible",
+  "privacyDescription": "Privacy by construction: presenter audio stays on this computer, room audio is captured only on the chord, and only text is sent to answer a question.",
+  "hideFromCapture": "Hide the overlay from screen capture",
+  "hideFromCaptureSub": "Uses the OS protection where available. On macOS 15+, sharing your entire screen can still capture it — share a window instead.",
+  "retention": "Retention",
+  "keepHistoryFor": "Keep Q&A history for",
+  "daysCount": "{count} days",
+  "@daysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aYear": "A year",
+  "deleteQaHistory": "Delete Q&A history",
+  "deleteQaHistoryConfirm": "Delete Q&A history?",
+  "deleteQaHistoryBody": "Every recorded question and answer is removed.",
+  "dangerZone": "Danger zone",
+  "removeApiKeys": "Remove API keys",
+  "removeApiKeysSub": "Deletes every key Sotto stored in the keychain",
+  "removeApiKeysConfirm": "Remove API keys?",
+  "removeApiKeysBody": "Answers stop working until you add a key again.",
+  "deleteAllData": "Delete all local data",
+  "deleteAllDataSub": "Scripts, collections, sessions and Q&A history",
+  "deleteEverything": "Delete everything",
+  "deleteAllDataConfirm": "Delete all local data?",
+  "deleteAllDataBody": "This removes every script and session from this computer. It can’t be undone.",
+  "privVoice": "Voice",
+  "privVoiceBody": "Presenter audio never leaves the device with the on-device engine.",
+  "privRoom": "Room audio",
+  "privRoomBody": "Captured only on the chord, shown in red, transcribed locally.",
+  "privAnswers": "Answers",
+  "privAnswersBody": "Only the question text and the excerpts used are sent to your model provider.",
+  "privModels": "Speech models",
+  "privModelsBody": "Downloaded once from the sherpa-onnx project on GitHub.",
+  "privConsent": "Consent",
+  "privConsentBody": "Recording laws vary. Consider telling the room that Q&A assist is on."
+}
