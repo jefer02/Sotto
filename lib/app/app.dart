@@ -1,0 +1,160 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../core/design/theme.dart';
+import '../core/design/tokens.dart';
+import '../data/models/settings.dart';
+import '../data/repositories.dart';
+import '../l10n/l10n.dart';
+import '../features/live/live_controller.dart';
+import '../features/library/library_actions.dart';
+import '../features/live/overlay_screen.dart';
+import '../features/preflight/preflight_dialog.dart';
+import 'router.dart';
+
+/// The script a global ⌃⌥L should start: the one open in the editor, or
+/// the library's "Up next".
+class FocusedScript extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void set(String? id) => state = id;
+}
+
+final focusedScriptProvider = NotifierProvider<FocusedScript, String?>(FocusedScript.new);
+
+/// The interface locale for a language setting.
+Locale appLocale(AppLanguage language) => switch (language) {
+  AppLanguage.en => const Locale('en'),
+  AppLanguage.es => const Locale('es'),
+  AppLanguage.system => L10n.resolve(WidgetsBinding.instance.platformDispatcher.locale),
+};
+
+class SottoApp extends ConsumerStatefulWidget {
+  const SottoApp({super.key});
+
+  @override
+  ConsumerState<SottoApp> createState() => _SottoAppState();
+}
+
+class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver {
+  // "System" language follows the OS, including changes while running.
+  @override
+  void didChangeLocales(List<Locale>? locales) => setState(() {});
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    final live = ref.read(liveControllerProvider.notifier);
+    live.onEnded = (record) {
+      ref.read(routerProvider).go('/script/${record.scriptId}?tab=rehearsals');
+      unawaited(_registerIdle());
+    };
+    WidgetsBinding.instance.addPostFrameCallback((_) => _registerIdle());
+  }
+
+  Future<void> _registerIdle() =>
+      ref.read(liveControllerProvider.notifier).registerIdleHotkeys(_openPreflightFromHotkey);
+
+  void _openPreflightFromHotkey() {
+    final id = ref.read(focusedScriptProvider);
+    final context = rootNavigatorKey.currentContext;
+    if (id == null || context == null) return;
+    unawaited(showPreflight(context, ref, id));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Re-bind ⌃⌥L when the chord or its key changes in Settings.
+    ref.listen(settingsProvider.select((s) => (s.chord, s.bindings)), (_, _) {
+      if (!ref.read(liveControllerProvider).isLive) unawaited(_registerIdle());
+    });
+    final settings = ref.watch(settingsProvider);
+    final isLive = ref.watch(liveControllerProvider.select((s) => s.isLive));
+    final locale = appLocale(settings.uiLanguage);
+    // Controllers and services read strings without a BuildContext.
+    L10n.current = lookupAppLocalizations(locale);
+    Intl.defaultLocale = locale.languageCode;
+
+    final themeMode = switch (settings.appTheme) {
+      AppThemeMode.dark => ThemeMode.dark,
+      AppThemeMode.light => ThemeMode.light,
+      AppThemeMode.auto => ThemeMode.system,
+    };
+
+    if (isLive) {
+      final platformDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+      final overlayDark = switch (settings.overlayTheme) {
+        OverlayThemeMode.dark => true,
+        OverlayThemeMode.light => false,
+        OverlayThemeMode.matchApp =>
+          settings.appTheme == AppThemeMode.dark || (settings.appTheme == AppThemeMode.auto && platformDark),
+      };
+      final overlay = (overlayDark ? OverlayPalette.dark : OverlayPalette.light).withGroundOpacity(
+        settings.overlayOpacity * (overlayDark ? 1 : 1.1).clamp(0, 1),
+      );
+      return MaterialApp(
+        key: ValueKey(locale.languageCode),
+        debugShowCheckedModeBanner: false,
+        title: 'Sotto',
+        locale: locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        color: const Color(0x00000000),
+        theme: buildSottoTheme(
+          overlayDark ? SottoPalette.stage : SottoPalette.houseLights,
+          overlay: overlay,
+        ).copyWith(scaffoldBackgroundColor: const Color(0x00000000), canvasColor: const Color(0x00000000)),
+        home: const OverlayScreen(),
+      );
+    }
+
+    // Keyed by language so every screen, including strings computed outside
+    // widgets, rebuilds when the language changes.
+    return MaterialApp.router(
+      key: ValueKey(locale.languageCode),
+      debugShowCheckedModeBanner: false,
+      title: 'Sotto',
+      locale: locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      theme: buildSottoTheme(SottoPalette.houseLights),
+      darkTheme: buildSottoTheme(SottoPalette.stage),
+      themeMode: themeMode,
+      routerConfig: ref.watch(routerProvider),
+      builder: (context, child) => _GlobalShortcuts(child: child ?? const SizedBox.shrink()),
+    );
+  }
+}
+
+/// Main-window shortcuts: ⌘N new script, ⌘, settings (⌘K is handled by the
+/// sidebar search field).
+class _GlobalShortcuts extends ConsumerWidget {
+  const _GlobalShortcuts({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.read(routerProvider);
+    final isMac = Theme.of(context).platform == TargetPlatform.macOS;
+    SingleActivator key(LogicalKeyboardKey k) => SingleActivator(k, meta: isMac, control: !isMac);
+    return CallbackShortcuts(
+      bindings: {
+        key(LogicalKeyboardKey.comma): () => router.go('/settings/shortcuts'),
+        key(LogicalKeyboardKey.keyN): () => unawaited(createScriptAndOpen(ref)),
+      },
+      child: child,
+    );
+  }
+}
