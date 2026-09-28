@@ -5,7 +5,6 @@ import '../../core/platform/hotkey_service.dart';
 import '../../core/platform/platform_keys.dart';
 import '../../data/models/settings.dart';
 import '../../data/repositories.dart';
-import '../../data/storage/secret_store.dart';
 import '../../l10n/l10n.dart';
 import '../../services/ai/llm_client.dart';
 import '../../services/speech/model_manager.dart';
@@ -63,17 +62,10 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
   final lang = settings.language.split('-').first.toUpperCase();
   final extra = settings.alsoRecognize.map((l) => l.split('-').first.toUpperCase());
   final langs = [lang, ...extra].join(', ');
-  final hasCloudKey = await secrets.read(SecretKey.cloudSttApiKey) != null;
 
   final ReadinessItem voice;
   if (settings.advanceMode == AdvanceMode.manual) {
     voice = ReadinessItem(l.readyHotkeysOnly, CheckLevel.ok, detail: l.readyAdvanceManual);
-  } else if (settings.engine == SpeechEngine.cloud) {
-    voice = ReadinessItem(
-      l.readyCloud(langs),
-      hasCloudKey ? CheckLevel.ok : CheckLevel.missing,
-      detail: hasCloudKey ? null : l.readyAddSttKey,
-    );
   } else {
     final english = settings.language.toLowerCase().startsWith('en');
     final canFollow =
@@ -84,7 +76,7 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
         ? ReadinessItem(l.readyOnDevice(langs), CheckLevel.ok)
         : ReadinessItem(
             l.readyOnDevice(langs),
-            hasCloudKey ? CheckLevel.warn : CheckLevel.missing,
+            CheckLevel.missing,
             detail: l.readyDownloadModels,
           );
   }

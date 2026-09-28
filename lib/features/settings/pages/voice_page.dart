@@ -214,24 +214,8 @@ class _VoicePageState extends ConsumerState<VoicePage> {
             ),
             SettingRow(
               title: context.l10n.engine,
-              subtitle: s.engine == SpeechEngine.onDevice
-                  ? context.l10n.engineOnDeviceSub
-                  : context.l10n.engineCloudSub,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (readiness != null) ...[_Status(item: readiness.voice), const SizedBox(width: 10)],
-                  SottoSelect<SpeechEngine>(
-                    width: 130,
-                    value: s.engine,
-                    options: [
-                      SelectOption(SpeechEngine.onDevice, context.l10n.onDevice),
-                      SelectOption(SpeechEngine.cloud, context.l10n.engineCloud),
-                    ],
-                    onChanged: (v) => n.update((x) => x.copyWith(engine: v)),
-                  ),
-                ],
-              ),
+              subtitle: context.l10n.engineOnDeviceSub,
+              trailing: readiness == null ? null : _Status(item: readiness.voice),
             ),
           ],
         ),
@@ -439,7 +423,6 @@ class _LiveCheckState extends ConsumerState<_LiveCheck> {
       _engine = FollowEngine(_flat!, settings: settings);
       _session = await SpeechSession.start(
         settings: settings,
-        secrets: ref.read(secretStoreProvider),
         models: ref.read(modelManagerProvider),
       );
       if (!_session!.report.canFollow) {

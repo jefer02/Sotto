@@ -602,23 +602,11 @@ abstract class AppLocalizations {
   /// **'On-device · Whisper'**
   String get engineOnDeviceWhisper;
 
-  /// No description provided for @engineCloud.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud'**
-  String get engineCloud;
-
   /// No description provided for @engineModelsMissing.
   ///
   /// In en, this message translates to:
   /// **'Speech models are not installed yet. Download them in Settings → Voice & following.'**
   String get engineModelsMissing;
-
-  /// No description provided for @engineCloudKeyMissing.
-  ///
-  /// In en, this message translates to:
-  /// **'Add a speech-to-text API key in Settings → Integrations to use the cloud engine.'**
-  String get engineCloudKeyMissing;
 
   /// No description provided for @sttEngineFailed.
   ///
@@ -637,18 +625,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Speech engine stopped.'**
   String get sttStopped;
-
-  /// No description provided for @sttBadKey.
-  ///
-  /// In en, this message translates to:
-  /// **'The speech-to-text API key was rejected.'**
-  String get sttBadKey;
-
-  /// No description provided for @sttCloudFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud transcription failed ({status}).'**
-  String sttCloudFailed(int status);
 
   /// No description provided for @micPermission.
   ///
@@ -709,18 +685,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Advance: manual'**
   String get readyAdvanceManual;
-
-  /// No description provided for @readyCloud.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud · {langs}'**
-  String readyCloud(String langs);
-
-  /// No description provided for @readyAddSttKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Add a speech-to-text key in Integrations'**
-  String get readyAddSttKey;
 
   /// No description provided for @readyOnDevice.
   ///
@@ -2720,12 +2684,6 @@ abstract class AppLocalizations {
   /// **'Test with this script'**
   String get testWithScript;
 
-  /// No description provided for @microphone.
-  ///
-  /// In en, this message translates to:
-  /// **'Microphone'**
-  String get microphone;
-
   /// No description provided for @noMicrophoneFound.
   ///
   /// In en, this message translates to:
@@ -2815,24 +2773,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'sherpa-onnx on this computer · no audio leaves it'**
   String get engineOnDeviceSub;
-
-  /// No description provided for @engineCloudSub.
-  ///
-  /// In en, this message translates to:
-  /// **'OpenAI-compatible speech-to-text · audio is uploaded while you speak'**
-  String get engineCloudSub;
-
-  /// No description provided for @onDevice.
-  ///
-  /// In en, this message translates to:
-  /// **'On-device'**
-  String get onDevice;
-
-  /// No description provided for @cloud.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud'**
-  String get cloud;
 
   /// No description provided for @following.
   ///
@@ -3476,18 +3416,6 @@ abstract class AppLocalizations {
   /// **'Answers are drafted by DeepSeek. Add your API key; it is stored in the system keychain and sent to DeepSeek only when a question is asked.'**
   String get integrationsDescription;
 
-  /// No description provided for @answersModel.
-  ///
-  /// In en, this message translates to:
-  /// **'Answers model'**
-  String get answersModel;
-
-  /// No description provided for @provider.
-  ///
-  /// In en, this message translates to:
-  /// **'Provider'**
-  String get provider;
-
   /// No description provided for @apiKey.
   ///
   /// In en, this message translates to:
@@ -3500,12 +3428,6 @@ abstract class AppLocalizations {
   /// **'Model'**
   String get model;
 
-  /// No description provided for @baseUrl.
-  ///
-  /// In en, this message translates to:
-  /// **'Base URL'**
-  String get baseUrl;
-
   /// No description provided for @testConnection.
   ///
   /// In en, this message translates to:
@@ -3517,24 +3439,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Test'**
   String get test;
-
-  /// No description provided for @cloudStt.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud speech-to-text'**
-  String get cloudStt;
-
-  /// No description provided for @cloudSttFooter.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional. Used when you choose the Cloud engine, or as a fallback when on-device models are not installed. Falls back to your OpenAI key if this one is empty.'**
-  String get cloudSttFooter;
-
-  /// No description provided for @compatible.
-  ///
-  /// In en, this message translates to:
-  /// **'Compatible'**
-  String get compatible;
 
   /// No description provided for @privacyDescription.
   ///

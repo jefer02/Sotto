@@ -97,7 +97,6 @@ class LiveController extends Notifier<LiveState> {
         final hints = script.hintWords.isNotEmpty ? script.hintWords : ScriptStructurer.hintWordsFor(script.sections);
         _speech = await SpeechSession.start(
           settings: settings,
-          secrets: ref.read(secretStoreProvider),
           models: ref.read(modelManagerProvider),
           hints: hints,
         );

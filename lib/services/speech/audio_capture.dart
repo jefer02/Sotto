@@ -7,7 +7,7 @@ import 'package:record/record.dart';
 import '../../l10n/l10n.dart';
 
 /// 16 kHz mono PCM from the chosen microphone, as float samples in [-1, 1].
-/// Presenter audio never leaves the device unless the cloud engine is on.
+/// Presenter audio never leaves the device.
 class AudioCapture {
   static const sampleRate = 16000;
 
@@ -95,8 +95,8 @@ class AudioCapture {
 }
 
 /// Energy-based voice activity with an adaptive noise floor. Used for the
-/// question silence ring and for segmenting audio for the Whisper and
-/// cloud engines. Cheap enough to run on every 30 ms frame.
+/// question silence ring and for segmenting audio for Whisper. Cheap enough
+/// to run on every 30 ms frame.
 class EnergyVad {
   EnergyVad({this.frameSamples = 480});
 

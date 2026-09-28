@@ -297,15 +297,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get engineOnDeviceWhisper => 'On-device · Whisper';
 
   @override
-  String get engineCloud => 'Cloud';
-
-  @override
   String get engineModelsMissing =>
       'Speech models are not installed yet. Download them in Settings → Voice & following.';
-
-  @override
-  String get engineCloudKeyMissing =>
-      'Add a speech-to-text API key in Settings → Integrations to use the cloud engine.';
 
   @override
   String sttEngineFailed(String error) {
@@ -317,14 +310,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sttStopped => 'Speech engine stopped.';
-
-  @override
-  String get sttBadKey => 'The speech-to-text API key was rejected.';
-
-  @override
-  String sttCloudFailed(int status) {
-    return 'Cloud transcription failed ($status).';
-  }
 
   @override
   String get micPermission => 'Sotto needs microphone access. Allow it in System Settings → Privacy.';
@@ -363,14 +348,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readyAdvanceManual => 'Advance: manual';
-
-  @override
-  String readyCloud(String langs) {
-    return 'Cloud · $langs';
-  }
-
-  @override
-  String get readyAddSttKey => 'Add a speech-to-text key in Integrations';
 
   @override
   String readyOnDevice(String langs) {
@@ -1522,9 +1499,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get testWithScript => 'Test with this script';
 
   @override
-  String get microphone => 'Microphone';
-
-  @override
   String get noMicrophoneFound => 'No microphone found';
 
   @override
@@ -1569,15 +1543,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get engineOnDeviceSub => 'sherpa-onnx on this computer · no audio leaves it';
-
-  @override
-  String get engineCloudSub => 'OpenAI-compatible speech-to-text · audio is uploaded while you speak';
-
-  @override
-  String get onDevice => 'On-device';
-
-  @override
-  String get cloud => 'Cloud';
 
   @override
   String get following => 'Following';
@@ -1924,35 +1889,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Answers are drafted by DeepSeek. Add your API key; it is stored in the system keychain and sent to DeepSeek only when a question is asked.';
 
   @override
-  String get answersModel => 'Answers model';
-
-  @override
-  String get provider => 'Provider';
-
-  @override
   String get apiKey => 'API key';
 
   @override
   String get model => 'Model';
 
   @override
-  String get baseUrl => 'Base URL';
-
-  @override
   String get testConnection => 'Test connection';
 
   @override
   String get test => 'Test';
-
-  @override
-  String get cloudStt => 'Cloud speech-to-text';
-
-  @override
-  String get cloudSttFooter =>
-      'Optional. Used when you choose the Cloud engine, or as a fallback when on-device models are not installed. Falls back to your OpenAI key if this one is empty.';
-
-  @override
-  String get compatible => 'Compatible';
 
   @override
   String get privacyDescription =>

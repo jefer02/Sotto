@@ -32,8 +32,6 @@ enum AdvanceMode { voice, timed, manual }
 
 enum Sensitivity { low, medium, high }
 
-enum SpeechEngine { onDevice, cloud }
-
 enum Grounding { scriptOnly, scriptFirst }
 
 enum AnswerLength { headline, headlinePlus3, detailed }
@@ -45,8 +43,6 @@ enum AnswerTone { matchScript, conversational, formal }
 enum CaptureMode { toggle, hold }
 
 enum ReadAloudRoute { headphonesOnly, systemDefault }
-
-enum CloudSttProvider { openai, openaiCompatible }
 
 const defaultAiModel = 'deepseek-flash';
 
@@ -75,7 +71,6 @@ class AppSettings {
     this.noiseSuppression = true,
     this.language = 'en-US',
     this.alsoRecognize = const [],
-    this.engine = SpeechEngine.onDevice,
     this.advanceMode = AdvanceMode.voice,
     this.advanceThreshold = 0.8,
     this.sensitivity = Sensitivity.medium,
@@ -100,9 +95,6 @@ class AppSettings {
     this.followSlideChanges = true,
     // Integrations
     this.aiModel = defaultAiModel,
-    this.cloudSttProvider = CloudSttProvider.openai,
-    this.cloudSttModel = 'whisper-1',
-    this.cloudSttBaseUrl = '',
     // Privacy
     this.excludeFromCapture = true,
     this.historyRetentionDays = 30,
@@ -134,7 +126,6 @@ class AppSettings {
   final bool noiseSuppression;
   final String language;
   final List<String> alsoRecognize;
-  final SpeechEngine engine;
   final AdvanceMode advanceMode;
 
   /// "Move on when I have said" — fraction of a beat.
@@ -167,9 +158,6 @@ class AppSettings {
   /// DeepSeek model id. The list comes from `GET /models`; ids have changed
   /// more than once, so nothing else in the app hardcodes them.
   final String aiModel;
-  final CloudSttProvider cloudSttProvider;
-  final String cloudSttModel;
-  final String cloudSttBaseUrl;
 
   final bool excludeFromCapture;
   final int historyRetentionDays;
@@ -201,7 +189,6 @@ class AppSettings {
     bool? noiseSuppression,
     String? language,
     List<String>? alsoRecognize,
-    SpeechEngine? engine,
     AdvanceMode? advanceMode,
     double? advanceThreshold,
     Sensitivity? sensitivity,
@@ -223,9 +210,6 @@ class AppSettings {
     Map<String, int>? bindings,
     bool? followSlideChanges,
     String? aiModel,
-    CloudSttProvider? cloudSttProvider,
-    String? cloudSttModel,
-    String? cloudSttBaseUrl,
     bool? excludeFromCapture,
     int? historyRetentionDays,
     bool? onboarded,
@@ -249,7 +233,6 @@ class AppSettings {
     noiseSuppression: noiseSuppression ?? this.noiseSuppression,
     language: language ?? this.language,
     alsoRecognize: alsoRecognize ?? this.alsoRecognize,
-    engine: engine ?? this.engine,
     advanceMode: advanceMode ?? this.advanceMode,
     advanceThreshold: advanceThreshold ?? this.advanceThreshold,
     sensitivity: sensitivity ?? this.sensitivity,
@@ -271,9 +254,6 @@ class AppSettings {
     bindings: bindings ?? this.bindings,
     followSlideChanges: followSlideChanges ?? this.followSlideChanges,
     aiModel: aiModel ?? this.aiModel,
-    cloudSttProvider: cloudSttProvider ?? this.cloudSttProvider,
-    cloudSttModel: cloudSttModel ?? this.cloudSttModel,
-    cloudSttBaseUrl: cloudSttBaseUrl ?? this.cloudSttBaseUrl,
     excludeFromCapture: excludeFromCapture ?? this.excludeFromCapture,
     historyRetentionDays: historyRetentionDays ?? this.historyRetentionDays,
     onboarded: onboarded ?? this.onboarded,
@@ -301,7 +281,6 @@ class AppSettings {
     'noiseSuppression': noiseSuppression,
     'language': language,
     'alsoRecognize': alsoRecognize,
-    'engine': engine.name,
     'advanceMode': advanceMode.name,
     'advanceThreshold': advanceThreshold,
     'sensitivity': sensitivity.name,
@@ -323,9 +302,6 @@ class AppSettings {
     'bindings': bindings,
     'followSlideChanges': followSlideChanges,
     'aiModel': aiModel,
-    'cloudSttProvider': cloudSttProvider.name,
-    'cloudSttModel': cloudSttModel,
-    'cloudSttBaseUrl': cloudSttBaseUrl,
     'excludeFromCapture': excludeFromCapture,
     'historyRetentionDays': historyRetentionDays,
     'onboarded': onboarded,
@@ -363,7 +339,6 @@ class AppSettings {
       noiseSuppression: j['noiseSuppression'] as bool? ?? d.noiseSuppression,
       language: j['language'] as String? ?? d.language,
       alsoRecognize: [...(j['alsoRecognize'] as List? ?? const []).cast<String>()],
-      engine: e(SpeechEngine.values, j['engine'], d.engine),
       advanceMode: e(AdvanceMode.values, j['advanceMode'], d.advanceMode),
       advanceThreshold: n(j['advanceThreshold'], d.advanceThreshold),
       sensitivity: e(Sensitivity.values, j['sensitivity'], d.sensitivity),
@@ -394,9 +369,6 @@ class AppSettings {
         final String m when m.startsWith('deepseek') => m,
         _ => d.aiModel,
       },
-      cloudSttProvider: e(CloudSttProvider.values, j['cloudSttProvider'], d.cloudSttProvider),
-      cloudSttModel: j['cloudSttModel'] as String? ?? d.cloudSttModel,
-      cloudSttBaseUrl: j['cloudSttBaseUrl'] as String? ?? d.cloudSttBaseUrl,
       excludeFromCapture: j['excludeFromCapture'] as bool? ?? d.excludeFromCapture,
       historyRetentionDays: j['historyRetentionDays'] as int? ?? d.historyRetentionDays,
       onboarded: j['onboarded'] as bool? ?? d.onboarded,

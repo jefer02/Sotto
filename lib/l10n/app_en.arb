@@ -203,9 +203,7 @@
   "engineUnavailable": "Unavailable",
   "engineOnDeviceStreaming": "On-device · streaming",
   "engineOnDeviceWhisper": "On-device · Whisper",
-  "engineCloud": "Cloud",
   "engineModelsMissing": "Speech models are not installed yet. Download them in Settings → Voice & following.",
-  "engineCloudKeyMissing": "Add a speech-to-text API key in Settings → Integrations to use the cloud engine.",
   "sttEngineFailed": "Speech engine failed to start: {error}",
   "@sttEngineFailed": {
     "placeholders": {
@@ -216,15 +214,6 @@
   },
   "sttNoModel": "No transcription model installed.",
   "sttStopped": "Speech engine stopped.",
-  "sttBadKey": "The speech-to-text API key was rejected.",
-  "sttCloudFailed": "Cloud transcription failed ({status}).",
-  "@sttCloudFailed": {
-    "placeholders": {
-      "status": {
-        "type": "int"
-      }
-    }
-  },
   "micPermission": "Sotto needs microphone access. Allow it in System Settings → Privacy.",
   "noticeShortcutsTaken": "{count, plural, =1{1 shortcut is taken by another app} other{{count} shortcuts are taken by another app}}",
   "@noticeShortcutsTaken": {
@@ -242,15 +231,6 @@
   "readyNoMic": "No microphone",
   "readyHotkeysOnly": "Hotkeys only",
   "readyAdvanceManual": "Advance: manual",
-  "readyCloud": "Cloud · {langs}",
-  "@readyCloud": {
-    "placeholders": {
-      "langs": {
-        "type": "String"
-      }
-    }
-  },
-  "readyAddSttKey": "Add a speech-to-text key in Integrations",
   "readyOnDevice": "On-device · {langs}",
   "@readyOnDevice": {
     "placeholders": {
@@ -979,7 +959,6 @@
   "voiceDescription": "How Sotto listens to you while you present. On-device recognition keeps your voice on this computer.",
   "stopTest": "Stop test",
   "testWithScript": "Test with this script",
-  "microphone": "Microphone",
   "noMicrophoneFound": "No microphone found",
   "inputLevel": "Input level",
   "inputLevelSub": "Speak normally — aim for the green zone",
@@ -995,9 +974,6 @@
   "addLanguage": "Add a language",
   "engine": "Engine",
   "engineOnDeviceSub": "sherpa-onnx on this computer · no audio leaves it",
-  "engineCloudSub": "OpenAI-compatible speech-to-text · audio is uploaded while you speak",
-  "onDevice": "On-device",
-  "cloud": "Cloud",
   "following": "Following",
   "advance": "Advance",
   "followMyVoice": "Follow my voice",
@@ -1140,16 +1116,10 @@
   },
   "inKeychain": "In keychain",
   "integrationsDescription": "Answers are drafted by DeepSeek. Add your API key; it is stored in the system keychain and sent to DeepSeek only when a question is asked.",
-  "answersModel": "Answers model",
-  "provider": "Provider",
   "apiKey": "API key",
   "model": "Model",
-  "baseUrl": "Base URL",
   "testConnection": "Test connection",
   "test": "Test",
-  "cloudStt": "Cloud speech-to-text",
-  "cloudSttFooter": "Optional. Used when you choose the Cloud engine, or as a fallback when on-device models are not installed. Falls back to your OpenAI key if this one is empty.",
-  "compatible": "Compatible",
   "privacyDescription": "Privacy by construction: presenter audio stays on this computer, room audio is captured only on the chord, and only text is sent to answer a question.",
   "hideFromCapture": "Hide the overlay from screen capture",
   "hideFromCaptureSub": "Uses the OS protection where available. On macOS 15+, sharing your entire screen can still capture it — share a window instead.",

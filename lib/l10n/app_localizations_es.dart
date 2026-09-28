@@ -299,15 +299,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get engineOnDeviceWhisper => 'En el equipo · Whisper';
 
   @override
-  String get engineCloud => 'Nube';
-
-  @override
   String get engineModelsMissing =>
       'Los modelos de voz aún no están instalados. Descárgalos en Ajustes → Voz y seguimiento.';
-
-  @override
-  String get engineCloudKeyMissing =>
-      'Añade una clave de API de voz a texto en Ajustes → Integraciones para usar el motor en la nube.';
 
   @override
   String sttEngineFailed(String error) {
@@ -319,14 +312,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get sttStopped => 'El motor de voz se detuvo.';
-
-  @override
-  String get sttBadKey => 'La clave de API de voz a texto fue rechazada.';
-
-  @override
-  String sttCloudFailed(int status) {
-    return 'La transcripción en la nube falló ($status).';
-  }
 
   @override
   String get micPermission => 'Sotto necesita acceso al micrófono. Permítelo en Ajustes del sistema → Privacidad.';
@@ -366,14 +351,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get readyAdvanceManual => 'Avance: manual';
-
-  @override
-  String readyCloud(String langs) {
-    return 'Nube · $langs';
-  }
-
-  @override
-  String get readyAddSttKey => 'Añade una clave de voz a texto en Integraciones';
 
   @override
   String readyOnDevice(String langs) {
@@ -1533,9 +1510,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get testWithScript => 'Probar con este guion';
 
   @override
-  String get microphone => 'Micrófono';
-
-  @override
   String get noMicrophoneFound => 'No se encontró ningún micrófono';
 
   @override
@@ -1580,15 +1554,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get engineOnDeviceSub => 'sherpa-onnx en este equipo · el audio no sale de él';
-
-  @override
-  String get engineCloudSub => 'Voz a texto compatible con OpenAI · el audio se sube mientras hablas';
-
-  @override
-  String get onDevice => 'En el equipo';
-
-  @override
-  String get cloud => 'Nube';
 
   @override
   String get following => 'Seguimiento';
@@ -1930,35 +1895,16 @@ class AppLocalizationsEs extends AppLocalizations {
       'Las respuestas las redacta DeepSeek. Añade tu clave de API; se guarda en el llavero del sistema y solo se envía a DeepSeek cuando se hace una pregunta.';
 
   @override
-  String get answersModel => 'Modelo de respuestas';
-
-  @override
-  String get provider => 'Proveedor';
-
-  @override
   String get apiKey => 'Clave de API';
 
   @override
   String get model => 'Modelo';
 
   @override
-  String get baseUrl => 'URL base';
-
-  @override
   String get testConnection => 'Probar conexión';
 
   @override
   String get test => 'Probar';
-
-  @override
-  String get cloudStt => 'Voz a texto en la nube';
-
-  @override
-  String get cloudSttFooter =>
-      'Opcional. Se usa si eliges el motor en la nube, o como respaldo si no hay modelos en el equipo. Si está vacía, se usa tu clave de OpenAI.';
-
-  @override
-  String get compatible => 'Compatible';
 
   @override
   String get privacyDescription =>

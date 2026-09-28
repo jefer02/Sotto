@@ -1,9 +1,9 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-enum SecretKey { deepseekApiKey, cloudSttApiKey }
+enum SecretKey { deepseekApiKey }
 
 /// Keys earlier versions stored; removed by [SecretStore.wipe].
-const _legacyKeys = ['anthropicApiKey', 'openaiApiKey', 'compatibleApiKey'];
+const _legacyKeys = ['anthropicApiKey', 'openaiApiKey', 'compatibleApiKey', 'cloudSttApiKey'];
 
 /// API keys the user saves never touch the Hive database: they go to
 /// the macOS Keychain / Windows Credential Manager.

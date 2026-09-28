@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import '../../data/models/settings.dart';
-import '../../data/storage/secret_store.dart';
 import '../../l10n/l10n.dart';
 import 'audio_capture.dart';
 import 'model_manager.dart';
@@ -71,7 +70,6 @@ class SpeechSession {
 
   static Future<SpeechSession> start({
     required AppSettings settings,
-    required SecretStore secrets,
     required ModelManager models,
     List<String> hints = const [],
   }) async {
@@ -80,20 +78,13 @@ class SpeechSession {
     Transcriber? transcriber;
     final l = L10n.current;
     String following = l.engineUnavailable, questions = l.engineUnavailable;
-    var canFollow = false, canAnswer = false;
+    var canFollow = false;
     String? warning;
 
     final english = settings.language.toLowerCase().startsWith('en');
     final prompt = hints.isEmpty ? null : hints.join(', ');
 
-    Future<CloudTranscriber?> cloud() async {
-      final key = await secrets.read(SecretKey.cloudSttApiKey);
-      if (key == null) return null;
-      final base = settings.cloudSttBaseUrl.isNotEmpty ? settings.cloudSttBaseUrl : 'https://api.openai.com/v1';
-      return CloudTranscriber(apiKey: key, model: settings.cloudSttModel, baseUrl: base);
-    }
-
-    if (settings.engine == SpeechEngine.onDevice) {
+    {
       final streaming = english
           ? (await models.locate(ModelCatalog.streamingEn) ?? await models.locate(ModelCatalog.streamingEnLight))
           : null;
@@ -117,32 +108,12 @@ class SpeechSession {
         if (engine.canTranscribe) {
           transcriber = engine;
           questions = l.engineOnDeviceWhisper;
-          canAnswer = true;
         }
       } else {
         warning = l.engineModelsMissing;
       }
     }
 
-    // Cloud: chosen explicitly, or as the fallback when on-device is missing.
-    if (follower == null || transcriber == null) {
-      final c = await cloud();
-      if (c != null) {
-        disposables.add(c.dispose);
-        if (follower == null) {
-          final seg = SegmentedRecognizer(c, language: settings.language, prompt: prompt);
-          disposables.add(seg.dispose);
-          follower = seg;
-          following = l.engineCloud;
-        }
-        transcriber ??= c;
-        if (!canAnswer) questions = l.engineCloud;
-        canAnswer = true;
-        warning = settings.engine == SpeechEngine.cloud ? null : warning;
-      } else if (settings.engine == SpeechEngine.cloud) {
-        warning = l.engineCloudKeyMissing;
-      }
-    }
     // Last resort for questions: the streaming model's own words.
     if (transcriber == null && follower != null) questions = following;
     canFollow = follower != null;

@@ -4,8 +4,7 @@
 under the camera, follows your voice line by line, and drafts an answer when the room asks a question.
 
 Built with Flutter 3.47 / Dart 3.13. Fully local: no backend and no account. Everything is stored on
-this computer. The only network calls are the answer model (DeepSeek), the optional cloud
-speech-to-text, and a one-time download of the on-device speech models.
+this computer. The only network calls are the answer model (DeepSeek) and a one-time download of the on-device speech models.
 
 ## Run it
 
@@ -87,7 +86,7 @@ lib/
                   FollowEngine (the rules from the "Following your voice" board)
     structuring/  Offline rule-based organizer: sections, one-breath beats, cues, hint words
   services/
-    speech/       Mic capture (record), sherpa-onnx worker isolate, Whisper, cloud STT, VAD, models
+    speech/       Mic capture (record), sherpa-onnx worker isolate, Whisper, VAD, models
     ai/           DeepSeek streaming client (raw SSE), model list, grounded answer drafting
     tts/          Read aloud (flutter_tts)
   features/
