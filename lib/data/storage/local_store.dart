@@ -15,8 +15,13 @@ class LocalStore {
   final Box<Map> qa;
   final Box<Map> sessions;
 
-  static Future<LocalStore> open() async {
-    await Hive.initFlutter('Sotto');
+  /// [path] is for tests; the app uses the application-support directory.
+  static Future<LocalStore> open({String? path}) async {
+    if (path != null) {
+      Hive.init(path);
+    } else {
+      await Hive.initFlutter('Sotto');
+    }
     final boxes = await Future.wait([
       Hive.openBox<Map>('scripts'),
       Hive.openBox<Map>('collections'),

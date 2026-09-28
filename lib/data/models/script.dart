@@ -208,7 +208,6 @@ class Script {
     this.sourceName,
     this.archived = false,
     this.scheduledAt,
-    this.meetingLabel,
   });
 
   final String id;
@@ -232,7 +231,6 @@ class Script {
 
   /// When the talk is scheduled — drives the "Up next" card.
   final DateTime? scheduledAt;
-  final String? meetingLabel;
 
   Iterable<Beat> get allBeats => sections.expand((s) => s.beats);
 
@@ -268,7 +266,6 @@ class Script {
     bool? archived,
     DateTime? scheduledAt,
     bool clearSchedule = false,
-    String? meetingLabel,
   }) => Script(
     id: id,
     title: title ?? this.title,
@@ -285,7 +282,6 @@ class Script {
     sourceName: sourceName ?? this.sourceName,
     archived: archived ?? this.archived,
     scheduledAt: clearSchedule ? null : (scheduledAt ?? this.scheduledAt),
-    meetingLabel: clearSchedule ? null : (meetingLabel ?? this.meetingLabel),
   );
 
   Map<String, Object?> toJson() => {
@@ -304,7 +300,6 @@ class Script {
     'sourceName': sourceName,
     'archived': archived,
     'scheduledAt': scheduledAt?.toIso8601String(),
-    'meetingLabel': meetingLabel,
   };
 
   factory Script.fromJson(Map<dynamic, dynamic> j) => Script(
@@ -323,7 +318,6 @@ class Script {
     sourceName: j['sourceName'] as String?,
     archived: j['archived'] as bool? ?? false,
     scheduledAt: j['scheduledAt'] == null ? null : DateTime.parse(j['scheduledAt'] as String),
-    meetingLabel: j['meetingLabel'] as String?,
   );
 
   factory Script.blank({String? title, String? collectionId}) {

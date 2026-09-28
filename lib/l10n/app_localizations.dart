@@ -1382,12 +1382,6 @@ abstract class AppLocalizations {
   /// **'Add section'**
   String get addSection;
 
-  /// No description provided for @structureSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{sections} sections · {beats} beats · {cues} cues'**
-  String structureSummary(int sections, int beats, int cues);
-
   /// No description provided for @timing.
   ///
   /// In en, this message translates to:
@@ -1453,12 +1447,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Time for “{title}”'**
   String timeForSection(String title);
-
-  /// No description provided for @beatsAndCues.
-  ///
-  /// In en, this message translates to:
-  /// **'{beats} beats · {cues} cues'**
-  String beatsAndCues(int beats, int cues);
 
   /// No description provided for @wordsAtPace.
   ///
@@ -3194,30 +3182,6 @@ abstract class AppLocalizations {
   /// **'Delivery'**
   String get delivery;
 
-  /// No description provided for @readAloudThrough.
-  ///
-  /// In en, this message translates to:
-  /// **'Read aloud through'**
-  String get readAloudThrough;
-
-  /// No description provided for @readAloudThroughSub.
-  ///
-  /// In en, this message translates to:
-  /// **'The room never hears it — wear headphones'**
-  String get readAloudThroughSub;
-
-  /// No description provided for @headphonesOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'Headphones only'**
-  String get headphonesOnly;
-
-  /// No description provided for @systemOutput.
-  ///
-  /// In en, this message translates to:
-  /// **'System output'**
-  String get systemOutput;
-
   /// No description provided for @voice.
   ///
   /// In en, this message translates to:
@@ -3263,7 +3227,7 @@ abstract class AppLocalizations {
   /// No description provided for @leavesAudio.
   ///
   /// In en, this message translates to:
-  /// **'Audio — yours or the room’s, when speech runs on-device.'**
+  /// **'Audio — yours and the room’s are transcribed on this computer.'**
   String get leavesAudio;
 
   /// No description provided for @leavesQuestion.
@@ -3569,7 +3533,7 @@ abstract class AppLocalizations {
   /// No description provided for @privVoiceBody.
   ///
   /// In en, this message translates to:
-  /// **'Presenter audio never leaves the device with the on-device engine.'**
+  /// **'Presenter audio never leaves this computer: speech runs on-device.'**
   String get privVoiceBody;
 
   /// No description provided for @privRoom.
@@ -3593,7 +3557,7 @@ abstract class AppLocalizations {
   /// No description provided for @privAnswersBody.
   ///
   /// In en, this message translates to:
-  /// **'Only the question text and the excerpts used are sent to your model provider.'**
+  /// **'Only the question text and the excerpts used are sent to DeepSeek.'**
   String get privAnswersBody;
 
   /// No description provided for @privModels.
@@ -3673,6 +3637,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open'**
   String get open;
+
+  /// No description provided for @beatsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 beat} other{{count} beats}}'**
+  String beatsCount(int count);
+
+  /// No description provided for @cuesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{no cues} =1{1 cue} other{{count} cues}}'**
+  String cuesCount(int count);
+
+  /// No description provided for @readAloudTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read aloud'**
+  String get readAloudTitle;
+
+  /// No description provided for @readAloudHeadphones.
+  ///
+  /// In en, this message translates to:
+  /// **'Plays through the system output — wear headphones so the room never hears it.'**
+  String get readAloudHeadphones;
+
+  /// No description provided for @welcomeStep.
+  ///
+  /// In en, this message translates to:
+  /// **'WELCOME · {step} OF {total}'**
+  String welcomeStep(int step, int total);
+
+  /// No description provided for @welcomeSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for now'**
+  String get welcomeSkip;
+
+  /// No description provided for @welcomeNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get welcomeNext;
+
+  /// No description provided for @welcomeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get welcomeBack;
+
+  /// No description provided for @welcomeUseExample.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with the example'**
+  String get welcomeUseExample;
+
+  /// No description provided for @welcomeModelsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the voice models'**
+  String get welcomeModelsTitle;
+
+  /// No description provided for @welcomeModelsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto follows your voice on this computer. These models are downloaded once and then work offline; your audio never leaves the device.'**
+  String get welcomeModelsBody;
+
+  /// No description provided for @welcomeModelsFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads keep going in the background. Without models, the overlay still advances with hotkeys or a timer.'**
+  String get welcomeModelsFooter;
+
+  /// No description provided for @welcomeScriptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bring in your first script'**
+  String get welcomeScriptTitle;
+
+  /// No description provided for @welcomeScriptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto organizes it into sections, one-breath beats and cues. You can also start with the example talk in your library.'**
+  String get welcomeScriptBody;
+
+  /// No description provided for @welcomeImportFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a file'**
+  String get welcomeImportFile;
+
+  /// No description provided for @welcomeImportFileSub.
+  ///
+  /// In en, this message translates to:
+  /// **'.docx, .pdf, .md or .txt'**
+  String get welcomeImportFileSub;
+
+  /// No description provided for @welcomePaste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste text'**
+  String get welcomePaste;
+
+  /// No description provided for @welcomePasteSub.
+  ///
+  /// In en, this message translates to:
+  /// **'From the clipboard'**
+  String get welcomePasteSub;
+
+  /// No description provided for @welcomeWrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Write from scratch'**
+  String get welcomeWrite;
+
+  /// No description provided for @welcomeWriteSub.
+  ///
+  /// In en, this message translates to:
+  /// **'A blank script'**
+  String get welcomeWriteSub;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:record/record.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/icons.dart';
@@ -104,8 +105,7 @@ class _VoicePageState extends ConsumerState<VoicePage> {
 
     return SettingsPageScaffold(
       title: context.l10n.setVoice,
-      description:
-          context.l10n.voiceDescription,
+      description: context.l10n.voiceDescription,
       action: SottoButton(
         label: _testing ? context.l10n.stopTest : context.l10n.testWithScript,
         icon: SottoIcons.mic,
@@ -154,8 +154,7 @@ class _VoicePageState extends ConsumerState<VoicePage> {
             ),
             SettingRow(
               title: context.l10n.questionsComeFrom,
-              subtitle:
-                  context.l10n.questionsComeFromSub,
+              subtitle: context.l10n.questionsComeFromSub,
               trailing: SottoSelect<String?>(
                 width: 230,
                 value: s.questionInputId,
@@ -309,21 +308,21 @@ class _Status extends StatelessWidget {
             decoration: BoxDecoration(shape: BoxShape.circle, color: ok ? p.confirmed : p.cueFill),
           ),
           const SizedBox(width: 6),
-          Text(ok ? context.l10n.filterReady : context.l10n.needsSetup, style: TypeScale.caption.copyWith(color: ok ? p.confirmed : p.cueText)),
+          Text(
+            ok ? context.l10n.filterReady : context.l10n.needsSetup,
+            style: TypeScale.caption.copyWith(color: ok ? p.confirmed : p.cueText),
+          ),
         ],
       ),
     );
   }
 }
 
-class _ModelsGroup extends ConsumerWidget {
+class _ModelsGroup extends StatelessWidget {
   const _ModelsGroup();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final p = context.palette;
-    final status = ref.watch(modelStatusProvider);
-    final notifier = ref.read(modelStatusProvider.notifier);
+  Widget build(BuildContext context) {
     return SettingsGroup(
       title: context.l10n.onDeviceModels,
       footer: context.l10n.onDeviceModelsFooter,
@@ -332,59 +331,78 @@ class _ModelsGroup extends ConsumerWidget {
           SettingRow(
             title: m.name,
             subtitle: '${m.description} · ${m.sizeMb} MB',
-            trailing: switch (status[m.id]) {
-              ModelReady() => Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SottoIcon(SottoIcons.check, size: 14, color: p.confirmed),
-                  const SizedBox(width: 6),
-                  Text(context.l10n.installed, style: TypeScale.caption.copyWith(color: p.confirmed)),
-                  const SizedBox(width: 8),
-                  SottoIconButton(icon: SottoIcons.close, tooltip: context.l10n.removeModel, onPressed: () => notifier.remove(m)),
-                ],
-              ),
-              ModelDownloading(:final progress, :final extracting) => SizedBox(
-                width: 170,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: LinearProgressIndicator(
-                          value: extracting ? null : progress,
-                          minHeight: 4,
-                          color: p.cueFill,
-                          backgroundColor: p.float,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      extracting ? context.l10n.unpacking : '${(progress * 100).round()}%',
-                      style: TypeScale.monoSmall.copyWith(color: p.inkSecondary),
-                    ),
-                  ],
-                ),
-              ),
-              ModelFailed(:final error) => Tooltip(
-                message: error,
-                child: SottoButton(
-                  label: context.l10n.retry,
-                  icon: SottoIcons.refresh,
-                  size: ButtonSize.small,
-                  onPressed: () => notifier.download(m),
-                ),
-              ),
-              _ => SottoButton(
-                label: context.l10n.download,
-                icon: SottoIcons.import,
-                size: ButtonSize.small,
-                onPressed: () => notifier.download(m),
-              ),
-            },
+            trailing: ModelDownloadControl(model: m),
           ),
       ],
     );
+  }
+}
+
+/// Download / progress / installed control for one on-device model. Shared
+/// by Settings → Voice and the first-run onboarding.
+class ModelDownloadControl extends ConsumerWidget {
+  const ModelDownloadControl({super.key, required this.model});
+  final SpeechModel model;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
+    final status = ref.watch(modelStatusProvider);
+    final notifier = ref.read(modelStatusProvider.notifier);
+    return switch (status[model.id]) {
+      ModelReady() => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SottoIcon(SottoIcons.check, size: 14, color: p.confirmed),
+          const SizedBox(width: 6),
+          Text(context.l10n.installed, style: TypeScale.caption.copyWith(color: p.confirmed)),
+          const SizedBox(width: 8),
+          SottoIconButton(
+            icon: SottoIcons.close,
+            tooltip: context.l10n.removeModel,
+            onPressed: () => notifier.remove(model),
+          ),
+        ],
+      ),
+      ModelDownloading(:final progress, :final extracting) => SizedBox(
+        width: 170,
+        child: Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: extracting ? null : progress,
+                  minHeight: 4,
+                  color: p.cueFill,
+                  backgroundColor: p.float,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              extracting ? context.l10n.unpacking : '${(progress * 100).round()}%',
+              style: TypeScale.monoSmall.copyWith(color: p.inkSecondary),
+            ),
+          ],
+        ),
+      ),
+      ModelFailed(:final error) => Tooltip(
+        message: error,
+        child: SottoButton(
+          label: context.l10n.retry,
+          icon: SottoIcons.refresh,
+          size: ButtonSize.small,
+          onPressed: () => notifier.download(model),
+        ),
+      ),
+      _ => SottoButton(
+        label: context.l10n.download,
+        icon: SottoIcons.import,
+        size: ButtonSize.small,
+        onPressed: () => notifier.download(model),
+      ),
+    };
   }
 }
 
@@ -421,10 +439,7 @@ class _LiveCheckState extends ConsumerState<_LiveCheck> {
     try {
       _flat = FlatScript.from(script, language: settings.language);
       _engine = FollowEngine(_flat!, settings: settings);
-      _session = await SpeechSession.start(
-        settings: settings,
-        models: ref.read(modelManagerProvider),
-      );
+      _session = await SpeechSession.start(settings: settings, models: ref.read(modelManagerProvider));
       if (!_session!.report.canFollow) {
         setState(() => _error = _session!.report.warning ?? context.l10n.noSpeechEngine);
         return;
@@ -497,9 +512,7 @@ class _LiveCheckState extends ConsumerState<_LiveCheck> {
                 Text(_error!, style: TypeScale.body.copyWith(color: p.inkSecondary))
               else if (!widget.active)
                 Text(
-                  script == null
-                      ? context.l10n.checkWriteFirst
-                      : context.l10n.checkPressTest(script.title),
+                  script == null ? context.l10n.checkWriteFirst : context.l10n.checkPressTest(script.title),
                   style: TypeScale.body.copyWith(color: p.inkSecondary),
                 )
               else ...[
@@ -553,14 +566,15 @@ class _LiveCheckState extends ConsumerState<_LiveCheck> {
                 ),
                 const SizedBox(height: 14),
                 _Meter(label: context.l10n.positionConfidence, value: conf, color: p.confirmed),
-                _Meter(label: context.l10n.beatProgress, value: words.isEmpty ? 0 : spoken / words.length, color: p.cueFill),
+                _Meter(
+                  label: context.l10n.beatProgress,
+                  value: words.isEmpty ? 0 : spoken / words.length,
+                  color: p.cueFill,
+                ),
                 if (pos?.holding ?? false)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      context.l10n.holdingWaiting,
-                      style: TypeScale.caption.copyWith(color: p.inkTertiary),
-                    ),
+                    child: Text(context.l10n.holdingWaiting, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
                   ),
               ],
             ],
@@ -647,9 +661,7 @@ class _PaceCard extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                samples.isEmpty
-                    ? context.l10n.paceDefault
-                    : context.l10n.paceFromRehearsals(samples.length),
+                samples.isEmpty ? context.l10n.paceDefault : context.l10n.paceFromRehearsals(samples.length),
                 style: TypeScale.caption.copyWith(color: p.inkTertiary),
               ),
             ],

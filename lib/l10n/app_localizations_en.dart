@@ -778,11 +778,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addSection => 'Add section';
 
   @override
-  String structureSummary(int sections, int beats, int cues) {
-    return '$sections sections · $beats beats · $cues cues';
-  }
-
-  @override
   String get timing => 'Timing';
 
   @override
@@ -829,11 +824,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String timeForSection(String title) {
     return 'Time for “$title”';
-  }
-
-  @override
-  String beatsAndCues(int beats, int cues) {
-    return '$beats beats · $cues cues';
   }
 
   @override
@@ -1769,18 +1759,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delivery => 'Delivery';
 
   @override
-  String get readAloudThrough => 'Read aloud through';
-
-  @override
-  String get readAloudThroughSub => 'The room never hears it — wear headphones';
-
-  @override
-  String get headphonesOnly => 'Headphones only';
-
-  @override
-  String get systemOutput => 'System output';
-
-  @override
   String get voice => 'Voice';
 
   @override
@@ -1805,7 +1783,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get whatLeaves => 'What leaves this computer';
 
   @override
-  String get leavesAudio => 'Audio — yours or the room’s, when speech runs on-device.';
+  String get leavesAudio => 'Audio — yours and the room’s are transcribed on this computer.';
 
   @override
   String get leavesQuestion => 'The text of the question and the excerpts used to answer it.';
@@ -1968,7 +1946,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get privVoice => 'Voice';
 
   @override
-  String get privVoiceBody => 'Presenter audio never leaves the device with the on-device engine.';
+  String get privVoiceBody => 'Presenter audio never leaves this computer: speech runs on-device.';
 
   @override
   String get privRoom => 'Room audio';
@@ -1980,7 +1958,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get privAnswers => 'Answers';
 
   @override
-  String get privAnswersBody => 'Only the question text and the excerpts used are sent to your model provider.';
+  String get privAnswersBody => 'Only the question text and the excerpts used are sent to DeepSeek.';
 
   @override
   String get privModels => 'Speech models';
@@ -2023,4 +2001,81 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get open => 'Open';
+
+  @override
+  String beatsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count beats', one: '1 beat');
+    return '$_temp0';
+  }
+
+  @override
+  String cuesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cues',
+      one: '1 cue',
+      zero: 'no cues',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get readAloudTitle => 'Read aloud';
+
+  @override
+  String get readAloudHeadphones => 'Plays through the system output — wear headphones so the room never hears it.';
+
+  @override
+  String welcomeStep(int step, int total) {
+    return 'WELCOME · $step OF $total';
+  }
+
+  @override
+  String get welcomeSkip => 'Skip for now';
+
+  @override
+  String get welcomeNext => 'Next';
+
+  @override
+  String get welcomeBack => 'Back';
+
+  @override
+  String get welcomeUseExample => 'Start with the example';
+
+  @override
+  String get welcomeModelsTitle => 'Download the voice models';
+
+  @override
+  String get welcomeModelsBody =>
+      'Sotto follows your voice on this computer. These models are downloaded once and then work offline; your audio never leaves the device.';
+
+  @override
+  String get welcomeModelsFooter =>
+      'Downloads keep going in the background. Without models, the overlay still advances with hotkeys or a timer.';
+
+  @override
+  String get welcomeScriptTitle => 'Bring in your first script';
+
+  @override
+  String get welcomeScriptBody =>
+      'Sotto organizes it into sections, one-breath beats and cues. You can also start with the example talk in your library.';
+
+  @override
+  String get welcomeImportFile => 'Import a file';
+
+  @override
+  String get welcomeImportFileSub => '.docx, .pdf, .md or .txt';
+
+  @override
+  String get welcomePaste => 'Paste text';
+
+  @override
+  String get welcomePasteSub => 'From the clipboard';
+
+  @override
+  String get welcomeWrite => 'Write from scratch';
+
+  @override
+  String get welcomeWriteSub => 'A blank script';
 }

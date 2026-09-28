@@ -786,11 +786,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addSection => 'Añadir sección';
 
   @override
-  String structureSummary(int sections, int beats, int cues) {
-    return '$sections secciones · $beats frases · $cues indicaciones';
-  }
-
-  @override
   String get timing => 'Tiempos';
 
   @override
@@ -837,11 +832,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String timeForSection(String title) {
     return 'Tiempo para «$title»';
-  }
-
-  @override
-  String beatsAndCues(int beats, int cues) {
-    return '$beats frases · $cues indicaciones';
   }
 
   @override
@@ -1775,18 +1765,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get delivery => 'Entrega';
 
   @override
-  String get readAloudThrough => 'Leer en voz alta por';
-
-  @override
-  String get readAloudThroughSub => 'La sala nunca lo oye — usa auriculares';
-
-  @override
-  String get headphonesOnly => 'Solo auriculares';
-
-  @override
-  String get systemOutput => 'Salida del sistema';
-
-  @override
   String get voice => 'Voz';
 
   @override
@@ -1811,7 +1789,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get whatLeaves => 'Qué sale de este equipo';
 
   @override
-  String get leavesAudio => 'Audio — el tuyo o el de la sala, cuando la voz se procesa en el equipo.';
+  String get leavesAudio => 'Audio — el tuyo y el de la sala se transcriben en este equipo.';
 
   @override
   String get leavesQuestion => 'El texto de la pregunta y los fragmentos usados para responderla.';
@@ -1974,7 +1952,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get privVoice => 'Voz';
 
   @override
-  String get privVoiceBody => 'Con el motor en el equipo, el audio de quien presenta nunca sale del dispositivo.';
+  String get privVoiceBody => 'El audio de quien presenta nunca sale de este equipo: la voz se procesa en local.';
 
   @override
   String get privRoom => 'Audio de la sala';
@@ -1986,7 +1964,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get privAnswers => 'Respuestas';
 
   @override
-  String get privAnswersBody => 'Solo se envía a tu proveedor el texto de la pregunta y los fragmentos usados.';
+  String get privAnswersBody => 'Solo se envían a DeepSeek el texto de la pregunta y los fragmentos usados.';
 
   @override
   String get privModels => 'Modelos de voz';
@@ -2030,4 +2008,81 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get open => 'Abrir';
+
+  @override
+  String beatsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count frases', one: '1 frase');
+    return '$_temp0';
+  }
+
+  @override
+  String cuesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count indicaciones',
+      one: '1 indicación',
+      zero: 'sin indicaciones',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get readAloudTitle => 'Leer en voz alta';
+
+  @override
+  String get readAloudHeadphones => 'Suena por la salida del sistema — usa auriculares para que la sala no lo oiga.';
+
+  @override
+  String welcomeStep(int step, int total) {
+    return 'BIENVENIDA · $step DE $total';
+  }
+
+  @override
+  String get welcomeSkip => 'Omitir por ahora';
+
+  @override
+  String get welcomeNext => 'Siguiente';
+
+  @override
+  String get welcomeBack => 'Atrás';
+
+  @override
+  String get welcomeUseExample => 'Empezar con el ejemplo';
+
+  @override
+  String get welcomeModelsTitle => 'Descarga los modelos de voz';
+
+  @override
+  String get welcomeModelsBody =>
+      'Sotto sigue tu voz en este equipo. Estos modelos se descargan una vez y luego funcionan sin conexión; tu audio nunca sale del dispositivo.';
+
+  @override
+  String get welcomeModelsFooter =>
+      'Las descargas siguen en segundo plano. Sin modelos, la superposición sigue avanzando con atajos o por tiempo.';
+
+  @override
+  String get welcomeScriptTitle => 'Trae tu primer guion';
+
+  @override
+  String get welcomeScriptBody =>
+      'Sotto lo organiza en secciones, frases de una respiración e indicaciones. También puedes empezar con la charla de ejemplo de tu biblioteca.';
+
+  @override
+  String get welcomeImportFile => 'Importar un archivo';
+
+  @override
+  String get welcomeImportFileSub => '.docx, .pdf, .md o .txt';
+
+  @override
+  String get welcomePaste => 'Pegar texto';
+
+  @override
+  String get welcomePasteSub => 'Desde el portapapeles';
+
+  @override
+  String get welcomeWrite => 'Escribir desde cero';
+
+  @override
+  String get welcomeWriteSub => 'Un guion en blanco';
 }

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:window_manager/window_manager.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
@@ -21,6 +22,7 @@ import '../../core/widgets/nav.dart';
 import '../../core/widgets/window_chrome.dart';
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
+import '../onboarding/welcome_dialog.dart';
 import 'readiness.dart';
 
 /// Search text shared by the sidebar field and the script lists.
@@ -46,6 +48,14 @@ class _LibraryShellState extends ConsumerState<LibraryShell> {
   bool _collapsed = false;
   final _searchFocus = FocusNode();
   final _search = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(showWelcomeIfNeeded(context, ref));
+    });
+  }
 
   @override
   void dispose() {
@@ -297,7 +307,10 @@ class _ReadinessCard extends ConsumerWidget {
                 Expanded(
                   child: Text(context.l10n.liveReadiness, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
                 ),
-                Text(r == null ? '…' : context.l10n.readinessCount(r.passed, 4), style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                Text(
+                  r == null ? '…' : context.l10n.readinessCount(r.passed, 4),
+                  style: TypeScale.caption.copyWith(color: p.inkTertiary),
+                ),
               ],
             ),
             const SizedBox(height: 8),

@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
@@ -156,13 +157,10 @@ class _PrepTabState extends ConsumerState<PrepTab> {
           ],
         ),
         const SizedBox(height: 6),
-        Text(
-          context.l10n.likelyQuestionsNote,
-          style: TypeScale.caption.copyWith(color: p.inkTertiary),
-        ),
+        Text(context.l10n.likelyQuestionsNote, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
         const SizedBox(height: 16),
         if (script.prepQuestions.isEmpty)
-          _Empty(text: context.l10n.noPreparedQuestions)
+          _Empty(icon: SottoIcons.ask, text: context.l10n.noPreparedQuestions)
         else
           for (final q in script.prepQuestions)
             _QuestionCard(
@@ -191,13 +189,10 @@ class _PrepTabState extends ConsumerState<PrepTab> {
           ],
         ),
         const SizedBox(height: 6),
-        Text(
-          context.l10n.prepDocumentsNote,
-          style: TypeScale.caption.copyWith(color: p.inkTertiary),
-        ),
+        Text(context.l10n.prepDocumentsNote, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
         const SizedBox(height: 16),
         if (script.prepDocs.isEmpty)
-          _Empty(text: context.l10n.noPrepDocuments)
+          _Empty(icon: SottoIcons.doc, text: context.l10n.noPrepDocuments)
         else
           for (final d in script.prepDocs)
             _DocCard(
@@ -239,9 +234,9 @@ class _PrepTabState extends ConsumerState<PrepTab> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 3, child: questions),
+                  Expanded(child: questions),
                   const SizedBox(width: 40),
-                  Expanded(flex: 2, child: docs),
+                  Expanded(child: docs),
                 ],
               )
             else ...[
@@ -257,7 +252,8 @@ class _PrepTabState extends ConsumerState<PrepTab> {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty({required this.text});
+  const _Empty({required this.icon, required this.text});
+  final SottoIcons icon;
   final String text;
 
   @override
@@ -269,7 +265,19 @@ class _Empty extends StatelessWidget {
         borderRadius: Radii.rL,
         border: Border.all(color: p.hairline),
       ),
-      child: Text(text, style: TypeScale.body.copyWith(color: p.inkTertiary)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: SottoIcon(icon, size: 16, color: p.inkTertiary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(text, style: TypeScale.body.copyWith(color: p.inkTertiary)),
+          ),
+        ],
+      ),
     );
   }
 }

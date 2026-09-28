@@ -18,7 +18,8 @@ flutter test             # unit + widget tests
 On first launch the library is seeded with the design's example talk: "Q3 Board Review", or
 "Revisión del tercer trimestre" on a Spanish system.
 
-Then:
+A first-run welcome walks through the two setup steps (voice models, then a first script). You can
+redo them any time:
 
 1. **Settings → Voice & following → On-device models.** Download *English · streaming* (follows your
    voice) and *Whisper base* (question transcripts, other languages). They are fetched once from the
@@ -137,6 +138,8 @@ models is ignored.
   follow engine. It runs once the light English model is installed (or with `SOTTO_MODEL_DIR`); on
   Linux, point `LD_LIBRARY_PATH` at `build/linux/x64/debug/bundle/lib`.
 - `test/widgets` — renders the live answer card with the bundled fonts to `build/answer_card.png`.
+- `test/visual` — opt-in: `SOTTO_RENDER=1 flutter test test/visual` renders every main-window screen
+  (and the welcome dialog) to `build/screens/*.png`; `SOTTO_RENDER_LANG=en` for English.
 
 ## Known limitations
 

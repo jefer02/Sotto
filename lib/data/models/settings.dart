@@ -42,8 +42,6 @@ enum AnswerTone { matchScript, conversational, formal }
 
 enum CaptureMode { toggle, hold }
 
-enum ReadAloudRoute { headphonesOnly, systemDefault }
-
 const defaultAiModel = 'deepseek-flash';
 
 /// Every preference Sotto keeps. Secrets (API keys) are NOT stored here —
@@ -87,18 +85,17 @@ class AppSettings {
     this.captureMode = CaptureMode.toggle,
     this.silenceSeconds = 1.2,
     this.predraft = true,
-    this.readAloudRoute = ReadAloudRoute.headphonesOnly,
     this.ttsVoice,
     // Shortcuts
     this.chord = const {ShortcutModifier.control, ShortcutModifier.alt},
     this.bindings = const {},
-    this.followSlideChanges = true,
     // Integrations
     this.aiModel = defaultAiModel,
     // Privacy
     this.excludeFromCapture = true,
     this.historyRetentionDays = 30,
     this.onboarded = false,
+    this.welcomeDone = false,
   });
 
   final AppThemeMode appTheme;
@@ -146,14 +143,12 @@ class AppSettings {
   final CaptureMode captureMode;
   final double silenceSeconds;
   final bool predraft;
-  final ReadAloudRoute readAloudRoute;
   final String? ttsVoice;
 
   final Set<ShortcutModifier> chord;
 
   /// Overrides of [LiveAction.defaultKey], by action name → USB HID usage.
   final Map<String, int> bindings;
-  final bool followSlideChanges;
 
   /// DeepSeek model id. The list comes from `GET /models`; ids have changed
   /// more than once, so nothing else in the app hardcodes them.
@@ -162,6 +157,9 @@ class AppSettings {
   final bool excludeFromCapture;
   final int historyRetentionDays;
   final bool onboarded;
+
+  /// The first-run welcome (models → first script) was finished or skipped.
+  final bool welcomeDone;
 
   Shortcut shortcutFor(LiveAction action) => Shortcut(chord, bindings[action.name] ?? action.defaultKey.usbHidUsage);
 
@@ -204,15 +202,14 @@ class AppSettings {
     CaptureMode? captureMode,
     double? silenceSeconds,
     bool? predraft,
-    ReadAloudRoute? readAloudRoute,
     String? ttsVoice,
     Set<ShortcutModifier>? chord,
     Map<String, int>? bindings,
-    bool? followSlideChanges,
     String? aiModel,
     bool? excludeFromCapture,
     int? historyRetentionDays,
     bool? onboarded,
+    bool? welcomeDone,
   }) => AppSettings(
     appTheme: appTheme ?? this.appTheme,
     uiLanguage: uiLanguage ?? this.uiLanguage,
@@ -248,15 +245,14 @@ class AppSettings {
     captureMode: captureMode ?? this.captureMode,
     silenceSeconds: silenceSeconds ?? this.silenceSeconds,
     predraft: predraft ?? this.predraft,
-    readAloudRoute: readAloudRoute ?? this.readAloudRoute,
     ttsVoice: ttsVoice ?? this.ttsVoice,
     chord: chord ?? this.chord,
     bindings: bindings ?? this.bindings,
-    followSlideChanges: followSlideChanges ?? this.followSlideChanges,
     aiModel: aiModel ?? this.aiModel,
     excludeFromCapture: excludeFromCapture ?? this.excludeFromCapture,
     historyRetentionDays: historyRetentionDays ?? this.historyRetentionDays,
     onboarded: onboarded ?? this.onboarded,
+    welcomeDone: welcomeDone ?? this.welcomeDone,
   );
 
   Map<String, Object?> toJson() => {
@@ -296,15 +292,14 @@ class AppSettings {
     'captureMode': captureMode.name,
     'silenceSeconds': silenceSeconds,
     'predraft': predraft,
-    'readAloudRoute': readAloudRoute.name,
     'ttsVoice': ttsVoice,
     'chord': chord.map((m) => m.name).toList(),
     'bindings': bindings,
-    'followSlideChanges': followSlideChanges,
     'aiModel': aiModel,
     'excludeFromCapture': excludeFromCapture,
     'historyRetentionDays': historyRetentionDays,
     'onboarded': onboarded,
+    'welcomeDone': welcomeDone,
   };
 
   /// Tolerant of missing and unknown keys so settings survive app updates.
@@ -354,7 +349,6 @@ class AppSettings {
       captureMode: e(CaptureMode.values, j['captureMode'], d.captureMode),
       silenceSeconds: n(j['silenceSeconds'], d.silenceSeconds),
       predraft: j['predraft'] as bool? ?? d.predraft,
-      readAloudRoute: e(ReadAloudRoute.values, j['readAloudRoute'], d.readAloudRoute),
       ttsVoice: j['ttsVoice'] as String?,
       chord: {
         for (final m in (j['chord'] as List? ?? const ['control', 'alt'])) ?ShortcutModifier.values.asNameMap()[m],
@@ -362,7 +356,6 @@ class AppSettings {
       bindings: {
         for (final entry in ((j['bindings'] as Map?) ?? const {}).entries) entry.key as String: entry.value as int,
       },
-      followSlideChanges: j['followSlideChanges'] as bool? ?? d.followSlideChanges,
       // Settings saved with another provider (Anthropic, OpenAI…) migrate
       // to DeepSeek: their model ids mean nothing here.
       aiModel: switch (j['aiModel']) {
@@ -372,6 +365,7 @@ class AppSettings {
       excludeFromCapture: j['excludeFromCapture'] as bool? ?? d.excludeFromCapture,
       historyRetentionDays: j['historyRetentionDays'] as int? ?? d.historyRetentionDays,
       onboarded: j['onboarded'] as bool? ?? d.onboarded,
+      welcomeDone: j['welcomeDone'] as bool? ?? d.welcomeDone,
     );
   }
 }

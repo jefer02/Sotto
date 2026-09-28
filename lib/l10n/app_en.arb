@@ -516,20 +516,6 @@
   "structure": "Structure",
   "organizeAgain": "Organize again — sections, beats and cues",
   "addSection": "Add section",
-  "structureSummary": "{sections} sections · {beats} beats · {cues} cues",
-  "@structureSummary": {
-    "placeholders": {
-      "sections": {
-        "type": "int"
-      },
-      "beats": {
-        "type": "int"
-      },
-      "cues": {
-        "type": "int"
-      }
-    }
-  },
   "timing": "Timing",
   "plannedDuration": "{duration} planned",
   "@plannedDuration": {
@@ -576,17 +562,6 @@
     "placeholders": {
       "title": {
         "type": "String"
-      }
-    }
-  },
-  "beatsAndCues": "{beats} beats · {cues} cues",
-  "@beatsAndCues": {
-    "placeholders": {
-      "beats": {
-        "type": "int"
-      },
-      "cues": {
-        "type": "int"
       }
     }
   },
@@ -1065,10 +1040,6 @@
   "predraft": "Pre-draft likely questions",
   "predraftSub": "From Q&A prep — matched answers appear instantly",
   "delivery": "Delivery",
-  "readAloudThrough": "Read aloud through",
-  "readAloudThroughSub": "The room never hears it — wear headphones",
-  "headphonesOnly": "Headphones only",
-  "systemOutput": "System output",
   "voice": "Voice",
   "systemDefault": "System default",
   "copyForChatAsks": "Copy for chat asks for",
@@ -1083,7 +1054,7 @@
   "copyThenPaste": "Copy, then paste",
   "copyThenPasteSub": "Holding the send key places the answer on your clipboard as plain text. Paste it into the Zoom, Teams or Meet chat with one keystroke. Nothing is posted on your behalf.",
   "whatLeaves": "What leaves this computer",
-  "leavesAudio": "Audio — yours or the room’s, when speech runs on-device.",
+  "leavesAudio": "Audio — yours and the room’s are transcribed on this computer.",
   "leavesQuestion": "The text of the question and the excerpts used to answer it.",
   "leavesNothingElse": "Nothing else: no script, no history, no account.",
   "generalDescription": "Language, pace, storage and defaults. Everything Sotto keeps lives on this computer.",
@@ -1148,11 +1119,11 @@
   "deleteAllDataConfirm": "Delete all local data?",
   "deleteAllDataBody": "This removes every script and session from this computer. It can’t be undone.",
   "privVoice": "Voice",
-  "privVoiceBody": "Presenter audio never leaves the device with the on-device engine.",
+  "privVoiceBody": "Presenter audio never leaves this computer: speech runs on-device.",
   "privRoom": "Room audio",
   "privRoomBody": "Captured only on the chord, shown in red, transcribed locally.",
   "privAnswers": "Answers",
-  "privAnswersBody": "Only the question text and the excerpts used are sent to your model provider.",
+  "privAnswersBody": "Only the question text and the excerpts used are sent to DeepSeek.",
   "privModels": "Speech models",
   "privModelsBody": "Downloaded once from the sherpa-onnx project on GitHub.",
   "privConsent": "Consent",
@@ -1172,5 +1143,49 @@
     }
   },
   "deepseekPlatform": "Account, balance and keys",
-  "open": "Open"
+  "open": "Open",
+  "beatsCount": "{count, plural, =1{1 beat} other{{count} beats}}",
+  "@beatsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cuesCount": "{count, plural, =0{no cues} =1{1 cue} other{{count} cues}}",
+  "@cuesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readAloudTitle": "Read aloud",
+  "readAloudHeadphones": "Plays through the system output — wear headphones so the room never hears it.",
+  "welcomeStep": "WELCOME · {step} OF {total}",
+  "@welcomeStep": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "welcomeSkip": "Skip for now",
+  "welcomeNext": "Next",
+  "welcomeBack": "Back",
+  "welcomeUseExample": "Start with the example",
+  "welcomeModelsTitle": "Download the voice models",
+  "welcomeModelsBody": "Sotto follows your voice on this computer. These models are downloaded once and then work offline; your audio never leaves the device.",
+  "welcomeModelsFooter": "Downloads keep going in the background. Without models, the overlay still advances with hotkeys or a timer.",
+  "welcomeScriptTitle": "Bring in your first script",
+  "welcomeScriptBody": "Sotto organizes it into sections, one-breath beats and cues. You can also start with the example talk in your library.",
+  "welcomeImportFile": "Import a file",
+  "welcomeImportFileSub": ".docx, .pdf, .md or .txt",
+  "welcomePaste": "Paste text",
+  "welcomePasteSub": "From the clipboard",
+  "welcomeWrite": "Write from scratch",
+  "welcomeWriteSub": "A blank script"
 }

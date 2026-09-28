@@ -47,8 +47,6 @@ Future<void> seedIfEmpty(ScriptRepository repo) async {
     status: ScriptStatus.structured,
     createdAt: now.subtract(const Duration(days: 6)),
     updatedAt: now.subtract(const Duration(hours: 2)),
-    scheduledAt: DateTime(now.year, now.month, now.day, 15),
-    meetingLabel: 'Zoom',
     hintWords: spanish
         ? const ['Kestrel', '48,2 millones', '31,4 %', 'Serie C', 'primer trimestre']
         : const ['Kestrel', '\$48.2 million', '31.4%', 'Series C', 'Q1'],
@@ -181,7 +179,6 @@ Future<void> seedIfEmpty(ScriptRepository repo) async {
         ),
       ),
     ],
-    rehearsalCount: 2,
   );
 
   final atlas = Script(
@@ -213,7 +210,6 @@ Future<void> seedIfEmpty(ScriptRepository repo) async {
     title: t('Designing for attention', 'Diseñar para la atención'),
     collectionId: talks.id,
     status: ScriptStatus.structured,
-    rehearsalCount: 1,
     createdAt: now.subtract(const Duration(days: 12)),
     updatedAt: now.subtract(const Duration(days: 11)),
     sections: [

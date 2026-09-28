@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../app/app.dart';
@@ -121,7 +122,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final scheduled = active
         .where((s) => s.scheduledAt != null && s.scheduledAt!.isAfter(now.subtract(const Duration(hours: 1))))
         .sortedBy((s) => s.scheduledAt!);
-    return scheduled.firstOrNull ?? active.firstOrNull;
+    // Nothing scheduled: the latest script with something to read.
+    return scheduled.firstOrNull ?? active.where((s) => s.wordCount > 0).sortedBy((s) => s.updatedAt).lastOrNull;
   }
 
   @override
@@ -258,15 +260,11 @@ class _UpNextCard extends ConsumerWidget {
                       if (minutesAway != null && minutesAway > 0 && minutesAway < 24 * 60) ...[
                         const SizedBox(width: 10),
                         StatusChip(
-                          minutesAway < 60 ? context.l10n.inMinutes(minutesAway) : context.l10n.inHours((minutesAway / 60).round()),
+                          minutesAway < 60
+                              ? context.l10n.inMinutes(minutesAway)
+                              : context.l10n.inHours((minutesAway / 60).round()),
                           tone: ChipTone.cue,
                         ),
-                      ],
-                      if (script.meetingLabel != null) ...[
-                        const SizedBox(width: 12),
-                        SottoIcon(SottoIcons.calendar, size: 13, color: p.inkTertiary),
-                        const SizedBox(width: 6),
-                        Text(script.meetingLabel!, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
                       ],
                     ],
                   ),
@@ -371,7 +369,9 @@ class _ScriptListScreenState extends ConsumerState<ScriptListScreen> {
       return s.title.toLowerCase().contains(query) || s.allBeats.any((b) => b.plainText.toLowerCase().contains(query));
     }).toList();
 
-    final title = f.archive ? context.l10n.navArchive : (collection?.name ?? (query.isEmpty ? context.l10n.navAllScripts : context.l10n.search));
+    final title = f.archive
+        ? context.l10n.navArchive
+        : (collection?.name ?? (query.isEmpty ? context.l10n.navAllScripts : context.l10n.search));
 
     return _ImportSurface(
       collectionId: f.collectionId,
@@ -395,13 +395,37 @@ class _ScriptListScreenState extends ConsumerState<ScriptListScreen> {
             child: scripts.isEmpty
                 ? emptyState(
                     context,
-                    icon: f.archive ? SottoIcons.archive : SottoIcons.search,
-                    title: f.archive ? context.l10n.emptyNothingArchived : (query.isEmpty ? context.l10n.emptyNoScripts : context.l10n.emptyNoMatches),
+                    icon: f.archive
+                        ? SottoIcons.archive
+                        : query.isEmpty
+                        ? (f.collectionId != null ? SottoIcons.folder : SottoIcons.doc)
+                        : SottoIcons.search,
+                    title: f.archive
+                        ? context.l10n.emptyNothingArchived
+                        : (query.isEmpty ? context.l10n.emptyNoScripts : context.l10n.emptyNoMatches),
                     body: f.archive
                         ? context.l10n.emptyArchivedHint
                         : query.isEmpty
                         ? context.l10n.emptyWriteOrDrop
                         : context.l10n.emptyNoMatchesHint(query),
+                    action: f.archive || query.isNotEmpty
+                        ? null
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SottoButton(
+                                label: context.l10n.import,
+                                icon: SottoIcons.import,
+                                onPressed: () => unawaited(importFiles(ref, context, collectionId: f.collectionId)),
+                              ),
+                              const SizedBox(width: 8),
+                              SottoButton.primary(
+                                label: context.l10n.newScript,
+                                icon: SottoIcons.plus,
+                                onPressed: () => unawaited(createScriptAndOpen(ref, collectionId: f.collectionId)),
+                              ),
+                            ],
+                          ),
                   )
                 : ListView(
                     padding: const EdgeInsets.fromLTRB(40, 28, 40, 40),
@@ -714,7 +738,12 @@ class _ScriptContextMenuState extends ConsumerState<ScriptContextMenu> {
           () => unawaited(showPreflight(context, ref, s.id)),
           shortcut: PlatformKeys.describe(settings.shortcutFor(LiveAction.goLive)),
         ),
-        item(context.l10n.menuDuplicate, SottoIcons.copy, () => unawaited(repo.duplicate(s)), shortcut: '${PlatformKeys.primary}D'),
+        item(
+          context.l10n.menuDuplicate,
+          SottoIcons.copy,
+          () => unawaited(repo.duplicate(s)),
+          shortcut: '${PlatformKeys.primary}D',
+        ),
         Divider(height: 9, color: p.control),
         SubmenuButton(
           style: _menuItemStyle(p),
@@ -816,10 +845,7 @@ class _ScriptContextMenuState extends ConsumerState<ScriptContextMenu> {
           side: BorderSide(color: p.control),
         ),
         title: Text(context.l10n.deleteScriptTitle(s.title), style: TypeScale.title2.copyWith(color: p.inkPrimary)),
-        content: Text(
-          context.l10n.deleteScriptBody,
-          style: TypeScale.body.copyWith(color: p.inkSecondary),
-        ),
+        content: Text(context.l10n.deleteScriptBody, style: TypeScale.body.copyWith(color: p.inkSecondary)),
         actions: [
           SottoButton.ghost(label: context.l10n.cancel, onPressed: () => Navigator.pop(context, false)),
           SottoButton(label: context.l10n.delete, onPressed: () => Navigator.pop(context, true)),

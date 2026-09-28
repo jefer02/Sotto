@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../app/app.dart';
@@ -153,80 +154,85 @@ class _Header extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final collections = ref.watch(collectionsProvider).value ?? const <Collection>[];
     final collection = collections.where((c) => c.id == script.collectionId).firstOrNull;
+    // Nothing to read yet: going live would open an empty overlay.
+    final empty = script.wordCount == 0;
     return TitleBarArea(
       showCaptionButtons: true,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 24, right: 12),
-        child: Row(
-          children: [
-            // The breadcrumb yields space first — tabs and actions stay whole
-            // in longer languages.
-            if (collection != null) ...[
-              Flexible(
-                child: Interactive(
-                  onTap: () => context.go('/collections/${collection.id}'),
-                  builder: (context, s) => Text(
-                    collection.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TypeScale.body.copyWith(color: s.hovered ? p.inkPrimary : p.inkTertiary),
+      child: LayoutBuilder(
+        builder: (context, c) => Padding(
+          padding: const EdgeInsets.only(left: 24, right: 12),
+          child: Row(
+            children: [
+              // The breadcrumb goes first when space is short — tabs, actions
+              // and the title stay whole in longer languages.
+              if (collection != null && c.maxWidth > 1100) ...[
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 180),
+                  child: Interactive(
+                    onTap: () => context.go('/collections/${collection.id}'),
+                    builder: (context, s) => Text(
+                      collection.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TypeScale.body.copyWith(color: s.hovered ? p.inkPrimary : p.inkTertiary),
+                    ),
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text('/', style: TypeScale.body.copyWith(color: p.inkDisabled)),
+                ),
+              ],
+              Flexible(
+                flex: 4,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 240),
+                  child: _TitleField(scriptId: scriptId, title: script.title),
+                ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Text('/', style: TypeScale.body.copyWith(color: p.inkDisabled)),
+              const SizedBox(width: 14),
+              AnimatedSwitcher(
+                duration: Motion.snappy,
+                child: save == SaveState.saved
+                    ? Row(
+                        key: const ValueKey('saved'),
+                        children: [
+                          SottoIcon(SottoIcons.check, size: 12, color: p.inkTertiary),
+                          const SizedBox(width: 5),
+                          Text(context.l10n.saved, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                        ],
+                      )
+                    : Text(
+                        context.l10n.editing,
+                        key: const ValueKey('dirty'),
+                        style: TypeScale.caption.copyWith(color: p.inkTertiary),
+                      ),
+              ),
+              const Spacer(),
+              SegmentedControl<EditorTab>(
+                segments: [
+                  Segment(EditorTab.write, context.l10n.tabWrite),
+                  Segment(EditorTab.prep, context.l10n.tabQaPrep),
+                  Segment(EditorTab.rehearsals, context.l10n.tabRehearsals),
+                ],
+                value: tab,
+                onChanged: onTab,
+              ),
+              const Spacer(),
+              SottoButton(
+                label: context.l10n.rehearse,
+                icon: SottoIcons.rehearse,
+                onPressed: empty ? null : () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
+              ),
+              const SizedBox(width: 8),
+              SottoButton.primary(
+                label: context.l10n.goLive,
+                icon: SottoIcons.play,
+                shortcut: settings.shortcutFor(LiveAction.goLive),
+                onPressed: empty ? null : () => unawaited(showPreflight(context, ref, script.id)),
               ),
             ],
-            Flexible(
-              flex: 4,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 240),
-                child: _TitleField(scriptId: scriptId, title: script.title),
-              ),
-            ),
-            const SizedBox(width: 14),
-            AnimatedSwitcher(
-              duration: Motion.snappy,
-              child: save == SaveState.saved
-                  ? Row(
-                      key: const ValueKey('saved'),
-                      children: [
-                        SottoIcon(SottoIcons.check, size: 12, color: p.inkTertiary),
-                        const SizedBox(width: 5),
-                        Text(context.l10n.saved, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
-                      ],
-                    )
-                  : Text(
-                      context.l10n.editing,
-                      key: const ValueKey('dirty'),
-                      style: TypeScale.caption.copyWith(color: p.inkTertiary),
-                    ),
-            ),
-            const Spacer(),
-            SegmentedControl<EditorTab>(
-              segments: [
-                Segment(EditorTab.write, context.l10n.tabWrite),
-                Segment(EditorTab.prep, context.l10n.tabQaPrep),
-                Segment(EditorTab.rehearsals, context.l10n.tabRehearsals),
-              ],
-              value: tab,
-              onChanged: onTab,
-            ),
-            const Spacer(),
-            SottoButton(
-              label: context.l10n.rehearse,
-              icon: SottoIcons.rehearse,
-              onPressed: () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
-            ),
-            const SizedBox(width: 8),
-            SottoButton.primary(
-              label: context.l10n.goLive,
-              icon: SottoIcons.play,
-              shortcut: settings.shortcutFor(LiveAction.goLive),
-              onPressed: () => unawaited(showPreflight(context, ref, script.id)),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -259,13 +265,39 @@ class _TitleFieldState extends ConsumerState<_TitleField> {
     super.dispose();
   }
 
+  bool _editing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _f.addListener(() {
+      if (!_f.hasFocus && _editing) setState(() => _editing = false);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    // At rest the title is plain text that ellipsizes; a click edits it.
+    if (!_editing) {
+      return Interactive(
+        onTap: () {
+          setState(() => _editing = true);
+          _f.requestFocus();
+        },
+        builder: (context, s) => Text(
+          _c.text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TypeScale.bodyStrong.copyWith(color: s.hovered ? p.cueText : p.inkPrimary),
+        ),
+      );
+    }
     return IntrinsicWidth(
       child: TextField(
         controller: _c,
         focusNode: _f,
+        onSubmitted: (_) => _f.unfocus(),
         style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary),
         decoration: const InputDecoration(isCollapsed: true, border: InputBorder.none),
         onChanged: (t) => ref
@@ -341,7 +373,12 @@ class _StructureSidebar extends ConsumerWidget {
             child: Text(
               organizing
                   ? context.l10n.statusOrganizing
-                  : context.l10n.structureSummary(script.sections.length, script.beatCount, script.cueCount),
+                  : [
+                      context.l10n.sectionsCount(script.sections.length),
+                      context.l10n.beatsCount(script.beatCount),
+                      context.l10n.cuesCount(script.cueCount),
+                      // Wrap between items, never inside one ("3 / cues").
+                    ].map((t) => t.replaceAll(' ', ' ')).join(' · '),
               style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
             ),
           ),
@@ -585,7 +622,7 @@ class _SectionItem extends StatelessWidget {
                         ),
                       const SizedBox(height: 4),
                       Text(
-                        context.l10n.beatsAndCues(section.beats.length, section.cueCount),
+                        '${context.l10n.beatsCount(section.beats.length)} · ${context.l10n.cuesCount(section.cueCount)}',
                         style: TypeScale.monoSmall.copyWith(color: p.inkTertiary, fontSize: 10),
                       ),
                     ],

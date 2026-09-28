@@ -168,18 +168,7 @@ class AnswersPage extends ConsumerWidget {
         SettingsGroup(
           title: context.l10n.delivery,
           children: [
-            SettingRow(
-              title: context.l10n.readAloudThrough,
-              subtitle: context.l10n.readAloudThroughSub,
-              trailing: SottoSelect<ReadAloudRoute>(
-                value: s.readAloudRoute,
-                options: [
-                  SelectOption(ReadAloudRoute.headphonesOnly, context.l10n.headphonesOnly),
-                  SelectOption(ReadAloudRoute.systemDefault, context.l10n.systemOutput),
-                ],
-                onChanged: (v) => n.update((x) => x.copyWith(readAloudRoute: v)),
-              ),
-            ),
+            SettingRow(title: context.l10n.readAloudTitle, subtitle: context.l10n.readAloudHeadphones),
             if (voices.isNotEmpty)
               SettingRow(
                 title: context.l10n.voice,

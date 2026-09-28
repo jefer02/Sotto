@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
@@ -9,6 +10,7 @@ import '../../../data/models/settings.dart';
 import '../../../data/repositories.dart';
 import '../../../domain/following/follow_engine.dart';
 import '../../../domain/following/script_aligner.dart';
+import '../../../l10n/l10n.dart';
 import '../live_state.dart';
 import 'meta_strip.dart';
 import 'reading_view.dart';
@@ -217,7 +219,10 @@ class _SlideBackdrop extends StatelessWidget {
                   ),
                 ),
               const Spacer(),
-              Text('31.4%', style: TypeScale.title1.copyWith(color: ink, fontSize: 24)),
+              Text(
+                NumberFormat.decimalPercentPattern(locale: L10n.current.localeName, decimalDigits: 1).format(0.314),
+                style: TypeScale.title1.copyWith(color: ink, fontSize: 24),
+              ),
             ],
           ),
         );
