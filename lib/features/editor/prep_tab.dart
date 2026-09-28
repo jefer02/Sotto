@@ -14,9 +14,7 @@ import '../../core/utils/ids.dart';
 import '../../core/widgets/buttons.dart';
 import '../../data/import/script_importer.dart';
 import '../../data/models/script.dart';
-import '../../data/models/settings.dart';
 import '../../data/repositories.dart';
-import '../../data/storage/secret_store.dart';
 import '../../services/ai/llm_client.dart';
 import 'editor_controller.dart';
 
@@ -78,12 +76,9 @@ class _PrepTabState extends ConsumerState<PrepTab> {
   /// answered from the script.
   Future<void> _suggest(Script script) async {
     final s = ref.read(settingsProvider);
-    final key = await ref.read(secretStoreProvider).read(switch (s.aiProvider) {
-      AiProvider.anthropic => SecretKey.anthropicApiKey,
-      AiProvider.openai => SecretKey.openaiApiKey,
-      AiProvider.openaiCompatible => SecretKey.compatibleApiKey,
-    });
-    if (key == null && s.aiProvider != AiProvider.openaiCompatible) {
+    final client = await LlmClient.forSettings(s, ref.read(secretStoreProvider));
+    if (!mounted) return;
+    if (client == null) {
       setState(() => _error = context.l10n.suggestNeedsKey);
       return;
     }
@@ -91,7 +86,6 @@ class _PrepTabState extends ConsumerState<PrepTab> {
       _suggesting = true;
       _error = null;
     });
-    final client = LlmClient.create(s, key ?? '');
     try {
       final text = [
         for (final sec in script.sections) ...['## ${sec.title}', for (final b in sec.beats) b.plainText],

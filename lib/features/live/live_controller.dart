@@ -14,7 +14,6 @@ import '../../data/models/session_record.dart';
 import '../../data/models/settings.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
-import '../../data/storage/secret_store.dart';
 import '../../domain/following/follow_engine.dart';
 import '../../domain/following/script_aligner.dart';
 import '../../domain/structuring/script_structurer.dart';
@@ -522,15 +521,7 @@ class LiveController extends Notifier<LiveState> {
 
   Future<LlmClient?> _client() async {
     if (_llm != null) return _llm;
-    final s = _settings;
-    final secrets = ref.read(secretStoreProvider);
-    final key = await secrets.read(switch (s.aiProvider) {
-      AiProvider.anthropic => SecretKey.anthropicApiKey,
-      AiProvider.openai => SecretKey.openaiApiKey,
-      AiProvider.openaiCompatible => SecretKey.compatibleApiKey,
-    });
-    if (key == null && s.aiProvider != AiProvider.openaiCompatible) return null;
-    return _llm = LlmClient.create(s, key ?? '');
+    return _llm = await LlmClient.forSettings(_settings, ref.read(secretStoreProvider));
   }
 
   /// Returns to the script at the exact word, with a sweep to re-anchor.

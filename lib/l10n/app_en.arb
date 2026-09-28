@@ -80,7 +80,6 @@
   "modShift": "Shift",
   "modOption": "Option",
   "modCommand": "Command",
-  "providerCompatible": "OpenAI-compatible",
   "untitledScript": "Untitled script",
   "sectionOpening": "Opening",
   "sectionFallback": "Section",
@@ -183,7 +182,6 @@
       }
     }
   },
-  "llmAiServer": "The AI server",
   "modelStreamingEn": "English · streaming",
   "modelStreamingEnDesc": "Follows your voice word by word",
   "modelStreamingEnLight": "English · streaming (light)",
@@ -1141,22 +1139,12 @@
     }
   },
   "inKeychain": "In keychain",
-  "integrationsDescription": "Answers use your own API key. It is stored in the system keychain and sent only to the provider you choose, only when a question is asked.",
+  "integrationsDescription": "Answers are drafted by DeepSeek. Add your API key; it is stored in the system keychain and sent to DeepSeek only when a question is asked.",
   "answersModel": "Answers model",
   "provider": "Provider",
   "apiKey": "API key",
-  "apiKeyOptional": "Optional for local servers such as Ollama or LM Studio",
   "model": "Model",
-  "modelLowEffort": "Live answers run at low effort for speed",
   "baseUrl": "Base URL",
-  "baseUrlSub": "Leave empty for {url}",
-  "@baseUrlSub": {
-    "placeholders": {
-      "url": {
-        "type": "String"
-      }
-    }
-  },
   "testConnection": "Test connection",
   "test": "Test",
   "cloudStt": "Cloud speech-to-text",
@@ -1198,5 +1186,21 @@
   "privModels": "Speech models",
   "privModelsBody": "Downloaded once from the sherpa-onnx project on GitHub.",
   "privConsent": "Consent",
-  "privConsentBody": "Recording laws vary. Consider telling the room that Q&A assist is on."
+  "privConsentBody": "Recording laws vary. Consider telling the room that Q&A assist is on.",
+  "llmNoBalance": "Your DeepSeek balance is empty. Top up at platform.deepseek.com.",
+  "integrationsDescriptionBuiltIn": "Answers are drafted by DeepSeek with the key built into this copy of Sotto. You can override it with your own key.",
+  "deepseekFooter": "Only the question and the excerpts used to answer it are sent.",
+  "apiKeyOverrideSub": "Optional. Leave empty to use the built-in key.",
+  "builtInKey": "Built-in key",
+  "modelsLoading": "Loading models…",
+  "modelsLoadFailed": "Could not load the model list: {error}",
+  "@modelsLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deepseekPlatform": "Account, balance and keys",
+  "open": "Open"
 }

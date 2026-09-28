@@ -18,6 +18,9 @@ import '../../../core/widgets/display.dart';
 import '../../../data/models/settings.dart';
 import '../../../data/repositories.dart';
 import '../../../data/storage/secret_store.dart';
+import '../../../core/platform/external_links.dart';
+import '../../../core/secrets.dart';
+import '../../../services/ai/deepseek_models.dart';
 import '../../../services/ai/llm_client.dart';
 import '../../library/readiness.dart';
 import '../settings_screen.dart';
@@ -147,69 +150,46 @@ class IntegrationsPage extends ConsumerStatefulWidget {
 }
 
 class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
-  final _aiKey = TextEditingController();
-  final _sttKey = TextEditingController();
-  final _model = TextEditingController();
-  final _baseUrl = TextEditingController();
-  final _sttModel = TextEditingController();
-  final _sttBase = TextEditingController();
-  bool _aiSaved = false;
-  bool _sttSaved = false;
+  final _key = TextEditingController();
+  bool _saved = false;
   String? _testResult;
   bool _testOk = false;
   bool _testing = false;
 
-  SecretKey _keyFor(AiProvider p) => switch (p) {
-    AiProvider.anthropic => SecretKey.anthropicApiKey,
-    AiProvider.openai => SecretKey.openaiApiKey,
-    AiProvider.openaiCompatible => SecretKey.compatibleApiKey,
-  };
-
   @override
   void initState() {
     super.initState();
-    final s = ref.read(settingsProvider);
-    _model.text = s.aiModel;
-    _baseUrl.text = s.aiBaseUrl;
-    _sttModel.text = s.cloudSttModel;
-    _sttBase.text = s.cloudSttBaseUrl;
-    unawaited(_loadKeys());
+    unawaited(_loadKey());
   }
 
-  Future<void> _loadKeys() async {
-    final secrets = ref.read(secretStoreProvider);
-    final s = ref.read(settingsProvider);
-    final ai = await secrets.read(_keyFor(s.aiProvider));
-    final stt = await secrets.read(SecretKey.cloudSttApiKey);
+  Future<void> _loadKey() async {
+    final saved = await ref.read(secretStoreProvider).read(SecretKey.deepseekApiKey);
     if (!mounted) return;
     setState(() {
-      _aiKey.text = ai ?? '';
-      _sttKey.text = stt ?? '';
-      _aiSaved = ai != null;
-      _sttSaved = stt != null;
+      _key.text = saved ?? '';
+      _saved = saved != null;
     });
   }
 
   @override
   void dispose() {
-    for (final c in [_aiKey, _sttKey, _model, _baseUrl, _sttModel, _sttBase]) {
-      c.dispose();
-    }
+    _key.dispose();
     super.dispose();
   }
 
-  Future<void> _saveAiKey() async {
-    final s = ref.read(settingsProvider);
-    await ref.read(secretStoreProvider).write(_keyFor(s.aiProvider), _aiKey.text);
-    ref.invalidate(readinessProvider);
-    if (mounted) setState(() => _aiSaved = _aiKey.text.trim().isNotEmpty);
+  Future<void> _saveKey() async {
+    await ref.read(secretStoreProvider).write(SecretKey.deepseekApiKey, _key.text);
+    ref
+      ..invalidate(readinessProvider)
+      ..invalidate(deepSeekModelsProvider);
+    if (mounted) setState(() => _saved = _key.text.trim().isNotEmpty);
   }
 
   Future<void> _test() async {
-    await _saveAiKey();
-    final s = ref.read(settingsProvider);
-    final key = await ref.read(secretStoreProvider).read(_keyFor(s.aiProvider));
-    if (key == null && s.aiProvider != AiProvider.openaiCompatible) {
+    await _saveKey();
+    final client = await LlmClient.forSettings(ref.read(settingsProvider), ref.read(secretStoreProvider));
+    if (!mounted) return;
+    if (client == null) {
       setState(() {
         _testOk = false;
         _testResult = L10n.current.addKeyFirst;
@@ -220,27 +200,25 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
       _testing = true;
       _testResult = null;
     });
-    final client = LlmClient.create(s, key ?? '');
     final sw = Stopwatch()..start();
     try {
       int? firstToken;
-      final buf = StringBuffer();
-      await for (final t in client.stream(
+      await for (final _ in client.stream(
         system: 'Reply with the single word: ready',
         user: 'Are you there?',
         maxTokens: 16,
       )) {
         firstToken ??= sw.elapsedMilliseconds;
-        buf.write(t);
       }
+      if (!mounted) return;
       setState(() {
         _testOk = true;
-        _testResult =
-            L10n.current.connectedFirstToken(
-              NumberFormat('0.00', L10n.current.localeName).format((firstToken ?? sw.elapsedMilliseconds) / 1000),
-            );
+        _testResult = L10n.current.connectedFirstToken(
+          NumberFormat('0.00', L10n.current.localeName).format((firstToken ?? sw.elapsedMilliseconds) / 1000),
+        );
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _testOk = false;
         _testResult = e is LlmException ? e.message : '$e';
@@ -254,88 +232,61 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = context.l10n;
     final s = ref.watch(settingsProvider);
-    final n = ref.read(settingsProvider.notifier);
-
-    Widget saved(bool v) => v
-        ? Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SottoIcon(SottoIcons.lock, size: 12, color: p.confirmed),
-              const SizedBox(width: 5),
-              Text(context.l10n.inKeychain, style: TypeScale.caption.copyWith(color: p.confirmed)),
-            ],
-          )
-        : const SizedBox.shrink();
+    final models = ref.watch(deepSeekModelsProvider);
+    // The saved model stays selectable even if the list doesn't have it (yet).
+    final ids = {...?models.value, s.aiModel}.toList()..sort();
 
     return SettingsPageScaffold(
-      title: context.l10n.setIntegrations,
-      description: context.l10n.integrationsDescription,
+      title: l.setIntegrations,
+      description: kDeepSeekApiKey.isEmpty ? l.integrationsDescription : l.integrationsDescriptionBuiltIn,
       left: [
         SettingsGroup(
-          title: context.l10n.answersModel,
+          title: 'DeepSeek',
+          footer: l.deepseekFooter,
           children: [
             SettingRow(
-              title: context.l10n.provider,
-              trailing: SegmentedControl<AiProvider>(
-                width: 330,
-                segments: [for (final a in AiProvider.values) Segment(a, a.label)],
-                value: s.aiProvider,
-                onChanged: (v) {
-                  n.update((x) => x.copyWith(aiProvider: v, aiModel: v.defaultModel, aiBaseUrl: ''));
-                  _model.text = v.defaultModel;
-                  _baseUrl.text = '';
-                  unawaited(_loadKeys());
-                },
-              ),
-            ),
-            SettingRow(
-              title: context.l10n.apiKey,
-              subtitle: s.aiProvider == AiProvider.openaiCompatible
-                  ? context.l10n.apiKeyOptional
-                  : null,
+              title: l.apiKey,
+              subtitle: kDeepSeekApiKey.isEmpty ? null : l.apiKeyOverrideSub,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  saved(_aiSaved),
-                  const SizedBox(width: 10),
+                  if (_saved) ...[
+                    SottoIcon(SottoIcons.lock, size: 12, color: p.confirmed),
+                    const SizedBox(width: 5),
+                    Text(l.inKeychain, style: TypeScale.caption.copyWith(color: p.confirmed)),
+                    const SizedBox(width: 10),
+                  ],
                   SottoTextField(
                     width: 240,
-                    controller: _aiKey,
+                    controller: _key,
                     obscure: true,
                     mono: true,
-                    placeholder: s.aiProvider == AiProvider.anthropic ? 'sk-ant-…' : 'sk-…',
-                    onSubmitted: (_) => unawaited(_saveAiKey()),
+                    placeholder: kDeepSeekApiKey.isEmpty ? 'sk-…' : l.builtInKey,
+                    onSubmitted: (_) => unawaited(_saveKey()),
                   ),
                   const SizedBox(width: 8),
-                  SottoButton(label: context.l10n.save, size: ButtonSize.small, onPressed: () => unawaited(_saveAiKey())),
+                  SottoButton(label: l.save, size: ButtonSize.small, onPressed: () => unawaited(_saveKey())),
                 ],
               ),
             ),
             SettingRow(
-              title: context.l10n.model,
-              subtitle: s.aiProvider == AiProvider.anthropic ? context.l10n.modelLowEffort : null,
-              trailing: SottoTextField(
+              title: l.model,
+              subtitle: switch (models) {
+                AsyncLoading() => l.modelsLoading,
+                AsyncError(:final error) => l.modelsLoadFailed(error is LlmException ? error.message : '$error'),
+                _ => null,
+              },
+              trailing: SottoSelect<String>(
                 width: 240,
-                controller: _model,
-                mono: true,
-                placeholder: s.aiProvider.defaultModel,
-                onChanged: (v) => n.update((x) => x.copyWith(aiModel: v.trim())),
+                value: s.aiModel,
+                options: [for (final id in ids) SelectOption(id, id)],
+                onChanged: (v) => ref.read(settingsProvider.notifier).update((x) => x.copyWith(aiModel: v)),
               ),
             ),
             SettingRow(
-              title: context.l10n.baseUrl,
-              subtitle: context.l10n.baseUrlSub(s.aiProvider.defaultBaseUrl),
-              trailing: SottoTextField(
-                width: 240,
-                controller: _baseUrl,
-                mono: true,
-                placeholder: s.aiProvider.defaultBaseUrl,
-                onChanged: (v) => n.update((x) => x.copyWith(aiBaseUrl: v.trim())),
-              ),
-            ),
-            SettingRow(
-              title: context.l10n.testConnection,
+              title: l.testConnection,
               subtitle: _testResult,
               trailing: _testing
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.5))
@@ -350,7 +301,7 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
                           ),
                         const SizedBox(width: 10),
                         SottoButton(
-                          label: context.l10n.test,
+                          label: l.test,
                           size: ButtonSize.small,
                           icon: SottoIcons.plug,
                           onPressed: () => unawaited(_test()),
@@ -358,78 +309,15 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
                       ],
                     ),
             ),
-          ],
-        ),
-      ],
-      right: [
-        SettingsGroup(
-          title: context.l10n.cloudStt,
-          footer: context.l10n.cloudSttFooter,
-          children: [
             SettingRow(
-              title: context.l10n.provider,
-              trailing: SegmentedControl<CloudSttProvider>(
-                width: 230,
-                segments: [
-                  Segment(CloudSttProvider.openai, 'OpenAI'),
-                  Segment(CloudSttProvider.openaiCompatible, context.l10n.compatible),
-                ],
-                value: s.cloudSttProvider,
-                onChanged: (v) => n.update((x) => x.copyWith(cloudSttProvider: v)),
+              title: l.deepseekPlatform,
+              subtitle: 'platform.deepseek.com',
+              trailing: SottoButton(
+                label: l.open,
+                size: ButtonSize.small,
+                onPressed: () => unawaited(openExternal('https://platform.deepseek.com')),
               ),
             ),
-            SettingRow(
-              title: context.l10n.apiKey,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  saved(_sttSaved),
-                  const SizedBox(width: 10),
-                  SottoTextField(
-                    width: 200,
-                    controller: _sttKey,
-                    obscure: true,
-                    mono: true,
-                    placeholder: 'sk-…',
-                    onSubmitted: (_) async {
-                      await ref.read(secretStoreProvider).write(SecretKey.cloudSttApiKey, _sttKey.text);
-                      setState(() => _sttSaved = _sttKey.text.trim().isNotEmpty);
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  SottoButton(
-                    label: context.l10n.save,
-                    size: ButtonSize.small,
-                    onPressed: () async {
-                      await ref.read(secretStoreProvider).write(SecretKey.cloudSttApiKey, _sttKey.text);
-                      ref.invalidate(readinessProvider);
-                      setState(() => _sttSaved = _sttKey.text.trim().isNotEmpty);
-                    },
-                  ),
-                ],
-              ),
-            ),
-            SettingRow(
-              title: context.l10n.model,
-              trailing: SottoTextField(
-                width: 200,
-                controller: _sttModel,
-                mono: true,
-                placeholder: 'whisper-1',
-                onChanged: (v) => n.update((x) => x.copyWith(cloudSttModel: v.trim().isEmpty ? 'whisper-1' : v.trim())),
-              ),
-            ),
-            if (s.cloudSttProvider == CloudSttProvider.openaiCompatible)
-              SettingRow(
-                title: context.l10n.baseUrl,
-                trailing: SottoTextField(
-                  width: 200,
-                  controller: _sttBase,
-                  mono: true,
-                  placeholder: 'https://…/v1',
-                  onChanged: (v) => n.update((x) => x.copyWith(cloudSttBaseUrl: v.trim())),
-                ),
-              ),
           ],
         ),
       ],

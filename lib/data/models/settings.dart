@@ -1,7 +1,6 @@
 import 'package:flutter/services.dart' show PhysicalKeyboardKey;
 
 import '../../core/design/typography.dart';
-import '../../l10n/l10n.dart';
 import 'shortcut.dart';
 
 enum AppThemeMode { dark, light, auto }
@@ -47,29 +46,9 @@ enum CaptureMode { toggle, hold }
 
 enum ReadAloudRoute { headphonesOnly, systemDefault }
 
-enum AiProvider { anthropic, openai, openaiCompatible }
-
 enum CloudSttProvider { openai, openaiCompatible }
 
-extension AiProviderLabel on AiProvider {
-  String get label => switch (this) {
-    AiProvider.anthropic => 'Anthropic',
-    AiProvider.openai => 'OpenAI',
-    AiProvider.openaiCompatible => L10n.current.providerCompatible,
-  };
-
-  String get defaultModel => switch (this) {
-    AiProvider.anthropic => 'claude-opus-5',
-    AiProvider.openai => 'gpt-5',
-    AiProvider.openaiCompatible => '',
-  };
-
-  String get defaultBaseUrl => switch (this) {
-    AiProvider.anthropic => 'https://api.anthropic.com',
-    AiProvider.openai => 'https://api.openai.com/v1',
-    AiProvider.openaiCompatible => 'http://localhost:11434/v1',
-  };
-}
+const defaultAiModel = 'deepseek-flash';
 
 /// Every preference Sotto keeps. Secrets (API keys) are NOT stored here —
 /// they live in the OS keychain, see `SecretStore`.
@@ -120,9 +99,7 @@ class AppSettings {
     this.bindings = const {},
     this.followSlideChanges = true,
     // Integrations
-    this.aiProvider = AiProvider.anthropic,
-    this.aiModel = 'claude-opus-5',
-    this.aiBaseUrl = '',
+    this.aiModel = defaultAiModel,
     this.cloudSttProvider = CloudSttProvider.openai,
     this.cloudSttModel = 'whisper-1',
     this.cloudSttBaseUrl = '',
@@ -187,11 +164,9 @@ class AppSettings {
   final Map<String, int> bindings;
   final bool followSlideChanges;
 
-  final AiProvider aiProvider;
+  /// DeepSeek model id. The list comes from `GET /models`; ids have changed
+  /// more than once, so nothing else in the app hardcodes them.
   final String aiModel;
-
-  /// Empty means the provider default.
-  final String aiBaseUrl;
   final CloudSttProvider cloudSttProvider;
   final String cloudSttModel;
   final String cloudSttBaseUrl;
@@ -204,8 +179,6 @@ class AppSettings {
 
   PhysicalKeyboardKey keyFor(LiveAction action) =>
       PhysicalKeyboardKey(bindings[action.name] ?? action.defaultKey.usbHidUsage);
-
-  String get effectiveAiBaseUrl => aiBaseUrl.isEmpty ? aiProvider.defaultBaseUrl : aiBaseUrl;
 
   AppSettings copyWith({
     AppThemeMode? appTheme,
@@ -249,9 +222,7 @@ class AppSettings {
     Set<ShortcutModifier>? chord,
     Map<String, int>? bindings,
     bool? followSlideChanges,
-    AiProvider? aiProvider,
     String? aiModel,
-    String? aiBaseUrl,
     CloudSttProvider? cloudSttProvider,
     String? cloudSttModel,
     String? cloudSttBaseUrl,
@@ -299,9 +270,7 @@ class AppSettings {
     chord: chord ?? this.chord,
     bindings: bindings ?? this.bindings,
     followSlideChanges: followSlideChanges ?? this.followSlideChanges,
-    aiProvider: aiProvider ?? this.aiProvider,
     aiModel: aiModel ?? this.aiModel,
-    aiBaseUrl: aiBaseUrl ?? this.aiBaseUrl,
     cloudSttProvider: cloudSttProvider ?? this.cloudSttProvider,
     cloudSttModel: cloudSttModel ?? this.cloudSttModel,
     cloudSttBaseUrl: cloudSttBaseUrl ?? this.cloudSttBaseUrl,
@@ -353,9 +322,7 @@ class AppSettings {
     'chord': chord.map((m) => m.name).toList(),
     'bindings': bindings,
     'followSlideChanges': followSlideChanges,
-    'aiProvider': aiProvider.name,
     'aiModel': aiModel,
-    'aiBaseUrl': aiBaseUrl,
     'cloudSttProvider': cloudSttProvider.name,
     'cloudSttModel': cloudSttModel,
     'cloudSttBaseUrl': cloudSttBaseUrl,
@@ -421,9 +388,12 @@ class AppSettings {
         for (final entry in ((j['bindings'] as Map?) ?? const {}).entries) entry.key as String: entry.value as int,
       },
       followSlideChanges: j['followSlideChanges'] as bool? ?? d.followSlideChanges,
-      aiProvider: e(AiProvider.values, j['aiProvider'], d.aiProvider),
-      aiModel: j['aiModel'] as String? ?? d.aiModel,
-      aiBaseUrl: j['aiBaseUrl'] as String? ?? d.aiBaseUrl,
+      // Settings saved with another provider (Anthropic, OpenAI…) migrate
+      // to DeepSeek: their model ids mean nothing here.
+      aiModel: switch (j['aiModel']) {
+        final String m when m.startsWith('deepseek') => m,
+        _ => d.aiModel,
+      },
       cloudSttProvider: e(CloudSttProvider.values, j['cloudSttProvider'], d.cloudSttProvider),
       cloudSttModel: j['cloudSttModel'] as String? ?? d.cloudSttModel,
       cloudSttBaseUrl: j['cloudSttBaseUrl'] as String? ?? d.cloudSttBaseUrl,

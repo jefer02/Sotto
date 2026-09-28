@@ -87,7 +87,7 @@ class SpeechSession {
     final prompt = hints.isEmpty ? null : hints.join(', ');
 
     Future<CloudTranscriber?> cloud() async {
-      final key = await secrets.read(SecretKey.cloudSttApiKey) ?? await secrets.read(SecretKey.openaiApiKey);
+      final key = await secrets.read(SecretKey.cloudSttApiKey);
       if (key == null) return null;
       final base = settings.cloudSttBaseUrl.isNotEmpty ? settings.cloudSttBaseUrl : 'https://api.openai.com/v1';
       return CloudTranscriber(apiKey: key, model: settings.cloudSttModel, baseUrl: base);

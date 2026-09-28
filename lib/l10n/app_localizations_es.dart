@@ -155,9 +155,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get modCommand => 'Comando';
 
   @override
-  String get providerCompatible => 'Compatible';
-
-  @override
   String get untitledScript => 'Guion sin título';
 
   @override
@@ -254,9 +251,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String llmGenericError(String provider) {
     return '$provider devolvió un error.';
   }
-
-  @override
-  String get llmAiServer => 'El servidor de IA';
 
   @override
   String get modelStreamingEn => 'Inglés · en tiempo real';
@@ -1933,7 +1927,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get integrationsDescription =>
-      'Las respuestas usan tu propia clave de API. Se guarda en el llavero del sistema y solo se envía al proveedor que elijas, solo cuando se hace una pregunta.';
+      'Las respuestas las redacta DeepSeek. Añade tu clave de API; se guarda en el llavero del sistema y solo se envía a DeepSeek cuando se hace una pregunta.';
 
   @override
   String get answersModel => 'Modelo de respuestas';
@@ -1945,21 +1939,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get apiKey => 'Clave de API';
 
   @override
-  String get apiKeyOptional => 'Opcional para servidores locales como Ollama o LM Studio';
-
-  @override
   String get model => 'Modelo';
 
   @override
-  String get modelLowEffort => 'Las respuestas en vivo usan poco esfuerzo para ser rápidas';
-
-  @override
   String get baseUrl => 'URL base';
-
-  @override
-  String baseUrlSub(String url) {
-    return 'Déjala vacía para usar $url';
-  }
 
   @override
   String get testConnection => 'Probar conexión';
@@ -2071,4 +2054,34 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get privConsentBody =>
       'Las leyes sobre grabación varían. Considera avisar a la sala de que la asistencia de preguntas está activa.';
+
+  @override
+  String get llmNoBalance => 'Tu saldo de DeepSeek está vacío. Recárgalo en platform.deepseek.com.';
+
+  @override
+  String get integrationsDescriptionBuiltIn =>
+      'Las respuestas las redacta DeepSeek con la clave integrada en esta copia de Sotto. Puedes reemplazarla con tu propia clave.';
+
+  @override
+  String get deepseekFooter => 'Solo se envían la pregunta y los fragmentos usados para responderla.';
+
+  @override
+  String get apiKeyOverrideSub => 'Opcional. Déjala vacía para usar la clave integrada.';
+
+  @override
+  String get builtInKey => 'Clave integrada';
+
+  @override
+  String get modelsLoading => 'Cargando modelos…';
+
+  @override
+  String modelsLoadFailed(String error) {
+    return 'No se pudo cargar la lista de modelos: $error';
+  }
+
+  @override
+  String get deepseekPlatform => 'Cuenta, saldo y claves';
+
+  @override
+  String get open => 'Abrir';
 }

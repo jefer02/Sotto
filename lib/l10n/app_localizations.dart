@@ -362,12 +362,6 @@ abstract class AppLocalizations {
   /// **'Command'**
   String get modCommand;
 
-  /// No description provided for @providerCompatible.
-  ///
-  /// In en, this message translates to:
-  /// **'OpenAI-compatible'**
-  String get providerCompatible;
-
   /// No description provided for @untitledScript.
   ///
   /// In en, this message translates to:
@@ -523,12 +517,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{provider} returned an error.'**
   String llmGenericError(String provider);
-
-  /// No description provided for @llmAiServer.
-  ///
-  /// In en, this message translates to:
-  /// **'The AI server'**
-  String get llmAiServer;
 
   /// No description provided for @modelStreamingEn.
   ///
@@ -3485,7 +3473,7 @@ abstract class AppLocalizations {
   /// No description provided for @integrationsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Answers use your own API key. It is stored in the system keychain and sent only to the provider you choose, only when a question is asked.'**
+  /// **'Answers are drafted by DeepSeek. Add your API key; it is stored in the system keychain and sent to DeepSeek only when a question is asked.'**
   String get integrationsDescription;
 
   /// No description provided for @answersModel.
@@ -3506,35 +3494,17 @@ abstract class AppLocalizations {
   /// **'API key'**
   String get apiKey;
 
-  /// No description provided for @apiKeyOptional.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional for local servers such as Ollama or LM Studio'**
-  String get apiKeyOptional;
-
   /// No description provided for @model.
   ///
   /// In en, this message translates to:
   /// **'Model'**
   String get model;
 
-  /// No description provided for @modelLowEffort.
-  ///
-  /// In en, this message translates to:
-  /// **'Live answers run at low effort for speed'**
-  String get modelLowEffort;
-
   /// No description provided for @baseUrl.
   ///
   /// In en, this message translates to:
   /// **'Base URL'**
   String get baseUrl;
-
-  /// No description provided for @baseUrlSub.
-  ///
-  /// In en, this message translates to:
-  /// **'Leave empty for {url}'**
-  String baseUrlSub(String url);
 
   /// No description provided for @testConnection.
   ///
@@ -3745,6 +3715,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recording laws vary. Consider telling the room that Q&A assist is on.'**
   String get privConsentBody;
+
+  /// No description provided for @llmNoBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Your DeepSeek balance is empty. Top up at platform.deepseek.com.'**
+  String get llmNoBalance;
+
+  /// No description provided for @integrationsDescriptionBuiltIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers are drafted by DeepSeek with the key built into this copy of Sotto. You can override it with your own key.'**
+  String get integrationsDescriptionBuiltIn;
+
+  /// No description provided for @deepseekFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the question and the excerpts used to answer it are sent.'**
+  String get deepseekFooter;
+
+  /// No description provided for @apiKeyOverrideSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Leave empty to use the built-in key.'**
+  String get apiKeyOverrideSub;
+
+  /// No description provided for @builtInKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in key'**
+  String get builtInKey;
+
+  /// No description provided for @modelsLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading models…'**
+  String get modelsLoading;
+
+  /// No description provided for @modelsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the model list: {error}'**
+  String modelsLoadFailed(String error);
+
+  /// No description provided for @deepseekPlatform.
+  ///
+  /// In en, this message translates to:
+  /// **'Account, balance and keys'**
+  String get deepseekPlatform;
+
+  /// No description provided for @open.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get open;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

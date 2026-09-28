@@ -4,12 +4,13 @@
 under the camera, follows your voice line by line, and drafts an answer when the room asks a question.
 
 Built with Flutter 3.47 / Dart 3.13. Fully local: no backend and no account. Everything is stored on
-this computer. The only network calls are the answer model (your own API key), the optional cloud
+this computer. The only network calls are the answer model (DeepSeek), the optional cloud
 speech-to-text, and a one-time download of the on-device speech models.
 
 ## Run it
 
 ```sh
+cp lib/core/secrets.example.dart lib/core/secrets.dart   # once; paste your DeepSeek key there
 flutter pub get
 flutter run -d macos     # or -d windows
 flutter test             # unit + widget tests
@@ -23,9 +24,10 @@ Then:
 1. **Settings → Voice & following → On-device models.** Download *English · streaming* (follows your
    voice) and *Whisper base* (question transcripts, other languages). They are fetched once from the
    sherpa-onnx releases and used offline after that.
-2. **Settings → Integrations.** Pick Anthropic, OpenAI or any OpenAI-compatible server (Ollama,
-   LM Studio…) and paste a key. It is stored in the Keychain / Credential Manager, never in the app
-   database.
+2. **Answers use DeepSeek.** The key is built in from `lib/core/secrets.dart` (git-ignored; copy it
+   from `secrets.example.dart`). **Settings → Integrations** can override it with a key stored in
+   the Keychain / Credential Manager, pick the model (the list comes from DeepSeek's `GET /models`;
+   the default is `deepseek-flash`) and test the connection.
 3. Open a script and choose **Go live** (`⌃⌥L` / `Ctrl+Alt+L`).
 
 Without models the overlay still works on hotkeys, with a timed advance. Without a key, everything
@@ -86,7 +88,7 @@ lib/
     structuring/  Offline rule-based organizer: sections, one-breath beats, cues, hint words
   services/
     speech/       Mic capture (record), sherpa-onnx worker isolate, Whisper, cloud STT, VAD, models
-    ai/           Anthropic + OpenAI-compatible streaming clients (raw SSE), grounded answer drafting
+    ai/           DeepSeek streaming client (raw SSE), model list, grounded answer drafting
     tts/          Read aloud (flutter_tts)
   features/
     library/      Home, script lists, sessions, import (drop / paste / browse), readiness
@@ -125,7 +127,8 @@ recomposites a layer.
 **Answers.** An offline BM25 ranking picks script sections and prep-document excerpts. Only the
 question and those excerpts are sent. Q&A-prep answers that match are shown instantly with no model
 call. Responses stream in a line protocol, so the headline appears first and the points follow.
-Anthropic calls go to `claude-opus-5` at low effort for latency, with server-side refusal fallbacks.
+Live answers run with DeepSeek's thinking mode off for latency; `reasoning_content` from thinking
+models is ignored.
 
 ## Tests
 

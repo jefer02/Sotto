@@ -8,8 +8,10 @@ import 'app/app.dart';
 import 'core/platform/window_service.dart';
 import 'data/repositories.dart';
 import 'data/seed.dart';
+import 'data/models/settings.dart';
 import 'data/storage/local_store.dart';
 import 'l10n/l10n.dart';
+import 'services/ai/deepseek_models.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +40,19 @@ Future<void> main() async {
     );
   }
   unawaited(container.read(qaRepositoryProvider).prune(container.read(settingsProvider).historyRetentionDays));
+  unawaited(_checkModel(container));
 
   runApp(UncontrolledProviderScope(container: container, child: const SottoApp()));
+}
+
+/// DeepSeek renames models from time to time: if the saved one is gone, fall
+/// back to Flash (or whatever the API offers first). Offline → keep it.
+Future<void> _checkModel(ProviderContainer container) async {
+  try {
+    final ids = await container.read(deepSeekModelsProvider.future);
+    final current = container.read(settingsProvider).aiModel;
+    if (ids.isEmpty || ids.contains(current)) return;
+    final next = ids.contains(defaultAiModel) ? defaultAiModel : ids.first;
+    container.read(settingsProvider.notifier).update((s) => s.copyWith(aiModel: next));
+  } catch (_) {}
 }

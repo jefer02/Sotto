@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Built-in API keys (see lib/core/secrets.example.dart)
+/lib/core/secrets.dart

@@ -7,6 +7,7 @@ import '../../data/models/settings.dart';
 import '../../data/repositories.dart';
 import '../../data/storage/secret_store.dart';
 import '../../l10n/l10n.dart';
+import '../../services/ai/llm_client.dart';
 import '../../services/speech/model_manager.dart';
 
 enum CheckLevel { ok, warn, missing }
@@ -62,8 +63,7 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
   final lang = settings.language.split('-').first.toUpperCase();
   final extra = settings.alsoRecognize.map((l) => l.split('-').first.toUpperCase());
   final langs = [lang, ...extra].join(', ');
-  final hasCloudKey =
-      await secrets.read(SecretKey.cloudSttApiKey) != null || await secrets.read(SecretKey.openaiApiKey) != null;
+  final hasCloudKey = await secrets.read(SecretKey.cloudSttApiKey) != null;
 
   final ReadinessItem voice;
   if (settings.advanceMode == AdvanceMode.manual) {
@@ -97,13 +97,10 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
     detail: hk.failures.isEmpty ? null : l.readyTakenByOther(hk.failures.length),
   );
 
-  final aiKey = await secrets.read(switch (settings.aiProvider) {
-    AiProvider.anthropic => SecretKey.anthropicApiKey,
-    AiProvider.openai => SecretKey.openaiApiKey,
-    AiProvider.openaiCompatible => SecretKey.compatibleApiKey,
-  });
-  final answers = aiKey != null || settings.aiProvider == AiProvider.openaiCompatible
-      ? ReadinessItem('${settings.aiProvider.label} · ${settings.aiModel}', CheckLevel.ok)
+  // The built-in key counts: no warning unless there is no key at all.
+  final aiKey = await resolveDeepSeekKey(secrets);
+  final answers = aiKey != null
+      ? ReadinessItem('DeepSeek · ${settings.aiModel}', CheckLevel.ok)
       : ReadinessItem(l.readyNoKey, CheckLevel.missing, detail: l.readyAddKey);
 
   return Readiness(

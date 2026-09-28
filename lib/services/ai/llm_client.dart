@@ -4,8 +4,12 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/secrets.dart';
 import '../../data/models/settings.dart';
+import '../../data/storage/secret_store.dart';
 import '../../l10n/l10n.dart';
+
+const _provider = 'DeepSeek';
 
 class LlmException implements Exception {
   LlmException(this.message, {this.statusCode, this.retryable = false});
@@ -17,7 +21,7 @@ class LlmException implements Exception {
   @override
   String toString() => message;
 
-  static LlmException fromStatus(int status, String body, String provider) {
+  static LlmException fromStatus(int status, String body) {
     String detail = '';
     try {
       final j = jsonDecode(body);
@@ -26,24 +30,33 @@ class LlmException implements Exception {
     final l = L10n.current;
     final suffix = detail.isEmpty ? '' : ': $detail';
     final msg = switch (status) {
-      400 => '${l.llmRejected}$suffix',
-      401 || 403 => l.llmBadKey(provider),
+      400 || 422 => '${l.llmRejected}$suffix',
+      401 || 403 => l.llmBadKey(_provider),
+      402 => l.llmNoBalance,
       404 => l.llmNoModel,
-      429 => l.llmRateLimit(provider),
-      >= 500 => l.llmServerError(provider, status),
+      429 => l.llmRateLimit(_provider),
+      >= 500 => l.llmServerError(_provider, status),
       _ => '${l.llmFailed(status)}$suffix',
     };
     return LlmException(msg, statusCode: status, retryable: status == 429 || status >= 500);
   }
 }
 
-/// Raised when the model declines to answer (stop_reason "refusal").
+/// Raised when the model declines to answer (finish_reason "content_filter").
 class LlmRefusal extends LlmException {
   LlmRefusal() : super(L10n.current.llmRefusal);
 }
 
-/// Minimal streaming text interface; both providers implement it over raw
-/// HTTP + server-sent events.
+/// The key DeepSeek calls use: one saved in Settings → Integrations wins,
+/// otherwise the built-in key from `lib/core/secrets.dart`. Null when
+/// neither exists.
+Future<String?> resolveDeepSeekKey(SecretStore secrets) async {
+  final saved = await secrets.read(SecretKey.deepseekApiKey);
+  if (saved != null && saved.isNotEmpty) return saved;
+  return kDeepSeekApiKey.isEmpty ? null : kDeepSeekApiKey;
+}
+
+/// Minimal streaming text interface over raw HTTP + server-sent events.
 abstract class LlmClient {
   Stream<String> stream({required String system, required String user, int maxTokens = 4096, bool fast = true});
 
@@ -57,19 +70,13 @@ abstract class LlmClient {
 
   void close();
 
-  static LlmClient create(AppSettings s, String apiKey) => switch (s.aiProvider) {
-    AiProvider.anthropic => AnthropicClient(
-      apiKey: apiKey,
-      model: s.aiModel.isEmpty ? s.aiProvider.defaultModel : s.aiModel,
-      baseUrl: s.effectiveAiBaseUrl,
-    ),
-    AiProvider.openai || AiProvider.openaiCompatible => OpenAiClient(
-      apiKey: apiKey,
-      model: s.aiModel.isEmpty ? s.aiProvider.defaultModel : s.aiModel,
-      baseUrl: s.effectiveAiBaseUrl,
-      official: s.aiProvider == AiProvider.openai,
-    ),
-  };
+  static LlmClient create(AppSettings s, String apiKey) => DeepSeekClient(apiKey: apiKey, model: s.aiModel);
+
+  /// A client for the current settings, or null when there is no key.
+  static Future<LlmClient?> forSettings(AppSettings s, SecretStore secrets) async {
+    final key = await resolveDeepSeekKey(secrets);
+    return key == null ? null : create(s, key);
+  }
 }
 
 /// Splits a byte stream into SSE events: (event name, data payload).
@@ -91,132 +98,76 @@ Stream<(String?, String)> _sse(Stream<List<int>> bytes) async* {
   if (data.isNotEmpty) yield (event, data.toString());
 }
 
-Future<http.StreamedResponse> _send(http.Client client, http.Request req, String provider) async {
+Future<http.StreamedResponse> _send(http.Client client, http.BaseRequest req) async {
   try {
     return await client.send(req).timeout(const Duration(seconds: 30));
   } on TimeoutException {
-    throw LlmException(L10n.current.llmTimeout(provider), retryable: true);
+    throw LlmException(L10n.current.llmTimeout(_provider), retryable: true);
   } on SocketException {
-    throw LlmException(L10n.current.llmOffline(provider), retryable: true);
+    throw LlmException(L10n.current.llmOffline(_provider), retryable: true);
   } on http.ClientException catch (e) {
-    throw LlmException(L10n.current.llmUnreachable(provider, e.message), retryable: true);
+    throw LlmException(L10n.current.llmUnreachable(_provider, e.message), retryable: true);
   }
 }
 
-class AnthropicClient extends LlmClient {
-  AnthropicClient({required this.apiKey, required this.model, required this.baseUrl});
+/// DeepSeek's OpenAI-format API. Thinking models also stream
+/// `reasoning_content`; it is never shown and never breaks parsing.
+class DeepSeekClient extends LlmClient {
+  DeepSeekClient({required this.apiKey, required this.model, http.Client? httpClient})
+    : _http = httpClient ?? http.Client();
+
+  static const baseUrl = 'https://api.deepseek.com';
+  static const defaultModel = 'deepseek-flash';
 
   final String apiKey;
   final String model;
-  final String baseUrl;
-  final _http = http.Client();
+  final http.Client _http;
 
-  // Models that take output_config.effort; Haiku 4.5 rejects it.
-  bool get _supportsEffort =>
-      model.startsWith('claude-opus') ||
-      model.startsWith('claude-fable') ||
-      model.startsWith('claude-sonnet-5') ||
-      model.startsWith('claude-sonnet-4-6') ||
-      model.startsWith('claude-mythos');
+  Map<String, String> get _headers => {'content-type': 'application/json', 'authorization': 'Bearer $apiKey'};
 
-  // Server-side refusal fallbacks: re-run a declined request on another
-  // model inside the same call. Enabled for the models that support it.
-  bool get _supportsFallbacks => model == 'claude-opus-5' || model == 'claude-fable-5-1';
+  /// `GET /models` — the ids this key may use.
+  Future<List<String>> listModels() async {
+    final req = http.Request('GET', Uri.parse('$baseUrl/models'))..headers.addAll(_headers);
+    final res = await _send(_http, req);
+    final body = await res.stream.bytesToString();
+    if (res.statusCode != 200) throw LlmException.fromStatus(res.statusCode, body);
+    final data = (jsonDecode(body) as Map)['data'] as List? ?? const [];
+    return [for (final m in data) (m as Map)['id'] as String]..sort();
+  }
 
   @override
   Stream<String> stream({required String system, required String user, int maxTokens = 4096, bool fast = true}) async* {
-    final uri = Uri.parse('${baseUrl.replaceAll(RegExp(r'/+$'), '')}/v1/messages');
-    final req = http.Request('POST', uri)
-      ..headers.addAll({
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        if (_supportsFallbacks) 'anthropic-beta': 'server-side-fallback-2026-07-01',
-      })
+    final req = http.Request('POST', Uri.parse('$baseUrl/chat/completions'))
+      ..headers.addAll(_headers)
       ..body = jsonEncode({
         'model': model,
+        'stream': true,
         'max_tokens': maxTokens,
-        'stream': true,
-        'system': system,
-        'messages': [
-          {'role': 'user', 'content': user},
-        ],
-        // Live answers are latency-bound (first token ≤ 1.2 s p50), so they
-        // run at low effort; structuring a script can afford more.
-        if (_supportsEffort) 'output_config': {'effort': fast ? 'low' : 'medium'},
-        if (_supportsFallbacks) 'fallbacks': 'default',
-      });
-
-    final res = await _send(_http, req, 'Anthropic');
-    if (res.statusCode != 200) {
-      throw LlmException.fromStatus(res.statusCode, await res.stream.bytesToString(), 'Anthropic');
-    }
-    await for (final (event, data) in _sse(res.stream)) {
-      final j = jsonDecode(data) as Map<String, dynamic>;
-      switch (j['type'] ?? event) {
-        case 'content_block_delta':
-          final delta = j['delta'] as Map<String, dynamic>;
-          if (delta['type'] == 'text_delta') yield delta['text'] as String;
-        case 'message_delta':
-          if ((j['delta'] as Map?)?['stop_reason'] == 'refusal') throw LlmRefusal();
-        case 'error':
-          final err = j['error'] as Map?;
-          throw LlmException(
-            err?['message'] as String? ?? L10n.current.llmGenericError('Anthropic'),
-            retryable: err?['type'] == 'overloaded_error',
-          );
-      }
-    }
-  }
-
-  @override
-  void close() => _http.close();
-}
-
-class OpenAiClient extends LlmClient {
-  OpenAiClient({required this.apiKey, required this.model, required this.baseUrl, required this.official});
-
-  final String apiKey;
-  final String model;
-  final String baseUrl;
-
-  /// api.openai.com wants `max_completion_tokens`; most compatible servers
-  /// (Ollama, LM Studio, vLLM, OpenRouter) still read `max_tokens`.
-  final bool official;
-  final _http = http.Client();
-
-  @override
-  Stream<String> stream({required String system, required String user, int maxTokens = 4096, bool fast = true}) async* {
-    final uri = Uri.parse('${baseUrl.replaceAll(RegExp(r'/+$'), '')}/chat/completions');
-    final req = http.Request('POST', uri)
-      ..headers.addAll({'content-type': 'application/json', if (apiKey.isNotEmpty) 'authorization': 'Bearer $apiKey'})
-      ..body = jsonEncode({
-        'model': model,
-        'stream': true,
-        official ? 'max_completion_tokens' : 'max_tokens': maxTokens,
+        // Live answers are latency-bound, so they skip thinking; organizing a
+        // script can afford it.
+        if (fast) 'thinking': {'type': 'disabled'},
         'messages': [
           {'role': 'system', 'content': system},
           {'role': 'user', 'content': user},
         ],
       });
 
-    final provider = official ? 'OpenAI' : L10n.current.llmAiServer;
-    final res = await _send(_http, req, provider);
+    final res = await _send(_http, req);
     if (res.statusCode != 200) {
-      throw LlmException.fromStatus(res.statusCode, await res.stream.bytesToString(), provider);
+      throw LlmException.fromStatus(res.statusCode, await res.stream.bytesToString());
     }
     await for (final (_, data) in _sse(res.stream)) {
       if (data == '[DONE]') break;
       final j = jsonDecode(data) as Map<String, dynamic>;
       if (j['error'] != null) {
-        throw LlmException((j['error'] as Map)['message'] as String? ?? L10n.current.llmGenericError(provider));
+        throw LlmException((j['error'] as Map)['message'] as String? ?? L10n.current.llmGenericError(_provider));
       }
       final choices = j['choices'] as List?;
       if (choices == null || choices.isEmpty) continue;
-      final delta = (choices.first as Map)['delta'] as Map?;
-      final content = delta?['content'];
+      final choice = choices.first as Map;
+      final content = (choice['delta'] as Map?)?['content'];
       if (content is String && content.isNotEmpty) yield content;
-      if ((choices.first as Map)['finish_reason'] == 'content_filter') throw LlmRefusal();
+      if (choice['finish_reason'] == 'content_filter') throw LlmRefusal();
     }
   }
 

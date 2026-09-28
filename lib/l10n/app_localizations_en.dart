@@ -155,9 +155,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modCommand => 'Command';
 
   @override
-  String get providerCompatible => 'OpenAI-compatible';
-
-  @override
   String get untitledScript => 'Untitled script';
 
   @override
@@ -254,9 +251,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String llmGenericError(String provider) {
     return '$provider returned an error.';
   }
-
-  @override
-  String get llmAiServer => 'The AI server';
 
   @override
   String get modelStreamingEn => 'English · streaming';
@@ -1927,7 +1921,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get integrationsDescription =>
-      'Answers use your own API key. It is stored in the system keychain and sent only to the provider you choose, only when a question is asked.';
+      'Answers are drafted by DeepSeek. Add your API key; it is stored in the system keychain and sent to DeepSeek only when a question is asked.';
 
   @override
   String get answersModel => 'Answers model';
@@ -1939,21 +1933,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get apiKey => 'API key';
 
   @override
-  String get apiKeyOptional => 'Optional for local servers such as Ollama or LM Studio';
-
-  @override
   String get model => 'Model';
 
   @override
-  String get modelLowEffort => 'Live answers run at low effort for speed';
-
-  @override
   String get baseUrl => 'Base URL';
-
-  @override
-  String baseUrlSub(String url) {
-    return 'Leave empty for $url';
-  }
 
   @override
   String get testConnection => 'Test connection';
@@ -2064,4 +2047,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privConsentBody => 'Recording laws vary. Consider telling the room that Q&A assist is on.';
+
+  @override
+  String get llmNoBalance => 'Your DeepSeek balance is empty. Top up at platform.deepseek.com.';
+
+  @override
+  String get integrationsDescriptionBuiltIn =>
+      'Answers are drafted by DeepSeek with the key built into this copy of Sotto. You can override it with your own key.';
+
+  @override
+  String get deepseekFooter => 'Only the question and the excerpts used to answer it are sent.';
+
+  @override
+  String get apiKeyOverrideSub => 'Optional. Leave empty to use the built-in key.';
+
+  @override
+  String get builtInKey => 'Built-in key';
+
+  @override
+  String get modelsLoading => 'Loading models…';
+
+  @override
+  String modelsLoadFailed(String error) {
+    return 'Could not load the model list: $error';
+  }
+
+  @override
+  String get deepseekPlatform => 'Account, balance and keys';
+
+  @override
+  String get open => 'Open';
 }

@@ -1,8 +1,11 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-enum SecretKey { anthropicApiKey, openaiApiKey, compatibleApiKey, cloudSttApiKey }
+enum SecretKey { deepseekApiKey, cloudSttApiKey }
 
-/// API keys are the user's own and never touch the Hive database: they go to
+/// Keys earlier versions stored; removed by [SecretStore.wipe].
+const _legacyKeys = ['anthropicApiKey', 'openaiApiKey', 'compatibleApiKey'];
+
+/// API keys the user saves never touch the Hive database: they go to
 /// the macOS Keychain / Windows Credential Manager.
 class SecretStore {
   SecretStore([FlutterSecureStorage? storage])
@@ -38,6 +41,9 @@ class SecretStore {
   Future<void> wipe() async {
     for (final k in SecretKey.values) {
       await write(k, null);
+    }
+    for (final k in _legacyKeys) {
+      await _storage.delete(key: 'sotto.$k');
     }
   }
 }

@@ -9,9 +9,7 @@ import '../../app/router.dart';
 import '../../core/utils/ids.dart';
 import '../../data/import/script_importer.dart';
 import '../../data/models/script.dart';
-import '../../data/models/settings.dart';
 import '../../data/repositories.dart';
-import '../../data/storage/secret_store.dart';
 import '../../domain/structuring/script_structurer.dart';
 import '../../services/ai/answer_service.dart';
 import '../../services/ai/llm_client.dart';
@@ -25,15 +23,7 @@ Future<Script> createScriptAndOpen(WidgetRef ref, {String? collectionId}) async 
 }
 
 Future<LlmClient?> _llmFor(WidgetRef ref) async {
-  final s = ref.read(settingsProvider);
-  final secrets = ref.read(secretStoreProvider);
-  final key = await secrets.read(switch (s.aiProvider) {
-    AiProvider.anthropic => SecretKey.anthropicApiKey,
-    AiProvider.openai => SecretKey.openaiApiKey,
-    AiProvider.openaiCompatible => SecretKey.compatibleApiKey,
-  });
-  if (key == null && s.aiProvider != AiProvider.openaiCompatible) return null;
-  return LlmClient.create(s, key ?? '');
+  return LlmClient.forSettings(ref.read(settingsProvider), ref.read(secretStoreProvider));
 }
 
 /// Creates the script immediately (status "Organizing…" in the library),
