@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
+import '../agent/agent_controller.dart';
 
 import '../../core/design/icons.dart';
 import '../../core/design/theme.dart';
@@ -13,6 +14,7 @@ import '../../core/design/tokens.dart';
 import '../../core/design/typography.dart';
 import '../../core/utils/ids.dart';
 import '../../core/widgets/buttons.dart';
+import '../../core/widgets/controls.dart';
 import '../../data/import/script_importer.dart';
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
@@ -175,6 +177,8 @@ class _PrepTabState extends ConsumerState<PrepTab> {
       ],
     );
 
+    final agent = ref.watch(settingsProvider.select((s) => s.agentEnabled)) ? _AgentCard(script: script) : null;
+
     final docs = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -230,6 +234,7 @@ class _PrepTabState extends ConsumerState<PrepTab> {
               ),
               const SizedBox(height: 20),
             ],
+            if (agent != null) ...[agent, const SizedBox(height: 28)],
             if (wide)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -432,6 +437,74 @@ class _DocCardState extends State<_DocCard> {
                 style: TypeScale.caption.copyWith(color: p.inkSecondary, height: 1.5),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Let the agent do it": a task in words, run on screen with confirmation.
+class _AgentCard extends ConsumerStatefulWidget {
+  const _AgentCard({required this.script});
+  final Script script;
+
+  @override
+  ConsumerState<_AgentCard> createState() => _AgentCardState();
+}
+
+class _AgentCardState extends ConsumerState<_AgentCard> {
+  final _task = TextEditingController();
+
+  @override
+  void dispose() {
+    _task.dispose();
+    super.dispose();
+  }
+
+  void _run() {
+    final task = _task.text.trim();
+    if (task.isEmpty) return;
+    unawaited(ref.read(agentControllerProvider.notifier).start(task, script: widget.script));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final l = context.l10n;
+    final running = ref.watch(agentControllerProvider.select((a) => a.inControl));
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: p.panel,
+        borderRadius: Radii.rL,
+        border: Border.all(color: p.hairline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              SottoIcon(SottoIcons.cursor, size: 14, color: p.cueText),
+              const SizedBox(width: 8),
+              Text(l.agentCardTitle, style: TypeScale.title3.copyWith(color: p.inkPrimary)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(l.agentCardBody, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: SottoTextField(
+                  controller: _task,
+                  placeholder: l.agentTaskPlaceholder,
+                  onSubmitted: (_) => _run(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SottoButton.primary(label: l.agentRunTask, icon: SottoIcons.play, onPressed: running ? null : _run),
+            ],
+          ),
         ],
       ),
     );

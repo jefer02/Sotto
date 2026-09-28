@@ -121,6 +121,14 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
                 level: screen.level,
                 action: screen.level == CheckLevel.ok ? null : (l.pfSetUp, '/settings/privacy'),
               ),
+            if (readiness.agent case final agent?)
+              _Check(
+                icon: SottoIcons.cursor,
+                title: l.agentMode,
+                detail: agent.detail ?? agent.label,
+                level: agent.level,
+                action: agent.level == CheckLevel.ok ? null : (l.pfSetUp, '/settings/privacy'),
+              ),
             _Check(
               icon: SottoIcons.send,
               title: l.pfMeetingChat,

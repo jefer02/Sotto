@@ -24,6 +24,7 @@ import '../../services/speech/model_manager.dart';
 import '../../services/speech/speech_session.dart';
 import '../../services/tts/tts_service.dart';
 import '../../l10n/l10n.dart';
+import '../agent/agent_controller.dart';
 import 'live_state.dart';
 
 /// Called when a session ends, with the ended session's record.
@@ -49,6 +50,12 @@ class LiveController extends Notifier<LiveState> {
   /// written to disk.
   String? _screenshot;
   bool _aboutScreen = false;
+
+  /// The spoken question is an agent task (chord + G), not a question.
+  bool _agentTask = false;
+
+  /// Agent tasks run during this session, for its record.
+  final _agentRuns = <AgentRunRecord>[];
 
   /// Kept for "Regenerate" on an answer that used the screen.
   String? _lastScreenshot;
@@ -167,7 +174,12 @@ class LiveController extends Notifier<LiveState> {
       wordsSpoken: s.wordsSpoken,
       questionCount: _questionCount,
       plannedSeconds: s.plannedSeconds(_settings.wordsPerMinute),
+      agentRuns: List.of(_agentRuns),
     );
+    _agentRuns.clear();
+    // Ending the session stops any agent task with it.
+    final agent = ref.read(agentControllerProvider.notifier);
+    if (ref.read(agentControllerProvider).active) unawaited(agent.close());
     await _teardown();
     state = LiveState(readingSize: _settings.readingSize);
 
@@ -266,6 +278,8 @@ class LiveController extends Notifier<LiveState> {
     LiveAction.previousSection: (onDown: previousSection, onUp: null),
     LiveAction.ask: (onDown: askDown, onUp: askUp),
     LiveAction.askScreen: (onDown: () => unawaited(askScreenDown()), onUp: askUp),
+    LiveAction.agentTask: (onDown: agentTaskDown, onUp: askUp),
+    LiveAction.agentStop: (onDown: () => ref.read(agentControllerProvider.notifier).stop(), onUp: null),
     LiveAction.sendToChat: (onDown: sendDown, onUp: sendUp),
     LiveAction.readAloud: (onDown: readAloud, onUp: null),
     LiveAction.dismiss: (onDown: dismiss, onUp: null),
@@ -446,6 +460,23 @@ class LiveController extends Notifier<LiveState> {
     await _startListening();
   }
 
+  /// Agent task by voice: listen, then hand the words to the agent.
+  void agentTaskDown() {
+    if (!_settings.agentEnabled) {
+      _notice(L10n.current.agentOff, seconds: 6);
+      return;
+    }
+    if (ref.read(agentControllerProvider).inControl) return;
+    if (state.phase == LivePhase.listening) {
+      if (_agentTask && _settings.captureMode == CaptureMode.toggle) unawaited(finishQuestion());
+      return;
+    }
+    _agentTask = true;
+    unawaited(_startListening());
+  }
+
+  void recordAgentRun(AgentRunRecord run) => _agentRuns.add(run);
+
   /// One on-demand screenshot, with the overlay's capture indicator on.
   Future<String?> _captureScreen() async {
     state = state.copyWith(capturingScreen: true);
@@ -495,6 +526,7 @@ class LiveController extends Notifier<LiveState> {
       question: const QuestionProgress(text: '', silence: 0, elapsed: Duration.zero),
       historyOpen: false,
       screenAttached: _screenshot != null,
+      listeningForTask: _agentTask,
     );
     await speech.beginQuestion();
     _subs.add(
@@ -515,6 +547,7 @@ class LiveController extends Notifier<LiveState> {
   Future<void> cancelQuestion() async {
     if (state.phase != LivePhase.listening) return;
     await _speech?.cancelQuestion();
+    _agentTask = false;
     _clearScreenshot();
     _resume();
   }
@@ -525,6 +558,16 @@ class LiveController extends Notifier<LiveState> {
     final live = state.question?.text ?? '';
     state = state.copyWith(phase: LivePhase.drafting, questionText: live, clearQuestion: true);
     var question = (await speech.endQuestion()).trim();
+    if (_agentTask) {
+      _agentTask = false;
+      _resume();
+      if (question.split(' ').length < 2) {
+        _notice(L10n.current.noticeNoQuestion);
+      } else {
+        unawaited(ref.read(agentControllerProvider.notifier).start(question, script: state.script!));
+      }
+      return;
+    }
     if (question.split(' ').length < 2) {
       if (!_aboutScreen) {
         _notice(L10n.current.noticeNoQuestion);

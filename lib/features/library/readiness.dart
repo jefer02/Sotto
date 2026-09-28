@@ -7,6 +7,7 @@ import '../../data/models/settings.dart';
 import '../../data/repositories.dart';
 import '../../l10n/l10n.dart';
 import '../../services/ai/llm_client.dart';
+import '../../services/agent/input_service.dart';
 import '../../services/screen/screen_service.dart';
 import '../../services/speech/model_manager.dart';
 
@@ -27,6 +28,7 @@ class Readiness {
     required this.answers,
     required this.share,
     this.screen,
+    this.agent,
   });
 
   final ReadinessItem mic;
@@ -37,6 +39,9 @@ class Readiness {
 
   /// Screen Recording permission (macOS), only when screen awareness is on.
   final ReadinessItem? screen;
+
+  /// Agent mode (Accessibility permission on macOS), only when it is on.
+  final ReadinessItem? agent;
 
   List<ReadinessItem> get sidebarItems => [mic, voice, hotkeys, share];
 
@@ -108,8 +113,20 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
         : ReadinessItem(l.screenPermissionMissing, CheckLevel.missing, detail: l.screenPermissionMissingSub);
   }
 
+  ReadinessItem? agent;
+  if (settings.agentEnabled) {
+    final trusted = await ref.read(inputServiceProvider).hasPermission();
+    agent = trusted
+        ? ReadinessItem(
+            settings.agentAutonomy == AgentAutonomy.auto ? l.readyAgentAuto : l.readyAgentOk,
+            CheckLevel.ok,
+          )
+        : ReadinessItem(l.accessibilityMissing, CheckLevel.missing, detail: l.accessibilityMissingSub);
+  }
+
   return Readiness(
     screen: screen,
+    agent: agent,
     mic: ReadinessItem(micLabel, micLevel),
     voice: voice,
     hotkeys: hotkeys,

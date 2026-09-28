@@ -45,7 +45,7 @@ class ListeningView extends ConsumerWidget {
                 _TallyDot(silence: q?.silence ?? 0),
                 const SizedBox(width: 10),
                 Text(
-                  context.l10n.listening,
+                  state.listeningForTask ? context.l10n.agentListening : context.l10n.listening,
                   style: withWeight(TypeScale.caption, 600).copyWith(color: o.capture, letterSpacing: 0.12),
                 ),
                 const SizedBox(width: 10),

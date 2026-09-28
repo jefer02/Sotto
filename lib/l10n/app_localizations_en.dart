@@ -2191,4 +2191,234 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readyScreenOk => 'On — one screenshot per question you ask about the screen';
+
+  @override
+  String get actionAgentTask => 'Agent task';
+
+  @override
+  String get actionAgentTaskSub => 'Say a task; the agent does it on screen, step by step';
+
+  @override
+  String get actionAgentStop => 'Stop the agent';
+
+  @override
+  String get actionAgentStopSub => 'Emergency stop — cancels at once and lets go of every key';
+
+  @override
+  String get agentOff => 'Agent mode is off — turn it on in Settings → Privacy';
+
+  @override
+  String get agentUnsupported => 'Agent mode works on Windows for now.';
+
+  @override
+  String get agentNeedsAccessibility =>
+      'Sotto needs Accessibility permission to control the mouse and keyboard — see Settings → Privacy.';
+
+  @override
+  String get agentListening => 'Describe the task';
+
+  @override
+  String get agentStarting => 'Looking at the screen…';
+
+  @override
+  String get agentThinking => 'Deciding the next step…';
+
+  @override
+  String get agentWaiting => 'Waiting for you';
+
+  @override
+  String get agentActing => 'Working…';
+
+  @override
+  String get agentInControl => 'AGENT IN CONTROL';
+
+  @override
+  String agentStep(int step, int max) {
+    return 'step $step/$max';
+  }
+
+  @override
+  String get agentStop => 'Stop';
+
+  @override
+  String agentStopHint(String keys) {
+    return 'Emergency stop: $keys — works everywhere';
+  }
+
+  @override
+  String get agentCouldNotStart => 'Could not start';
+
+  @override
+  String get agentCompleted => 'Done';
+
+  @override
+  String get agentStopped => 'Stopped — nothing else will run';
+
+  @override
+  String get agentDeclined => 'Stopped at your request';
+
+  @override
+  String agentLimit(int max) {
+    return 'Stopped after $max steps';
+  }
+
+  @override
+  String get agentFailed => 'Stopped by an error';
+
+  @override
+  String get agentNext => 'NEXT ACTION';
+
+  @override
+  String agentConfirmSensitive(String reason) {
+    return 'CONFIRM — $reason';
+  }
+
+  @override
+  String get agentRun => 'Run';
+
+  @override
+  String get agentStopTask => 'Stop task';
+
+  @override
+  String get agentCardTitle => 'Let the agent do it';
+
+  @override
+  String get agentCardBody =>
+      'Describe a task — “fill this form with my details from the prep docs”. The agent works on screen, one step at a time, and asks before anything that submits, sends, pays or deletes.';
+
+  @override
+  String get agentTaskPlaceholder => 'What should the agent do?';
+
+  @override
+  String get agentRunTask => 'Start';
+
+  @override
+  String get agentMode => 'Agent mode';
+
+  @override
+  String agentModeFooter(String keys) {
+    return 'The agent sends screenshots to DeepSeek and moves the mouse and keyboard, at most 25 steps per task. It never types into password fields or handles payment data, always asks before submitting, sending, paying, deleting or buying, shows an amber frame while in control, and logs every action in the session. $keys stops it at once, from anywhere.';
+  }
+
+  @override
+  String get agentToggle => 'Let Sotto control my mouse and keyboard';
+
+  @override
+  String get agentToggleSub => 'Off by default. Only for tasks you start.';
+
+  @override
+  String get agentAutonomy => 'Supervision';
+
+  @override
+  String get agentConfirmEach => 'Confirm each action';
+
+  @override
+  String get agentAuto => 'Run automatically';
+
+  @override
+  String get agentConfirmEachSub => 'Enter runs the shown action, Esc stops';
+
+  @override
+  String get agentAutoSub => 'Still asks before anything that submits, sends, pays, deletes or buys';
+
+  @override
+  String get accessibilityMissing => 'Accessibility permission needed';
+
+  @override
+  String get accessibilityMissingSub => 'System Settings → Privacy & Security → Accessibility → Sotto';
+
+  @override
+  String sessionAgentTask(String task) {
+    return 'Agent: $task';
+  }
+
+  @override
+  String sessionAgentActions(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count actions', one: '1 action');
+    return '$_temp0';
+  }
+
+  @override
+  String get readyAgentOk => 'On — confirm each action';
+
+  @override
+  String get readyAgentAuto => 'On — runs automatically, asks before irreversible steps';
+
+  @override
+  String agentDoClick(String target, String at) {
+    return 'Click “$target” at $at';
+  }
+
+  @override
+  String agentDoDoubleClick(String target, String at) {
+    return 'Double-click “$target” at $at';
+  }
+
+  @override
+  String agentDoRightClick(String target, String at) {
+    return 'Right-click “$target” at $at';
+  }
+
+  @override
+  String agentDoMove(String at) {
+    return 'Move the pointer to $at';
+  }
+
+  @override
+  String agentDoType(String text, String target) {
+    return 'Type “$text” into $target';
+  }
+
+  @override
+  String agentDoKeys(String keys) {
+    return 'Press $keys';
+  }
+
+  @override
+  String get agentDoScrollDown => 'Scroll down';
+
+  @override
+  String get agentDoScrollUp => 'Scroll up';
+
+  @override
+  String agentDoWait(int ms) {
+    return 'Wait $ms ms';
+  }
+
+  @override
+  String get agentDoScreenshot => 'Look at the screen again';
+
+  @override
+  String get agentDoDone => 'Finish';
+
+  @override
+  String get agentWhyPassword => 'the focused field is a password field';
+
+  @override
+  String get agentWhySecret => 'it looks like a password or security-code field';
+
+  @override
+  String get agentWhyPayment => 'it looks like a payment field';
+
+  @override
+  String get agentWhyCard => 'the text looks like a card number';
+
+  @override
+  String get agentWhyIrreversible => 'it may submit, send, pay or delete';
+
+  @override
+  String get agentWhySubmitKey => 'it may submit or delete';
+
+  @override
+  String get agentWhyOutside => 'outside the screenshot';
+
+  @override
+  String get privAgent => 'Agent';
+
+  @override
+  String get privAgentOffBody => 'Off. Sotto never moves your mouse or types.';
+
+  @override
+  String get privAgentOnBody =>
+      'Only for tasks you start: one screenshot per step goes to DeepSeek; every action is logged in the session.';
 }

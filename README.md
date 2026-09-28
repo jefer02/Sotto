@@ -4,7 +4,8 @@
 under the camera, follows your voice line by line, and drafts an answer when the room asks a question.
 
 Built with Flutter 3.47 / Dart 3.13. Fully local: no backend and no account. Everything is stored on
-this computer. The only network calls are the answer model (DeepSeek) and a one-time download of the on-device speech models.
+this computer. The only network calls are DeepSeek (answers and, if you opt in, screenshots for screen
+awareness and agent mode) and a one-time download of the on-device speech models.
 
 ## Run it
 
@@ -14,6 +15,24 @@ flutter pub get
 flutter run -d macos     # or -d windows
 flutter test             # unit + widget tests
 ```
+
+**Built-in DeepSeek key.** `lib/core/secrets.dart` is git-ignored and holds
+`const String kDeepSeekApiKey = '…';`. The app uses it unless a key is saved in Settings →
+Integrations, which takes priority. The key is never printed or logged. From a fresh clone, copy
+`secrets.example.dart` first — the build needs the file to exist (an empty key just means answers
+need a key in Integrations).
+
+**Windows** builds need `nuget.exe` on `PATH` (for the `flutter_tts` plugin) and Visual Studio's C++
+workload with a Windows 10/11 SDK (the runner's `sotto_native` library uses C++/WinRT for screen
+capture). No permissions are needed.
+
+**macOS permissions** (System Settings → Privacy & Security):
+
+| Permission | Needed for | When it's asked |
+|---|---|---|
+| Microphone | Following your voice, capturing questions | First live session |
+| Screen Recording | Screen awareness ("Ask about the screen") | When you turn it on in Settings → Privacy; pre-flight checks it |
+| Accessibility | Agent mode (mouse and keyboard) | Not yet — see *Known limitations* |
 
 On first launch the library is seeded with the design's example talk: "Q3 Board Review", or
 "Revisión del tercer trimestre" on a Spanish system.
@@ -44,6 +63,7 @@ works except drafting answers.
 | O | Hide overlay instantly | H | Questions history |
 | T | Click-through | = / − | Text size |
 | M | Move to next display | S | Ask about the screen (opt-in) |
+| G | Agent task by voice (opt-in) | Esc | Emergency stop for the agent |
 
 All shortcuts are global, so they work while Zoom or your slides have focus. You can rebind them, or
 change the shared chord, in Settings → Shortcuts. The recorder flags conflicts with system shortcuts
@@ -83,12 +103,15 @@ lib/
     repositories.dart   Riverpod providers over the stores
   l10n/           ARB catalogs (en, es), generated AppLocalizations, L10n helpers
   domain/
+    agent/        Agent loop, tool actions, coordinate mapping, safety gate (pure, tested)
     following/    Text normalizer ("$48.2" → "forty eight point two"), Smith–Waterman aligner,
                   FollowEngine (the rules from the "Following your voice" board)
     structuring/  Offline rule-based organizer: sections, one-breath beats, cues, hint words
   services/
     speech/       Mic capture (record), sherpa-onnx worker isolate, Whisper, VAD, models
-    ai/           DeepSeek streaming client (raw SSE), model list, grounded answer drafting
+    ai/           DeepSeek client (SSE streaming, tool calls), model list, answers, agent model
+    screen/       On-demand screenshots (Windows.Graphics.Capture / ScreenCaptureKit)
+    agent/        Native input (SendInput + UI Automation) and the real agent executor
     tts/          Read aloud (flutter_tts)
   features/
     library/      Home, script lists, sessions, import (drop / paste / browse), readiness
@@ -96,6 +119,8 @@ lib/
     preflight/    Go-live checks
     settings/     Shortcuts, Appearance, Voice & following, Answers, General, Integrations, Privacy
     live/         LiveController (the session state machine) and the overlay UI
+    agent/        AgentController (confirmations, emergency stop, logging) and the agent panel
+    onboarding/   First-run welcome
 ```
 
 **Overlay styles.** *Text only* (the default) draws no background at all: the window, DWM backdrop
@@ -113,6 +138,26 @@ ScreenCaptureKit on macOS 14+ (`CGDisplayCreateImage` on 12–13) — scaled to 
 JPEG-encoded and sent to DeepSeek as an `image_url` part in the user message. Sotto's own window is
 always excluded, screenshots are held in memory only and never written to disk, and nothing is ever
 captured in the background. On macOS this needs **Screen Recording** permission; pre-flight checks it.
+
+**Agent mode (opt-in, Windows).** Off by default; turn it on in Settings → Privacy. Describe a task
+in the Q&A prep tab ("fill this form with my details from the prep docs") or say it with `Ctrl+Alt+G`
+while live. The loop — `lib/domain/agent/agent_loop.dart`, pure and tested with a fake executor —
+takes a screenshot, asks DeepSeek for one tool call (`click`, `double_click`, `right_click`,
+`type_text`, `press_keys`, `scroll`, `move_mouse`, `wait`, `screenshot`, `done`), maps the model's
+screenshot pixels back to physical screen pixels (DPI and multi-monitor aware,
+`coordinates.dart`), runs the safety gate (`safety.dart`), executes and repeats, for at most 25 steps.
+Input is native: `SendInput` with Unicode typing, plus UI Automation to know when the focused field
+is a password (`windows/runner/native/input.cpp`). Safety rules, all mandatory:
+
+- Default mode *Confirm each action*: the overlay shows the next action ("Click “Submit” at 812,440")
+  and waits for Enter (run) or Esc (stop). *Run automatically* still stops before anything that
+  submits, sends, pays, deletes or buys.
+- `Ctrl+Alt+Esc` is a global emergency stop: it cancels the loop at once and releases every held key
+  and mouse button.
+- Typing into password fields, or anything that looks like payment data (card numbers, CVV, IBAN…),
+  is blocked outright and the model is told so.
+- An amber frame and an "Agent in control" badge are shown whenever the agent has the controls.
+- Every action is logged in the session record; Sessions shows it for review.
 
 **One window, two personalities.** Going live morphs the main window into the overlay. It becomes
 frameless, always on top, transparent, resizable and draggable, and it snaps under the camera. Ending
@@ -169,6 +214,12 @@ models is ignored.
   Whisper, re-transcribing about once a second, so they react a little later.
 - Not built from the design: the menu-bar item, calendar integration, presentation-clicker following
   and cloud accounts.
+- **Agent mode on macOS is not wired up yet.** The Dart side is ready (`services/agent`), but the
+  native half — CGEvent posting and the AX API in `MainFlutterWindow.swift`, an Accessibility
+  permission check — is not in the repo, and it also requires turning off the App Sandbox in
+  `macos/Runner/*.entitlements` (sandboxed apps can't post input events to other apps). That is a
+  security trade-off to decide deliberately; until then the agent reports "Windows only" on macOS.
+- The macOS ScreenCaptureKit code is written but has not been compiled on a Mac yet.
 - Linux builds and runs for development (used for verification), but it is not a target. Global
   arrow-key hotkeys and read-aloud aren't available there.
 

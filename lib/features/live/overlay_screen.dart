@@ -18,6 +18,8 @@ import '../../core/platform/window_service.dart';
 import '../../data/models/settings.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
+import '../agent/agent_controller.dart';
+import '../agent/agent_view.dart';
 import 'live_controller.dart';
 import 'live_state.dart';
 import 'overlay/history_panel.dart';
@@ -242,7 +244,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
     final reading = s.flat == null ? const SizedBox.shrink() : ReadingView(state: s, layout: layout, style: style);
 
-    final Widget content = switch (s.phase) {
+    final agentActive = ref.watch(agentControllerProvider.select((a) => a.active));
+    final Widget content = agentActive ? const AgentView() : switch (s.phase) {
       LivePhase.idle || LivePhase.starting => Center(
         child: Text(context.l10n.gettingReady, style: TypeScale.caption.copyWith(color: o.inkAt(0.6))),
       ),
@@ -300,7 +303,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
                           switchOutCurve: Motion.leaveExit,
                           layoutBuilder: (current, previous) =>
                               Stack(fit: StackFit.expand, children: [...previous, ?current]),
-                          child: KeyedSubtree(key: ValueKey(_phaseGroup(s.phase)), child: content),
+                          child: KeyedSubtree(key: ValueKey(agentActive ? 9 : _phaseGroup(s.phase)), child: content),
                         ),
                       ),
                     ),

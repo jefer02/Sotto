@@ -3979,6 +3979,402 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'On — one screenshot per question you ask about the screen'**
   String get readyScreenOk;
+
+  /// No description provided for @actionAgentTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent task'**
+  String get actionAgentTask;
+
+  /// No description provided for @actionAgentTaskSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Say a task; the agent does it on screen, step by step'**
+  String get actionAgentTaskSub;
+
+  /// No description provided for @actionAgentStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the agent'**
+  String get actionAgentStop;
+
+  /// No description provided for @actionAgentStopSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency stop — cancels at once and lets go of every key'**
+  String get actionAgentStopSub;
+
+  /// No description provided for @agentOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent mode is off — turn it on in Settings → Privacy'**
+  String get agentOff;
+
+  /// No description provided for @agentUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent mode works on Windows for now.'**
+  String get agentUnsupported;
+
+  /// No description provided for @agentNeedsAccessibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto needs Accessibility permission to control the mouse and keyboard — see Settings → Privacy.'**
+  String get agentNeedsAccessibility;
+
+  /// No description provided for @agentListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the task'**
+  String get agentListening;
+
+  /// No description provided for @agentStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking at the screen…'**
+  String get agentStarting;
+
+  /// No description provided for @agentThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Deciding the next step…'**
+  String get agentThinking;
+
+  /// No description provided for @agentWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for you'**
+  String get agentWaiting;
+
+  /// No description provided for @agentActing.
+  ///
+  /// In en, this message translates to:
+  /// **'Working…'**
+  String get agentActing;
+
+  /// No description provided for @agentInControl.
+  ///
+  /// In en, this message translates to:
+  /// **'AGENT IN CONTROL'**
+  String get agentInControl;
+
+  /// No description provided for @agentStep.
+  ///
+  /// In en, this message translates to:
+  /// **'step {step}/{max}'**
+  String agentStep(int step, int max);
+
+  /// No description provided for @agentStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get agentStop;
+
+  /// No description provided for @agentStopHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency stop: {keys} — works everywhere'**
+  String agentStopHint(String keys);
+
+  /// No description provided for @agentCouldNotStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start'**
+  String get agentCouldNotStart;
+
+  /// No description provided for @agentCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get agentCompleted;
+
+  /// No description provided for @agentStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped — nothing else will run'**
+  String get agentStopped;
+
+  /// No description provided for @agentDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped at your request'**
+  String get agentDeclined;
+
+  /// No description provided for @agentLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped after {max} steps'**
+  String agentLimit(int max);
+
+  /// No description provided for @agentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped by an error'**
+  String get agentFailed;
+
+  /// No description provided for @agentNext.
+  ///
+  /// In en, this message translates to:
+  /// **'NEXT ACTION'**
+  String get agentNext;
+
+  /// No description provided for @agentConfirmSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM — {reason}'**
+  String agentConfirmSensitive(String reason);
+
+  /// No description provided for @agentRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get agentRun;
+
+  /// No description provided for @agentStopTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop task'**
+  String get agentStopTask;
+
+  /// No description provided for @agentCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the agent do it'**
+  String get agentCardTitle;
+
+  /// No description provided for @agentCardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe a task — “fill this form with my details from the prep docs”. The agent works on screen, one step at a time, and asks before anything that submits, sends, pays or deletes.'**
+  String get agentCardBody;
+
+  /// No description provided for @agentTaskPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'What should the agent do?'**
+  String get agentTaskPlaceholder;
+
+  /// No description provided for @agentRunTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get agentRunTask;
+
+  /// No description provided for @agentMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent mode'**
+  String get agentMode;
+
+  /// No description provided for @agentModeFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'The agent sends screenshots to DeepSeek and moves the mouse and keyboard, at most 25 steps per task. It never types into password fields or handles payment data, always asks before submitting, sending, paying, deleting or buying, shows an amber frame while in control, and logs every action in the session. {keys} stops it at once, from anywhere.'**
+  String agentModeFooter(String keys);
+
+  /// No description provided for @agentToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Let Sotto control my mouse and keyboard'**
+  String get agentToggle;
+
+  /// No description provided for @agentToggleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Only for tasks you start.'**
+  String get agentToggleSub;
+
+  /// No description provided for @agentAutonomy.
+  ///
+  /// In en, this message translates to:
+  /// **'Supervision'**
+  String get agentAutonomy;
+
+  /// No description provided for @agentConfirmEach.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm each action'**
+  String get agentConfirmEach;
+
+  /// No description provided for @agentAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Run automatically'**
+  String get agentAuto;
+
+  /// No description provided for @agentConfirmEachSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter runs the shown action, Esc stops'**
+  String get agentConfirmEachSub;
+
+  /// No description provided for @agentAutoSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Still asks before anything that submits, sends, pays, deletes or buys'**
+  String get agentAutoSub;
+
+  /// No description provided for @accessibilityMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Accessibility permission needed'**
+  String get accessibilityMissing;
+
+  /// No description provided for @accessibilityMissingSub.
+  ///
+  /// In en, this message translates to:
+  /// **'System Settings → Privacy & Security → Accessibility → Sotto'**
+  String get accessibilityMissingSub;
+
+  /// No description provided for @sessionAgentTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent: {task}'**
+  String sessionAgentTask(String task);
+
+  /// No description provided for @sessionAgentActions.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 action} other{{count} actions}}'**
+  String sessionAgentActions(int count);
+
+  /// No description provided for @readyAgentOk.
+  ///
+  /// In en, this message translates to:
+  /// **'On — confirm each action'**
+  String get readyAgentOk;
+
+  /// No description provided for @readyAgentAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'On — runs automatically, asks before irreversible steps'**
+  String get readyAgentAuto;
+
+  /// No description provided for @agentDoClick.
+  ///
+  /// In en, this message translates to:
+  /// **'Click “{target}” at {at}'**
+  String agentDoClick(String target, String at);
+
+  /// No description provided for @agentDoDoubleClick.
+  ///
+  /// In en, this message translates to:
+  /// **'Double-click “{target}” at {at}'**
+  String agentDoDoubleClick(String target, String at);
+
+  /// No description provided for @agentDoRightClick.
+  ///
+  /// In en, this message translates to:
+  /// **'Right-click “{target}” at {at}'**
+  String agentDoRightClick(String target, String at);
+
+  /// No description provided for @agentDoMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move the pointer to {at}'**
+  String agentDoMove(String at);
+
+  /// No description provided for @agentDoType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type “{text}” into {target}'**
+  String agentDoType(String text, String target);
+
+  /// No description provided for @agentDoKeys.
+  ///
+  /// In en, this message translates to:
+  /// **'Press {keys}'**
+  String agentDoKeys(String keys);
+
+  /// No description provided for @agentDoScrollDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll down'**
+  String get agentDoScrollDown;
+
+  /// No description provided for @agentDoScrollUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll up'**
+  String get agentDoScrollUp;
+
+  /// No description provided for @agentDoWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait {ms} ms'**
+  String agentDoWait(int ms);
+
+  /// No description provided for @agentDoScreenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Look at the screen again'**
+  String get agentDoScreenshot;
+
+  /// No description provided for @agentDoDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get agentDoDone;
+
+  /// No description provided for @agentWhyPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'the focused field is a password field'**
+  String get agentWhyPassword;
+
+  /// No description provided for @agentWhySecret.
+  ///
+  /// In en, this message translates to:
+  /// **'it looks like a password or security-code field'**
+  String get agentWhySecret;
+
+  /// No description provided for @agentWhyPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'it looks like a payment field'**
+  String get agentWhyPayment;
+
+  /// No description provided for @agentWhyCard.
+  ///
+  /// In en, this message translates to:
+  /// **'the text looks like a card number'**
+  String get agentWhyCard;
+
+  /// No description provided for @agentWhyIrreversible.
+  ///
+  /// In en, this message translates to:
+  /// **'it may submit, send, pay or delete'**
+  String get agentWhyIrreversible;
+
+  /// No description provided for @agentWhySubmitKey.
+  ///
+  /// In en, this message translates to:
+  /// **'it may submit or delete'**
+  String get agentWhySubmitKey;
+
+  /// No description provided for @agentWhyOutside.
+  ///
+  /// In en, this message translates to:
+  /// **'outside the screenshot'**
+  String get agentWhyOutside;
+
+  /// No description provided for @privAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get privAgent;
+
+  /// No description provided for @privAgentOffBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Off. Sotto never moves your mouse or types.'**
+  String get privAgentOffBody;
+
+  /// No description provided for @privAgentOnBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for tasks you start: one screenshot per step goes to DeepSeek; every action is logged in the session.'**
+  String get privAgentOnBody;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

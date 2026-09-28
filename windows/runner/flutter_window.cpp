@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "native/input.h"
 #include "native/screen_capture.h"
 
 namespace {
@@ -37,6 +38,30 @@ std::string GetString(const flutter::EncodableMap& args, const char* key) {
   if (it == args.end()) return std::string();
   const std::string* value = std::get_if<std::string>(&it->second);
   return value != nullptr ? *value : std::string();
+}
+
+double GetDouble(const flutter::EncodableMap& args, const char* key) {
+  auto it = args.find(flutter::EncodableValue(key));
+  if (it == args.end()) return 0;
+  if (const double* d = std::get_if<double>(&it->second)) return *d;
+  if (const int* i = std::get_if<int>(&it->second)) return *i;
+  return 0;
+}
+
+std::wstring Wide(const std::string& utf8) {
+  if (utf8.empty()) return std::wstring();
+  const int n = MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()), nullptr, 0);
+  std::wstring out(n, L'\0');
+  MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()), out.data(), n);
+  return out;
+}
+
+std::string Utf8(const wchar_t* wide) {
+  const int n = WideCharToMultiByte(CP_UTF8, 0, wide, -1, nullptr, 0, nullptr, nullptr);
+  if (n <= 1) return std::string();
+  std::string out(n - 1, '\0');
+  WideCharToMultiByte(CP_UTF8, 0, wide, -1, out.data(), n, nullptr, nullptr);
+  return out;
 }
 
 bool GetBool(const flutter::EncodableMap& args, const char* key) {
@@ -98,6 +123,15 @@ bool FlutterWindow::OnCreate() {
       [this](const flutter::MethodCall<flutter::EncodableValue>& call,
              std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
         HandleScreenCall(call, std::move(result));
+      });
+
+  input_channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "app.sotto/input",
+      &flutter::StandardMethodCodec::GetInstance());
+  input_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        HandleInputCall(call, std::move(result));
       });
 
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
@@ -206,6 +240,67 @@ void FlutterWindow::HandleScreenCall(
       {flutter::EncodableValue("scale"), flutter::EncodableValue(capture.scale)},
       {flutter::EncodableValue("method"), flutter::EncodableValue(std::string(capture.method))},
   }));
+}
+
+void FlutterWindow::HandleInputCall(
+    const flutter::MethodCall<flutter::EncodableValue>& call,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  const std::string& method = call.method_name();
+  const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
+  const flutter::EncodableMap empty;
+  const auto& a = args != nullptr ? *args : empty;
+  const int x = static_cast<int>(GetDouble(a, "x"));
+  const int y = static_cast<int>(GetDouble(a, "y"));
+  bool ok = true;
+  if (method == "permission") {
+    result->Success(flutter::EncodableValue("granted"));  // Windows needs none
+    return;
+  } else if (method == "move") {
+    ok = SottoMouseMove(x, y);
+  } else if (method == "click") {
+    ok = SottoMouseClick(x, y, GetString(a, "button") == "right" ? 1 : 0, GetInt(a, "count", 1));
+  } else if (method == "scroll") {
+    ok = SottoMouseScroll(x, y, GetBool(a, "atPoint"), GetInt(a, "dx", 0), GetInt(a, "dy", 0));
+  } else if (method == "type") {
+    ok = SottoTypeText(Wide(GetString(a, "text")).c_str());
+  } else if (method == "keys") {
+    std::vector<std::string> names;
+    auto it = a.find(flutter::EncodableValue("keys"));
+    if (it != a.end()) {
+      if (const auto* list = std::get_if<flutter::EncodableList>(&it->second)) {
+        for (const auto& v : *list) {
+          if (const auto* s = std::get_if<std::string>(&v)) names.push_back(*s);
+        }
+      }
+    }
+    std::vector<const char*> raw;
+    for (const auto& n : names) raw.push_back(n.c_str());
+    ok = !raw.empty() && SottoPressKeys(raw.data(), static_cast<int>(raw.size()));
+  } else if (method == "releaseAll") {
+    SottoReleaseAll();
+  } else if (method == "focused") {
+    bool password = false;
+    wchar_t name[256];
+    wchar_t role[64];
+    if (!SottoFocusedElement(&password, name, 256, role, 64)) {
+      result->Success();
+      return;
+    }
+    result->Success(flutter::EncodableValue(flutter::EncodableMap{
+        {flutter::EncodableValue("isPassword"), flutter::EncodableValue(password)},
+        {flutter::EncodableValue("name"), flutter::EncodableValue(Utf8(name))},
+        {flutter::EncodableValue("role"), flutter::EncodableValue(Utf8(role))},
+    }));
+    return;
+  } else {
+    result->NotImplemented();
+    return;
+  }
+  if (ok) {
+    result->Success();
+  } else {
+    result->Error("input_failed", method);
+  }
 }
 
 void FlutterWindow::OnDestroy() {

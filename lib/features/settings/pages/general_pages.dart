@@ -14,14 +14,17 @@ import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
 import '../../../core/design/typography.dart';
 import '../../../core/widgets/buttons.dart';
+import '../../../core/platform/platform_keys.dart';
 import '../../../core/widgets/controls.dart';
 import '../../../core/widgets/display.dart';
 import '../../../data/models/settings.dart';
+import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
 import '../../../data/storage/secret_store.dart';
 import '../../../core/platform/external_links.dart';
 import '../../../core/secrets.dart';
 import '../../../services/ai/deepseek_models.dart';
+import '../../../services/agent/input_service.dart';
 import '../../../services/ai/llm_client.dart';
 import '../../../services/screen/screen_service.dart';
 import '../../library/readiness.dart';
@@ -382,6 +385,7 @@ class PrivacyPage extends ConsumerWidget {
           ],
         ),
         const _ScreenAwarenessGroup(),
+        const _AgentGroup(),
         SettingsGroup(
           title: context.l10n.retention,
           children: [
@@ -470,6 +474,7 @@ class PrivacyPage extends ConsumerWidget {
                 (context.l10n.privRoom, context.l10n.privRoomBody),
                 (context.l10n.privAnswers, context.l10n.privAnswersBody),
                 (context.l10n.privScreen, s.screenAwareness ? context.l10n.privScreenOnBody : context.l10n.privScreenOffBody),
+                (context.l10n.privAgent, s.agentEnabled ? context.l10n.privAgentOnBody : context.l10n.privAgentOffBody),
                 (context.l10n.privModels, context.l10n.privModelsBody),
                 (context.l10n.privConsent, context.l10n.privConsentBody),
               ])
@@ -575,6 +580,88 @@ class _ScreenAwarenessGroupState extends ConsumerState<_ScreenAwarenessGroup> {
                 size: ButtonSize.small,
                 onPressed: () async {
                   await ref.read(screenServiceProvider).openPrivacySettings('screen');
+                },
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Opt-in for agent mode (mouse and keyboard control).
+class _AgentGroup extends ConsumerStatefulWidget {
+  const _AgentGroup();
+
+  @override
+  ConsumerState<_AgentGroup> createState() => _AgentGroupState();
+}
+
+class _AgentGroupState extends ConsumerState<_AgentGroup> {
+  bool? _trusted;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_check());
+  }
+
+  Future<void> _check() async {
+    final ok = await ref.read(inputServiceProvider).hasPermission();
+    if (mounted) setState(() => _trusted = ok);
+  }
+
+  Future<void> _toggle(bool on) async {
+    ref.read(settingsProvider.notifier).update((x) => x.copyWith(agentEnabled: on));
+    if (on && _trusted == false) {
+      await ref.read(inputServiceProvider).requestPermission();
+      await _check();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final p = context.palette;
+    final s = ref.watch(settingsProvider);
+    final n = ref.read(settingsProvider.notifier);
+    final stop = PlatformKeys.describe(s.shortcutFor(LiveAction.agentStop));
+    return SettingsGroup(
+      title: l.agentMode,
+      footer: l.agentModeFooter(stop),
+      children: [
+        SettingRow(
+          title: l.agentToggle,
+          subtitle: InputService.supported ? l.agentToggleSub : l.agentUnsupported,
+          trailing: SottoToggle(
+            value: s.agentEnabled && InputService.supported,
+            onChanged: InputService.supported ? (v) => unawaited(_toggle(v)) : null,
+          ),
+        ),
+        if (s.agentEnabled && InputService.supported) ...[
+          SettingRow(
+            title: l.agentAutonomy,
+            subtitle: s.agentAutonomy == AgentAutonomy.auto ? l.agentAutoSub : l.agentConfirmEachSub,
+            trailing: SottoSelect<AgentAutonomy>(
+              width: 220,
+              value: s.agentAutonomy,
+              options: [
+                SelectOption(AgentAutonomy.confirmEach, l.agentConfirmEach),
+                SelectOption(AgentAutonomy.auto, l.agentAuto),
+              ],
+              onChanged: (v) => n.update((x) => x.copyWith(agentAutonomy: v)),
+            ),
+          ),
+          if (Platform.isMacOS && _trusted == false)
+            SettingRow(
+              title: l.accessibilityMissing,
+              subtitle: l.accessibilityMissingSub,
+              leading: SottoIcon(SottoIcons.alert, size: 14, color: p.cueText),
+              trailing: SottoButton(
+                label: l.openSystemSettings,
+                size: ButtonSize.small,
+                onPressed: () async {
+                  await ref.read(screenServiceProvider).openPrivacySettings('accessibility');
                 },
               ),
             ),

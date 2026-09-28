@@ -25,11 +25,12 @@ apply_standard_settings(${BINARY_NAME})
 # boundary between the two is plain C (see native/*.h).
 add_library(sotto_native STATIC
   "native/screen_capture.cpp"
+  "native/input.cpp"
 )
 target_compile_features(sotto_native PRIVATE cxx_std_20)
 target_compile_options(sotto_native PRIVATE /EHsc /W3 /permissive-)
 target_compile_definitions(sotto_native PRIVATE "NOMINMAX" "WIN32_LEAN_AND_MEAN")
-target_link_libraries(sotto_native PRIVATE "d3d11.lib" "dxgi.lib" "windowscodecs.lib" "shcore.lib" "windowsapp.lib")
+target_link_libraries(sotto_native PRIVATE "d3d11.lib" "dxgi.lib" "windowscodecs.lib" "shcore.lib" "windowsapp.lib" "uiautomationcore.lib")
 
 # Add preprocessor definitions for the build version.
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION=\"${FLUTTER_VERSION}\"")

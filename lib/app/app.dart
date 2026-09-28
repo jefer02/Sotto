@@ -10,6 +10,8 @@ import '../core/design/tokens.dart';
 import '../data/models/settings.dart';
 import '../data/repositories.dart';
 import '../l10n/l10n.dart';
+import '../features/agent/agent_controller.dart';
+import '../features/agent/agent_view.dart';
 import '../features/live/live_controller.dart';
 import '../features/library/library_actions.dart';
 import '../features/live/overlay_palette.dart';
@@ -83,6 +85,8 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
     });
     final settings = ref.watch(settingsProvider);
     final isLive = ref.watch(liveControllerProvider.select((s) => s.isLive));
+    // An agent task started from the main window turns it into an overlay too.
+    final agentOverlay = ref.watch(agentControllerProvider.select((a) => a.active && a.standalone));
     final locale = appLocale(settings.uiLanguage);
     // Controllers and services read strings without a BuildContext.
     L10n.current = lookupAppLocalizations(locale);
@@ -94,7 +98,7 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       AppThemeMode.auto => ThemeMode.system,
     };
 
-    if (isLive) {
+    if (isLive || agentOverlay) {
       final platformDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
       final overlayDark = switch (settings.overlayTheme) {
         OverlayThemeMode.dark => true,
@@ -115,7 +119,7 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
           overlayDark ? SottoPalette.stage : SottoPalette.houseLights,
           overlay: overlay,
         ).copyWith(scaffoldBackgroundColor: const Color(0x00000000), canvasColor: const Color(0x00000000)),
-        home: const OverlayScreen(),
+        home: isLive ? const OverlayScreen() : const AgentOverlayScreen(),
       );
     }
 

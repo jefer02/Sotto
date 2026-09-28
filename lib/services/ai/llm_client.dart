@@ -205,6 +205,37 @@ class DeepSeekClient extends LlmClient {
     }
   }
 
+  /// One non-streaming turn with tool calling (agent mode). Returns the
+  /// assistant message as sent by the API — `content`, `tool_calls` and,
+  /// on thinking models, `reasoning_content`, which callers must send back
+  /// on later turns.
+  Future<Map<String, Object?>> chat({
+    required List<Map<String, Object?>> messages,
+    List<Map<String, Object?>> tools = const [],
+    String? model,
+    int maxTokens = 1024,
+    bool thinking = false,
+  }) async {
+    final req = http.Request('POST', Uri.parse('$baseUrl/chat/completions'))
+      ..headers.addAll(_headers)
+      ..body = jsonEncode({
+        'model': model ?? this.model,
+        'max_tokens': maxTokens,
+        if (!thinking) 'thinking': {'type': 'disabled'},
+        'messages': messages,
+        if (tools.isNotEmpty) 'tools': tools,
+      });
+    final res = await _send(_http, req);
+    final body = await res.stream.bytesToString();
+    if (res.statusCode != 200) throw LlmException.fromStatus(res.statusCode, body);
+    final j = jsonDecode(body) as Map<String, dynamic>;
+    final choices = j['choices'] as List?;
+    if (choices == null || choices.isEmpty) throw LlmException(L10n.current.llmGenericError(_provider));
+    final choice = choices.first as Map;
+    if (choice['finish_reason'] == 'content_filter') throw LlmRefusal();
+    return (choice['message'] as Map).cast<String, Object?>();
+  }
+
   /// Plain text, or text + `image_url` parts when there are images.
   static Object userContent(String text, List<String> images) => images.isEmpty
       ? text

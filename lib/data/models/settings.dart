@@ -49,6 +49,10 @@ enum CaptureMode { toggle, hold }
 /// Which display "Ask about screen" captures.
 enum ScreenTarget { overlayDisplay, cursorDisplay }
 
+/// Agent mode supervision: confirm every action, or run on its own and
+/// still confirm anything that submits, sends, pays, deletes or buys.
+enum AgentAutonomy { confirmEach, auto }
+
 const defaultAiModel = 'deepseek-flash';
 
 /// Every preference Sotto keeps. Secrets (API keys) are NOT stored here —
@@ -109,6 +113,8 @@ class AppSettings {
     this.screenAwareness = false,
     this.screenTarget = ScreenTarget.overlayDisplay,
     this.attachSlideToAnswers = false,
+    this.agentEnabled = false,
+    this.agentAutonomy = AgentAutonomy.confirmEach,
     this.historyRetentionDays = 30,
     this.onboarded = false,
     this.welcomeDone = false,
@@ -188,6 +194,10 @@ class AppSettings {
   final bool screenAwareness;
   final ScreenTarget screenTarget;
   final bool attachSlideToAnswers;
+
+  /// Opt-in: the agent may move the mouse and type. Off by default.
+  final bool agentEnabled;
+  final AgentAutonomy agentAutonomy;
   final int historyRetentionDays;
   final bool onboarded;
 
@@ -250,6 +260,8 @@ class AppSettings {
     bool? screenAwareness,
     ScreenTarget? screenTarget,
     bool? attachSlideToAnswers,
+    bool? agentEnabled,
+    AgentAutonomy? agentAutonomy,
     int? historyRetentionDays,
     bool? onboarded,
     bool? welcomeDone,
@@ -302,6 +314,8 @@ class AppSettings {
     screenAwareness: screenAwareness ?? this.screenAwareness,
     screenTarget: screenTarget ?? this.screenTarget,
     attachSlideToAnswers: attachSlideToAnswers ?? this.attachSlideToAnswers,
+    agentEnabled: agentEnabled ?? this.agentEnabled,
+    agentAutonomy: agentAutonomy ?? this.agentAutonomy,
     historyRetentionDays: historyRetentionDays ?? this.historyRetentionDays,
     onboarded: onboarded ?? this.onboarded,
     welcomeDone: welcomeDone ?? this.welcomeDone,
@@ -358,6 +372,8 @@ class AppSettings {
     'screenAwareness': screenAwareness,
     'screenTarget': screenTarget.name,
     'attachSlideToAnswers': attachSlideToAnswers,
+    'agentEnabled': agentEnabled,
+    'agentAutonomy': agentAutonomy.name,
     'historyRetentionDays': historyRetentionDays,
     'onboarded': onboarded,
     'welcomeDone': welcomeDone,
@@ -436,6 +452,8 @@ class AppSettings {
       screenAwareness: j['screenAwareness'] as bool? ?? d.screenAwareness,
       screenTarget: e(ScreenTarget.values, j['screenTarget'], d.screenTarget),
       attachSlideToAnswers: j['attachSlideToAnswers'] as bool? ?? d.attachSlideToAnswers,
+      agentEnabled: j['agentEnabled'] as bool? ?? d.agentEnabled,
+      agentAutonomy: e(AgentAutonomy.values, j['agentAutonomy'], d.agentAutonomy),
       historyRetentionDays: j['historyRetentionDays'] as int? ?? d.historyRetentionDays,
       onboarded: j['onboarded'] as bool? ?? d.onboarded,
       welcomeDone: j['welcomeDone'] as bool? ?? d.welcomeDone,

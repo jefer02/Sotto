@@ -7,6 +7,7 @@ import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
 import '../../core/design/theme.dart';
+import '../../core/design/tokens.dart';
 import '../../core/design/typography.dart';
 import '../../core/widgets/buttons.dart';
 import '../../core/widgets/display.dart';
@@ -66,7 +67,11 @@ class SessionTile extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            SottoIcon(r.rehearsal ? SottoIcons.rehearse : SottoIcons.play, size: 15, color: p.inkTertiary),
+            SottoIcon(
+              r.agentOnly ? SottoIcons.cursor : (r.rehearsal ? SottoIcons.rehearse : SottoIcons.play),
+              size: 15,
+              color: p.inkTertiary,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -78,6 +83,23 @@ class SessionTile extends ConsumerWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(date, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                  // Every agent action is kept for review.
+                  for (final run in r.agentRuns)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Interactive(
+                        onTap: () => unawaited(showAgentLog(context, run)),
+                        builder: (context, s) => Text(
+                          '${context.l10n.sessionAgentTask(run.task)} · ${context.l10n.sessionAgentActions(run.log.length)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TypeScale.caption.copyWith(
+                            color: s.hovered ? p.cueText : p.inkSecondary,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -128,3 +150,53 @@ class SessionTile extends ConsumerWidget {
     );
   }
 }
+
+/// Every action an agent task took, for review after the fact.
+Future<void> showAgentLog(BuildContext context, AgentRunRecord run) => showDialog<void>(
+  context: context,
+  builder: (context) {
+    final p = context.palette;
+    return AlertDialog(
+      backgroundColor: p.float,
+      shape: RoundedRectangleBorder(borderRadius: Radii.rL, side: BorderSide(color: p.control)),
+      title: Text(context.l10n.sessionAgentTask(run.task), style: TypeScale.title3.copyWith(color: p.inkPrimary)),
+      content: SizedBox(
+        width: 520,
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            if (run.summary.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(run.summary, style: TypeScale.body.copyWith(color: p.inkSecondary)),
+              ),
+            for (final e in run.log)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 64,
+                      child: Text(clockTime(e.at), style: TypeScale.monoSmall.copyWith(color: p.inkTertiary)),
+                    ),
+                    SizedBox(
+                      width: 72,
+                      child: Text(e.outcome, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                    ),
+                    Expanded(
+                      child: Text(
+                        e.note.isEmpty ? e.action : '${e.action} — ${e.note}',
+                        style: TypeScale.body.copyWith(color: p.inkPrimary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [SottoButton(label: context.l10n.close, onPressed: () => Navigator.pop(context))],
+    );
+  },
+);

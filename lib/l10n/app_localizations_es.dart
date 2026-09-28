@@ -2199,4 +2199,234 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get readyScreenOk => 'Activada — una captura por cada pregunta sobre la pantalla';
+
+  @override
+  String get actionAgentTask => 'Tarea del agente';
+
+  @override
+  String get actionAgentTaskSub => 'Di una tarea; el agente la hace en pantalla, paso a paso';
+
+  @override
+  String get actionAgentStop => 'Detener el agente';
+
+  @override
+  String get actionAgentStopSub => 'Parada de emergencia — cancela al instante y suelta todas las teclas';
+
+  @override
+  String get agentOff => 'El modo agente está desactivado — actívalo en Ajustes → Privacidad';
+
+  @override
+  String get agentUnsupported => 'Por ahora el modo agente funciona en Windows.';
+
+  @override
+  String get agentNeedsAccessibility =>
+      'Sotto necesita el permiso de Accesibilidad para controlar el ratón y el teclado — mira Ajustes → Privacidad.';
+
+  @override
+  String get agentListening => 'Describe la tarea';
+
+  @override
+  String get agentStarting => 'Mirando la pantalla…';
+
+  @override
+  String get agentThinking => 'Decidiendo el siguiente paso…';
+
+  @override
+  String get agentWaiting => 'Esperándote';
+
+  @override
+  String get agentActing => 'Trabajando…';
+
+  @override
+  String get agentInControl => 'EL AGENTE TIENE EL CONTROL';
+
+  @override
+  String agentStep(int step, int max) {
+    return 'paso $step/$max';
+  }
+
+  @override
+  String get agentStop => 'Detener';
+
+  @override
+  String agentStopHint(String keys) {
+    return 'Parada de emergencia: $keys — funciona en cualquier sitio';
+  }
+
+  @override
+  String get agentCouldNotStart => 'No se pudo iniciar';
+
+  @override
+  String get agentCompleted => 'Hecho';
+
+  @override
+  String get agentStopped => 'Detenido — no se ejecutará nada más';
+
+  @override
+  String get agentDeclined => 'Detenido a petición tuya';
+
+  @override
+  String agentLimit(int max) {
+    return 'Detenido tras $max pasos';
+  }
+
+  @override
+  String get agentFailed => 'Detenido por un error';
+
+  @override
+  String get agentNext => 'SIGUIENTE ACCIÓN';
+
+  @override
+  String agentConfirmSensitive(String reason) {
+    return 'CONFIRMA — $reason';
+  }
+
+  @override
+  String get agentRun => 'Ejecutar';
+
+  @override
+  String get agentStopTask => 'Detener tarea';
+
+  @override
+  String get agentCardTitle => 'Que lo haga el agente';
+
+  @override
+  String get agentCardBody =>
+      'Describe una tarea — «rellena este formulario con mis datos de los documentos de preparación». El agente trabaja en pantalla, paso a paso, y pregunta antes de enviar, pagar o borrar algo.';
+
+  @override
+  String get agentTaskPlaceholder => '¿Qué debe hacer el agente?';
+
+  @override
+  String get agentRunTask => 'Empezar';
+
+  @override
+  String get agentMode => 'Modo agente';
+
+  @override
+  String agentModeFooter(String keys) {
+    return 'El agente envía capturas a DeepSeek y mueve el ratón y el teclado, como máximo 25 pasos por tarea. Nunca escribe en campos de contraseña ni maneja datos de pago, siempre pregunta antes de enviar, pagar, borrar o comprar, muestra un marco ámbar mientras tiene el control y registra cada acción en la sesión. $keys lo detiene al instante, desde cualquier sitio.';
+  }
+
+  @override
+  String get agentToggle => 'Dejar que Sotto controle mi ratón y teclado';
+
+  @override
+  String get agentToggleSub => 'Desactivado por defecto. Solo para tareas que tú inicias.';
+
+  @override
+  String get agentAutonomy => 'Supervisión';
+
+  @override
+  String get agentConfirmEach => 'Confirmar cada acción';
+
+  @override
+  String get agentAuto => 'Ejecutar automáticamente';
+
+  @override
+  String get agentConfirmEachSub => 'Enter ejecuta la acción mostrada, Esc detiene';
+
+  @override
+  String get agentAutoSub => 'Aun así pregunta antes de enviar, pagar, borrar o comprar';
+
+  @override
+  String get accessibilityMissing => 'Falta el permiso de Accesibilidad';
+
+  @override
+  String get accessibilityMissingSub => 'Ajustes del Sistema → Privacidad y seguridad → Accesibilidad → Sotto';
+
+  @override
+  String sessionAgentTask(String task) {
+    return 'Agente: $task';
+  }
+
+  @override
+  String sessionAgentActions(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count acciones', one: '1 acción');
+    return '$_temp0';
+  }
+
+  @override
+  String get readyAgentOk => 'Activado — confirmar cada acción';
+
+  @override
+  String get readyAgentAuto => 'Activado — automático, pregunta antes de pasos irreversibles';
+
+  @override
+  String agentDoClick(String target, String at) {
+    return 'Clic en «$target» en $at';
+  }
+
+  @override
+  String agentDoDoubleClick(String target, String at) {
+    return 'Doble clic en «$target» en $at';
+  }
+
+  @override
+  String agentDoRightClick(String target, String at) {
+    return 'Clic derecho en «$target» en $at';
+  }
+
+  @override
+  String agentDoMove(String at) {
+    return 'Mover el puntero a $at';
+  }
+
+  @override
+  String agentDoType(String text, String target) {
+    return 'Escribir «$text» en $target';
+  }
+
+  @override
+  String agentDoKeys(String keys) {
+    return 'Pulsar $keys';
+  }
+
+  @override
+  String get agentDoScrollDown => 'Desplazar hacia abajo';
+
+  @override
+  String get agentDoScrollUp => 'Desplazar hacia arriba';
+
+  @override
+  String agentDoWait(int ms) {
+    return 'Esperar $ms ms';
+  }
+
+  @override
+  String get agentDoScreenshot => 'Volver a mirar la pantalla';
+
+  @override
+  String get agentDoDone => 'Terminar';
+
+  @override
+  String get agentWhyPassword => 'el campo con el foco es de contraseña';
+
+  @override
+  String get agentWhySecret => 'parece un campo de contraseña o código de seguridad';
+
+  @override
+  String get agentWhyPayment => 'parece un campo de pago';
+
+  @override
+  String get agentWhyCard => 'el texto parece un número de tarjeta';
+
+  @override
+  String get agentWhyIrreversible => 'puede enviar, pagar o borrar';
+
+  @override
+  String get agentWhySubmitKey => 'puede enviar o borrar';
+
+  @override
+  String get agentWhyOutside => 'fuera de la captura';
+
+  @override
+  String get privAgent => 'Agente';
+
+  @override
+  String get privAgentOffBody => 'Desactivado. Sotto nunca mueve tu ratón ni escribe.';
+
+  @override
+  String get privAgentOnBody =>
+      'Solo en tareas que inicias: una captura por paso va a DeepSeek; cada acción queda registrada en la sesión.';
 }

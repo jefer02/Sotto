@@ -46,6 +46,7 @@ class LiveState {
     this.manualMode = false,
     this.capturingScreen = false,
     this.screenAttached = false,
+    this.listeningForTask = false,
   });
 
   final LivePhase phase;
@@ -101,6 +102,9 @@ class LiveState {
 
   /// The question being captured or answered carries a screenshot.
   final bool screenAttached;
+
+  /// The words being captured are an agent task, not a question.
+  final bool listeningForTask;
 
   bool get isLive => phase != LivePhase.idle;
 
@@ -174,6 +178,7 @@ class LiveState {
     bool? manualMode,
     bool? capturingScreen,
     bool? screenAttached,
+    bool? listeningForTask,
   }) => LiveState(
     phase: phase ?? this.phase,
     script: script ?? this.script,
@@ -206,5 +211,6 @@ class LiveState {
     manualMode: manualMode ?? this.manualMode,
     capturingScreen: capturingScreen ?? this.capturingScreen,
     screenAttached: screenAttached ?? this.screenAttached,
+    listeningForTask: listeningForTask ?? this.listeningForTask,
   );
 }

@@ -147,9 +147,11 @@ void main() {
     // Opt-in features switched on.
     container
         .read(settingsProvider.notifier)
-        .update((s) => s.copyWith(screenAwareness: true, attachSlideToAnswers: true));
+        .update((s) => s.copyWith(screenAwareness: true, attachSlideToAnswers: true, agentEnabled: true));
     router.go('/settings/privacy');
     await shot('settings-privacy-on');
+    router.go('/script/$id?tab=prep');
+    await shot('editor-prep-agent');
 
     // The overlay preview on every backdrop, in both overlay styles.
     router.go('/settings/appearance');

@@ -68,13 +68,40 @@ class HotkeyService {
     return Map.of(failures);
   }
 
+  /// Unregisters the live / idle set. Extras (the agent's emergency stop,
+  /// its Enter / Esc confirmations) are left alone.
   Future<void> unregisterAll() async {
     _repeat?.cancel();
     _repeat = null;
-    try {
-      await hotKeyManager.unregisterAll();
-    } catch (_) {}
+    for (final hk in _registered.values) {
+      try {
+        await hotKeyManager.unregister(hk);
+      } catch (_) {}
+    }
     _registered.clear();
+  }
+
+  final _extras = <String, HotKey>{};
+
+  /// A system-wide shortcut outside the live set, by [id]. Returns false if
+  /// the chord is taken.
+  Future<bool> registerExtra(String id, HotKey hotKey, VoidCallback onDown) async {
+    await unregisterExtra(id);
+    try {
+      await hotKeyManager.register(hotKey, keyDownHandler: (_) => onDown());
+      _extras[id] = hotKey;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> unregisterExtra(String id) async {
+    final hk = _extras.remove(id);
+    if (hk == null) return;
+    try {
+      await hotKeyManager.unregister(hk);
+    } catch (_) {}
   }
 
   /// Probes whether a chord can be registered — used by the shortcut

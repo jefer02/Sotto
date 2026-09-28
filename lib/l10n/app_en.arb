@@ -1224,5 +1224,184 @@
   "privScreen": "Screenshots",
   "privScreenOffBody": "Off. Sotto never looks at your screen.",
   "privScreenOnBody": "Only when you ask: one screenshot goes to DeepSeek with the question. Never saved.",
-  "readyScreenOk": "On — one screenshot per question you ask about the screen"
+  "readyScreenOk": "On — one screenshot per question you ask about the screen",
+  "actionAgentTask": "Agent task",
+  "actionAgentTaskSub": "Say a task; the agent does it on screen, step by step",
+  "actionAgentStop": "Stop the agent",
+  "actionAgentStopSub": "Emergency stop — cancels at once and lets go of every key",
+  "agentOff": "Agent mode is off — turn it on in Settings → Privacy",
+  "agentUnsupported": "Agent mode works on Windows for now.",
+  "agentNeedsAccessibility": "Sotto needs Accessibility permission to control the mouse and keyboard — see Settings → Privacy.",
+  "agentListening": "Describe the task",
+  "agentStarting": "Looking at the screen…",
+  "agentThinking": "Deciding the next step…",
+  "agentWaiting": "Waiting for you",
+  "agentActing": "Working…",
+  "agentInControl": "AGENT IN CONTROL",
+  "agentStep": "step {step}/{max}",
+  "@agentStep": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "agentStop": "Stop",
+  "agentStopHint": "Emergency stop: {keys} — works everywhere",
+  "@agentStopHint": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "agentCouldNotStart": "Could not start",
+  "agentCompleted": "Done",
+  "agentStopped": "Stopped — nothing else will run",
+  "agentDeclined": "Stopped at your request",
+  "agentLimit": "Stopped after {max} steps",
+  "@agentLimit": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "agentFailed": "Stopped by an error",
+  "agentNext": "NEXT ACTION",
+  "agentConfirmSensitive": "CONFIRM — {reason}",
+  "@agentConfirmSensitive": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "agentRun": "Run",
+  "agentStopTask": "Stop task",
+  "agentCardTitle": "Let the agent do it",
+  "agentCardBody": "Describe a task — “fill this form with my details from the prep docs”. The agent works on screen, one step at a time, and asks before anything that submits, sends, pays or deletes.",
+  "agentTaskPlaceholder": "What should the agent do?",
+  "agentRunTask": "Start",
+  "agentMode": "Agent mode",
+  "agentModeFooter": "The agent sends screenshots to DeepSeek and moves the mouse and keyboard, at most 25 steps per task. It never types into password fields or handles payment data, always asks before submitting, sending, paying, deleting or buying, shows an amber frame while in control, and logs every action in the session. {keys} stops it at once, from anywhere.",
+  "@agentModeFooter": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "agentToggle": "Let Sotto control my mouse and keyboard",
+  "agentToggleSub": "Off by default. Only for tasks you start.",
+  "agentAutonomy": "Supervision",
+  "agentConfirmEach": "Confirm each action",
+  "agentAuto": "Run automatically",
+  "agentConfirmEachSub": "Enter runs the shown action, Esc stops",
+  "agentAutoSub": "Still asks before anything that submits, sends, pays, deletes or buys",
+  "accessibilityMissing": "Accessibility permission needed",
+  "accessibilityMissingSub": "System Settings → Privacy & Security → Accessibility → Sotto",
+  "sessionAgentTask": "Agent: {task}",
+  "@sessionAgentTask": {
+    "placeholders": {
+      "task": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionAgentActions": "{count, plural, =1{1 action} other{{count} actions}}",
+  "@sessionAgentActions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readyAgentOk": "On — confirm each action",
+  "readyAgentAuto": "On — runs automatically, asks before irreversible steps",
+  "agentDoClick": "Click “{target}” at {at}",
+  "@agentDoClick": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "at": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoDoubleClick": "Double-click “{target}” at {at}",
+  "@agentDoDoubleClick": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "at": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoRightClick": "Right-click “{target}” at {at}",
+  "@agentDoRightClick": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "at": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoMove": "Move the pointer to {at}",
+  "@agentDoMove": {
+    "placeholders": {
+      "at": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoType": "Type “{text}” into {target}",
+  "@agentDoType": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoKeys": "Press {keys}",
+  "@agentDoKeys": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoScrollDown": "Scroll down",
+  "agentDoScrollUp": "Scroll up",
+  "agentDoWait": "Wait {ms} ms",
+  "@agentDoWait": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "agentDoScreenshot": "Look at the screen again",
+  "agentDoDone": "Finish",
+  "agentWhyPassword": "the focused field is a password field",
+  "agentWhySecret": "it looks like a password or security-code field",
+  "agentWhyPayment": "it looks like a payment field",
+  "agentWhyCard": "the text looks like a card number",
+  "agentWhyIrreversible": "it may submit, send, pay or delete",
+  "agentWhySubmitKey": "it may submit or delete",
+  "agentWhyOutside": "outside the screenshot",
+  "privAgent": "Agent",
+  "privAgentOffBody": "Off. Sotto never moves your mouse or types.",
+  "privAgentOnBody": "Only for tasks you start: one screenshot per step goes to DeepSeek; every action is logged in the session."
 }
