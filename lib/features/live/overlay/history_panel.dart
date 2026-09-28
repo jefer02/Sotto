@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/icons.dart';
@@ -27,6 +28,7 @@ class HistoryPanel extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
+        color: o.textOnly ? o.chromeGround : null,
         border: Border(left: BorderSide(color: o.inkAt(0.08))),
       ),
       child: Column(

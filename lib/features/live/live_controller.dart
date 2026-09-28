@@ -95,11 +95,7 @@ class LiveController extends Notifier<LiveState> {
     if (settings.advanceMode != AdvanceMode.manual) {
       try {
         final hints = script.hintWords.isNotEmpty ? script.hintWords : ScriptStructurer.hintWordsFor(script.sections);
-        _speech = await SpeechSession.start(
-          settings: settings,
-          models: ref.read(modelManagerProvider),
-          hints: hints,
-        );
+        _speech = await SpeechSession.start(settings: settings, models: ref.read(modelManagerProvider), hints: hints);
         _subs.add(_speech!.heard.listen(_onHeard));
         _subs.add(
           _speech!.level.listen((l) {
@@ -225,29 +221,49 @@ class LiveController extends Notifier<LiveState> {
     }
   }
 
+  final _chromePings = StreamController<bool>.broadcast();
+
+  /// True on every live shortcut press, false on release: the text-only
+  /// overlay shows its controls while a shortcut is held.
+  Stream<bool> get chromePings => _chromePings.stream;
+
   Future<void> _registerLiveHotkeys() async {
     final failures = await _hotkeys.registerAll(_settings, {
-      LiveAction.goLive: (onDown: () => unawaited(end()), onUp: null),
-      LiveAction.pauseResume: (onDown: togglePause, onUp: null),
-      LiveAction.nextBeat: (onDown: nextBeat, onUp: null),
-      LiveAction.previousBeat: (onDown: previousBeat, onUp: null),
-      LiveAction.nextSection: (onDown: nextSection, onUp: null),
-      LiveAction.previousSection: (onDown: previousSection, onUp: null),
-      LiveAction.ask: (onDown: askDown, onUp: askUp),
-      LiveAction.sendToChat: (onDown: sendDown, onUp: sendUp),
-      LiveAction.readAloud: (onDown: readAloud, onUp: null),
-      LiveAction.dismiss: (onDown: dismiss, onUp: null),
-      LiveAction.history: (onDown: toggleHistory, onUp: null),
-      LiveAction.hide: (onDown: toggleHidden, onUp: null),
-      LiveAction.clickThrough: (onDown: toggleClickThrough, onUp: null),
-      LiveAction.textBigger: (onDown: () => textSize(1), onUp: null),
-      LiveAction.textSmaller: (onDown: () => textSize(-1), onUp: null),
-      LiveAction.moveDisplay: (onDown: moveDisplay, onUp: null),
+      for (final MapEntry(key: action, value: h) in _liveHandlers.entries)
+        action: (
+          onDown: () {
+            _chromePings.add(true);
+            h.onDown();
+          },
+          onUp: () {
+            _chromePings.add(false);
+            h.onUp?.call();
+          },
+        ),
     });
     if (failures.isNotEmpty) {
       _notice(L10n.current.noticeShortcutsTaken(failures.length));
     }
   }
+
+  HotkeyHandlers get _liveHandlers => {
+    LiveAction.goLive: (onDown: () => unawaited(end()), onUp: null),
+    LiveAction.pauseResume: (onDown: togglePause, onUp: null),
+    LiveAction.nextBeat: (onDown: nextBeat, onUp: null),
+    LiveAction.previousBeat: (onDown: previousBeat, onUp: null),
+    LiveAction.nextSection: (onDown: nextSection, onUp: null),
+    LiveAction.previousSection: (onDown: previousSection, onUp: null),
+    LiveAction.ask: (onDown: askDown, onUp: askUp),
+    LiveAction.sendToChat: (onDown: sendDown, onUp: sendUp),
+    LiveAction.readAloud: (onDown: readAloud, onUp: null),
+    LiveAction.dismiss: (onDown: dismiss, onUp: null),
+    LiveAction.history: (onDown: toggleHistory, onUp: null),
+    LiveAction.hide: (onDown: toggleHidden, onUp: null),
+    LiveAction.clickThrough: (onDown: toggleClickThrough, onUp: null),
+    LiveAction.textBigger: (onDown: () => textSize(1), onUp: null),
+    LiveAction.textSmaller: (onDown: () => textSize(-1), onUp: null),
+    LiveAction.moveDisplay: (onDown: moveDisplay, onUp: null),
+  };
 
   void _notice(String text, {int seconds = 4}) {
     _noticeTimer?.cancel();
@@ -470,10 +486,7 @@ class LiveController extends Notifier<LiveState> {
 
     final llm = await _client();
     if (llm == null) {
-      state = state.copyWith(
-        phase: LivePhase.answer,
-        answerError: L10n.current.answerNeedsKey,
-      );
+      state = state.copyWith(phase: LivePhase.answer, answerError: L10n.current.answerNeedsKey);
       return;
     }
     final service = AnswerService(llm);

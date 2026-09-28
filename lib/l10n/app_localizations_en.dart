@@ -2078,4 +2078,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get welcomeWriteSub => 'A blank script';
+
+  @override
+  String get overlayStyle => 'Overlay style';
+
+  @override
+  String get overlayStyleTextOnly => 'Text only';
+
+  @override
+  String get overlayStylePanel => 'Panel';
+
+  @override
+  String get overlayStyleTextOnlySub => 'No background — just outlined words over your slides';
+
+  @override
+  String get overlayStylePanelSub => 'A translucent card behind the text';
+
+  @override
+  String get overlayStyleTextOnlyFooter =>
+      'Controls and the status strip appear when you hover the overlay or use a shortcut, then fade after 2 seconds.';
+
+  @override
+  String get textColor => 'Text color';
+
+  @override
+  String get outlineColor => 'Outline';
+
+  @override
+  String get outlineAuto => 'Auto — contrasts with the text';
+
+  @override
+  String get outlineAutoSub => 'Auto: dark around light text, light around dark text';
+
+  @override
+  String get outlineWidth => 'Outline width';
+
+  @override
+  String get shadowStrength => 'Shadow';
 }

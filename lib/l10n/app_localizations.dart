@@ -3757,6 +3757,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A blank script'**
   String get welcomeWriteSub;
+
+  /// No description provided for @overlayStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay style'**
+  String get overlayStyle;
+
+  /// No description provided for @overlayStyleTextOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Text only'**
+  String get overlayStyleTextOnly;
+
+  /// No description provided for @overlayStylePanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Panel'**
+  String get overlayStylePanel;
+
+  /// No description provided for @overlayStyleTextOnlySub.
+  ///
+  /// In en, this message translates to:
+  /// **'No background — just outlined words over your slides'**
+  String get overlayStyleTextOnlySub;
+
+  /// No description provided for @overlayStylePanelSub.
+  ///
+  /// In en, this message translates to:
+  /// **'A translucent card behind the text'**
+  String get overlayStylePanelSub;
+
+  /// No description provided for @overlayStyleTextOnlyFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Controls and the status strip appear when you hover the overlay or use a shortcut, then fade after 2 seconds.'**
+  String get overlayStyleTextOnlyFooter;
+
+  /// No description provided for @textColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text color'**
+  String get textColor;
+
+  /// No description provided for @outlineColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline'**
+  String get outlineColor;
+
+  /// No description provided for @outlineAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto — contrasts with the text'**
+  String get outlineAuto;
+
+  /// No description provided for @outlineAutoSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto: dark around light text, light around dark text'**
+  String get outlineAutoSub;
+
+  /// No description provided for @outlineWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline width'**
+  String get outlineWidth;
+
+  /// No description provided for @shadowStrength.
+  ///
+  /// In en, this message translates to:
+  /// **'Shadow'**
+  String get shadowStrength;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

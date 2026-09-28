@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/icons.dart';
@@ -170,7 +171,7 @@ class _StreamedQuestion extends StatelessWidget {
   Widget build(BuildContext context) {
     final o = context.overlayPalette;
     final words = text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-    final style = ReadingType.question.copyWith(color: o.ink);
+    final style = ReadingType.question.copyWith(color: o.ink, shadows: o.textShadows());
     if (words.isEmpty) {
       return Text(context.l10n.askAway, style: style.copyWith(color: o.inkAt(0.36)));
     }
@@ -411,27 +412,31 @@ class AnswerView extends ConsumerWidget {
                     color: o.confirmed,
                   )
                 else
-                  _Provenance(
-                    icon: SottoIcons.globe,
-                    label: context.l10n.provGeneral,
-                    color: o.inkAt(0.7),
-                  ),
+                  _Provenance(icon: SottoIcons.globe, label: context.l10n.provGeneral, color: o.inkAt(0.7)),
                 const Spacer(),
                 if (d.complete)
                   Text(
                     d.predrafted
                         ? context.l10n.predraftedInstant
-                        : context.l10n.draftedIn(NumberFormat('0.0', context.l10n.localeName).format((state.draftMillis ?? 0) / 1000)),
+                        : context.l10n.draftedIn(
+                            NumberFormat('0.0', context.l10n.localeName).format((state.draftMillis ?? 0) / 1000),
+                          ),
                     style: TypeScale.mono.copyWith(fontSize: 11, fontWeight: FontWeight.w400, color: o.inkAt(0.55)),
                   ),
               ],
             ),
             if ((state.questionText ?? '').isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('“${state.questionText}”', style: ReadingType.answerQuote.copyWith(color: o.inkAt(0.62))),
+              Text(
+                '“${state.questionText}”',
+                style: ReadingType.answerQuote.copyWith(color: o.inkAt(0.62), shadows: o.textShadows(0.62)),
+              ),
             ],
             const SizedBox(height: 10),
-            Text(d.headline, style: ReadingType.answerHeadline.copyWith(color: o.ink)),
+            Text(
+              d.headline,
+              style: ReadingType.answerHeadline.copyWith(color: o.ink, shadows: o.textShadows()),
+            ),
             if (d.points.isNotEmpty) const SizedBox(height: 12),
             for (var i = 0; i < d.points.length; i++)
               _StaggerIn(
@@ -458,12 +463,15 @@ class AnswerView extends ConsumerWidget {
                             children: [
                               TextSpan(
                                 text: d.points[i].lead,
-                                style: withWeight(ReadingType.answerPoint, 600).copyWith(color: o.ink),
+                                style: withWeight(
+                                  ReadingType.answerPoint,
+                                  600,
+                                ).copyWith(color: o.ink, shadows: o.textShadows()),
                               ),
                               if (d.points[i].rest.isNotEmpty) TextSpan(text: ' ${d.points[i].rest}'),
                             ],
                           ),
-                          style: ReadingType.answerPoint.copyWith(color: o.inkAt(0.74)),
+                          style: ReadingType.answerPoint.copyWith(color: o.inkAt(0.74), shadows: o.textShadows(0.74)),
                         ),
                       ),
                     ],

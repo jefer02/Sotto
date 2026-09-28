@@ -2,6 +2,7 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/theme.dart';
@@ -456,7 +457,7 @@ class _BeatLineState extends State<_BeatLine> with SingleTickerProviderStateMixi
   Widget build(BuildContext context) {
     final o = widget.palette;
     final isCurrent = widget.index == widget.current;
-    final base = widget.style.copyWith(color: o.inkAt(_level));
+    final base = widget.style.copyWith(color: o.inkAt(_level), shadows: o.textShadows(_level));
     final cue = widget.beat.beat.cue;
 
     Widget text = AnimatedBuilder(
@@ -481,17 +482,21 @@ class _BeatLineState extends State<_BeatLine> with SingleTickerProviderStateMixi
               for (var i = 0; i < _words.length; i++)
                 TextSpan(
                   text: _words[i].text + (i == _words.length - 1 ? '' : (_words[i].glueNext ? ' ' : ' ')),
-                  style: TextStyle(
-                    fontWeight: _words[i].bold ? FontWeight.w700 : null,
-                    fontVariations: _words[i].bold ? const [FontVariation.weight(700)] : null,
-                    color: !isCurrent
+                  style: () {
+                    final color = !isCurrent
                         ? null
                         : i < _dimFrom
                         ? done
                         : i < widget.spoken
                         ? Color.lerp(o.inkAt(o.readNow), done, _dim.value)
-                        : null,
-                  ),
+                        : null;
+                    return TextStyle(
+                      fontWeight: _words[i].bold ? FontWeight.w700 : null,
+                      fontVariations: _words[i].bold ? const [FontVariation.weight(700)] : null,
+                      color: color,
+                      shadows: o.shadowsFor(color),
+                    );
+                  }(),
                 ),
             ],
           ),
@@ -575,14 +580,14 @@ class _TickerView extends StatelessWidget {
                     if (spoken > 0)
                       TextSpan(
                         text: '…${words[spoken - 1].text} ',
-                        style: TextStyle(color: o.inkAt(o.readDone)),
+                        style: TextStyle(color: o.inkAt(o.readDone), shadows: o.textShadows(o.readDone)),
                       ),
                     TextSpan(text: join(rest)),
                   ],
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: text.copyWith(color: o.ink),
+                style: text.copyWith(color: o.ink, shadows: o.textShadows()),
               ),
             ),
           ),

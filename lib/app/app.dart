@@ -12,6 +12,7 @@ import '../data/repositories.dart';
 import '../l10n/l10n.dart';
 import '../features/live/live_controller.dart';
 import '../features/library/library_actions.dart';
+import '../features/live/overlay_palette.dart';
 import '../features/live/overlay_screen.dart';
 import '../features/preflight/preflight_dialog.dart';
 import 'router.dart';
@@ -101,9 +102,7 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
         OverlayThemeMode.matchApp =>
           settings.appTheme == AppThemeMode.dark || (settings.appTheme == AppThemeMode.auto && platformDark),
       };
-      final overlay = (overlayDark ? OverlayPalette.dark : OverlayPalette.light).withGroundOpacity(
-        settings.overlayOpacity * (overlayDark ? 1 : 1.1).clamp(0, 1),
-      );
+      final overlay = overlayPaletteFor(settings, dark: overlayDark);
       return MaterialApp(
         key: ValueKey(locale.languageCode),
         debugShowCheckedModeBanner: false,

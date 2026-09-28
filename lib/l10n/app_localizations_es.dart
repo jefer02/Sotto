@@ -2085,4 +2085,41 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get welcomeWriteSub => 'Un guion en blanco';
+
+  @override
+  String get overlayStyle => 'Estilo de la superposición';
+
+  @override
+  String get overlayStyleTextOnly => 'Solo texto';
+
+  @override
+  String get overlayStylePanel => 'Panel';
+
+  @override
+  String get overlayStyleTextOnlySub => 'Sin fondo — solo palabras con contorno sobre tus diapositivas';
+
+  @override
+  String get overlayStylePanelSub => 'Una tarjeta translúcida detrás del texto';
+
+  @override
+  String get overlayStyleTextOnlyFooter =>
+      'Los controles y la barra de estado aparecen al pasar el ratón o al usar un atajo, y se desvanecen a los 2 segundos.';
+
+  @override
+  String get textColor => 'Color del texto';
+
+  @override
+  String get outlineColor => 'Contorno';
+
+  @override
+  String get outlineAuto => 'Auto — contrasta con el texto';
+
+  @override
+  String get outlineAutoSub => 'Auto: oscuro con texto claro, claro con texto oscuro';
+
+  @override
+  String get outlineWidth => 'Grosor del contorno';
+
+  @override
+  String get shadowStrength => 'Sombra';
 }

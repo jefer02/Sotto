@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/icons.dart';
@@ -45,7 +46,7 @@ class OverlayControls extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: Color.alphaBlend(o.inkAt(0.06), o.ground.withValues(alpha: 0.96)),
+        color: Color.alphaBlend(o.inkAt(0.06), o.chromeGround.withValues(alpha: 0.96)),
         borderRadius: Radii.rM,
         border: Border.all(color: o.inkAt(0.1)),
         boxShadow: const [BoxShadow(color: Color(0x66000000), blurRadius: 16, offset: Offset(0, 6))],
@@ -67,7 +68,12 @@ class OverlayControls extends ConsumerWidget {
             c.askDown,
             selected: state.phase == LivePhase.listening,
           ),
-          b(SottoIcons.history, tip(context.l10n.questions, LiveAction.history), c.toggleHistory, selected: state.historyOpen),
+          b(
+            SottoIcons.history,
+            tip(context.l10n.questions, LiveAction.history),
+            c.toggleHistory,
+            selected: state.historyOpen,
+          ),
           divider(),
           b(SottoIcons.onTop, tip(LiveAction.moveDisplay.title, LiveAction.moveDisplay), () => c.moveDisplay()),
           b(

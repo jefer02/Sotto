@@ -98,6 +98,12 @@ lib/
     live/         LiveController (the session state machine) and the overlay UI
 ```
 
+**Overlay styles.** *Text only* (the default) draws no background at all: the window, DWM backdrop
+(Windows) and vibrancy (macOS) are fully transparent and every glyph carries a configurable outline
+and soft shadow, so it reads over dark slides, white slides and video grids alike. The status strip
+and controls appear on hover or while a shortcut is held and fade out 2 s later. *Panel* keeps the
+translucent card. Both keep capture exclusion and never take focus.
+
 **One window, two personalities.** Going live morphs the main window into the overlay. It becomes
 frameless, always on top, transparent, resizable and draggable, and it snaps under the camera. Ending
 the session restores it exactly. The platform extras window_manager doesn't cover live in a small

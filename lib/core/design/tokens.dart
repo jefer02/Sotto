@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show Brightness;
 
 import 'package:flutter/animation.dart';
@@ -166,7 +167,38 @@ class OverlayPalette {
     required this.readNext,
     required this.readLater,
     required this.readDone,
+    this.textOnly = false,
+    this.outline = const Color(0xFF000000),
+    this.outlineWidth = 0,
+    this.shadowStrength = 0,
   });
+
+  /// "Text only" style: no ground, no card, no edge — legibility comes from
+  /// an outline and a soft shadow around every glyph.
+  factory OverlayPalette.textOnly({
+    required Color ink,
+    required Color outline,
+    required double outlineWidth,
+    required double shadowStrength,
+  }) => OverlayPalette(
+    ground: const Color(0x00000000),
+    ink: ink,
+    edge: const Color(0x00000000),
+    shadow: const BoxShadow(color: Color(0x00000000)),
+    innerHighlight: const Color(0x00000000),
+    cue: Primitives.tungsten300,
+    capture: Primitives.tally400,
+    confirmed: Primitives.go300,
+    // Dimmed words need more weight without a ground behind them.
+    readNow: 1,
+    readNext: 0.78,
+    readLater: 0.6,
+    readDone: 0.5,
+    textOnly: true,
+    outline: outline,
+    outlineWidth: outlineWidth,
+    shadowStrength: shadowStrength,
+  );
 
   final Color ground;
   final Color ink;
@@ -183,7 +215,52 @@ class OverlayPalette {
   final double readLater;
   final double readDone;
 
+  final bool textOnly;
+  final Color outline;
+  final double outlineWidth;
+
+  /// 0..1: how strong the soft drop shadow under text-only glyphs is.
+  final double shadowStrength;
+
   Color inkAt(double alpha) => ink.withValues(alpha: alpha);
+
+  /// Behind controls that must stay usable when the overlay has no ground
+  /// (the hover pill, history): a solid dark surface.
+  Color get chromeGround => textOnly ? const Color(0xE6141210) : ground;
+
+  /// Outline + soft shadow for text-only glyphs, faded with the glyph's own
+  /// [alpha]. [small] text (captions, labels) gets a thinner outline so it
+  /// doesn't clog. Null in panel style, so styles inherit nothing.
+  List<Shadow>? textShadows([double alpha = 1, bool small = false]) {
+    if (!textOnly) return null;
+    final a = alpha.clamp(0.0, 1.0);
+    final out = <Shadow>[];
+    final outlineWidth = small ? math.min(this.outlineWidth, 1.2) : this.outlineWidth;
+    if (outlineWidth > 0) {
+      final c = outline.withValues(alpha: outline.a * a);
+      // A ring of hard shadows reads as a stroke that sits behind the fill.
+      const steps = 12;
+      for (var i = 0; i < steps; i++) {
+        final t = 2 * math.pi * i / steps;
+        out.add(
+          Shadow(color: c, offset: Offset(math.cos(t) * outlineWidth, math.sin(t) * outlineWidth), blurRadius: 0.6),
+        );
+      }
+    }
+    if (shadowStrength > 0) {
+      out.add(
+        Shadow(
+          color: Color.fromRGBO(0, 0, 0, 0.9 * shadowStrength * a),
+          offset: const Offset(0, 1.5),
+          blurRadius: (small ? 2 : 3) + (small ? 5 : 9) * shadowStrength,
+        ),
+      );
+    }
+    return out;
+  }
+
+  /// Shadows matching a span colored [c] (null: inherit from the parent).
+  List<Shadow>? shadowsFor(Color? c) => c == null || !textOnly ? null : textShadows(c.a / (ink.a == 0 ? 1 : ink.a));
 
   /// 80 % ground over a white slide still gives 10.5:1 on the current line.
   static const dark = OverlayPalette(
@@ -230,6 +307,10 @@ class OverlayPalette {
     readNext: readNext,
     readLater: readLater,
     readDone: readDone,
+    textOnly: textOnly,
+    outline: outline,
+    outlineWidth: outlineWidth,
+    shadowStrength: shadowStrength,
   );
 }
 

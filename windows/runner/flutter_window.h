@@ -36,7 +36,7 @@ class FlutterWindow : public Win32Window {
   // True while the window is the live overlay.
   bool overlay_ = false;
 
-  void ConfigureOverlay(bool enabled, bool exclude_from_capture, bool blur, bool dark);
+  void ConfigureOverlay(bool enabled, bool exclude_from_capture, bool blur, bool dark, bool text_only);
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

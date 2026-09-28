@@ -1187,5 +1187,17 @@
   "welcomePaste": "Paste text",
   "welcomePasteSub": "From the clipboard",
   "welcomeWrite": "Write from scratch",
-  "welcomeWriteSub": "A blank script"
+  "welcomeWriteSub": "A blank script",
+  "overlayStyle": "Overlay style",
+  "overlayStyleTextOnly": "Text only",
+  "overlayStylePanel": "Panel",
+  "overlayStyleTextOnlySub": "No background — just outlined words over your slides",
+  "overlayStylePanelSub": "A translucent card behind the text",
+  "overlayStyleTextOnlyFooter": "Controls and the status strip appear when you hover the overlay or use a shortcut, then fade after 2 seconds.",
+  "textColor": "Text color",
+  "outlineColor": "Outline",
+  "outlineAuto": "Auto — contrasts with the text",
+  "outlineAutoSub": "Auto: dark around light text, light around dark text",
+  "outlineWidth": "Outline width",
+  "shadowStrength": "Shadow"
 }

@@ -610,5 +610,17 @@
   "welcomePaste": "Pegar texto",
   "welcomePasteSub": "Desde el portapapeles",
   "welcomeWrite": "Escribir desde cero",
-  "welcomeWriteSub": "Un guion en blanco"
+  "welcomeWriteSub": "Un guion en blanco",
+  "overlayStyle": "Estilo de la superposición",
+  "overlayStyleTextOnly": "Solo texto",
+  "overlayStylePanel": "Panel",
+  "overlayStyleTextOnlySub": "Sin fondo — solo palabras con contorno sobre tus diapositivas",
+  "overlayStylePanelSub": "Una tarjeta translúcida detrás del texto",
+  "overlayStyleTextOnlyFooter": "Los controles y la barra de estado aparecen al pasar el ratón o al usar un atajo, y se desvanecen a los 2 segundos.",
+  "textColor": "Color del texto",
+  "outlineColor": "Contorno",
+  "outlineAuto": "Auto — contrasta con el texto",
+  "outlineAutoSub": "Auto: oscuro con texto claro, claro con texto oscuro",
+  "outlineWidth": "Grosor del contorno",
+  "shadowStrength": "Sombra"
 }

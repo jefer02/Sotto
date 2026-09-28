@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../app/app.dart';
@@ -18,6 +19,7 @@ import '../../../data/models/settings.dart';
 import '../../../data/repositories.dart';
 import '../../live/overlay/overlay_preview.dart';
 import '../../live/overlay/reading_view.dart';
+import '../../live/overlay_palette.dart';
 import '../settings_screen.dart';
 
 /// The script to preview: the focused one, else the most recent.
@@ -31,7 +33,14 @@ final previewScriptProvider = Provider<Script?>((ref) {
 
 /// WCAG contrast of ink at [alpha] over the overlay ground composited on
 /// the worst-case slide (white behind a dark overlay, black behind light).
+/// Text only: the glyph against its own outline, which is what the eye gets
+/// on any slide.
 double worstContrast(OverlayPalette o, double alpha) {
+  if (o.textOnly) {
+    final fg = Color.alphaBlend(o.ink.withValues(alpha: alpha), o.outline);
+    final l1 = fg.computeLuminance(), l2 = o.outline.computeLuminance();
+    return (math.max(l1, l2) + 0.05) / (math.min(l1, l2) + 0.05);
+  }
   final behind = o.ink.computeLuminance() > 0.5 ? Colors.white : Colors.black;
   final ground = Color.alphaBlend(o.ground, behind);
   final fg = Color.alphaBlend(o.ink.withValues(alpha: alpha), ground);
@@ -61,7 +70,8 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
       OverlayThemeMode.light => false,
       OverlayThemeMode.matchApp => p.isDark,
     };
-    final o = (dark ? OverlayPalette.dark : OverlayPalette.light).withGroundOpacity(s.overlayOpacity);
+    final o = overlayPaletteFor(s, dark: dark);
+    final textOnly = s.overlayStyle == OverlayStyle.textOnly;
     final fontPx = overlayFontSize(s.overlaySize.$1, s.readingSize);
     final chars = ((s.overlaySize.$1 - 62) / (fontPx * 0.52)).round();
 
@@ -74,6 +84,11 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
           (cur, d) => cur.copyWith(
             appTheme: d.appTheme,
             overlayTheme: d.overlayTheme,
+            overlayStyle: d.overlayStyle,
+            textColor: d.textColor,
+            autoOutline: true,
+            outlineWidth: d.outlineWidth,
+            shadowStrength: d.shadowStrength,
             readingSize: d.readingSize,
             linesShown: d.linesShown,
             overlayOpacity: d.overlayOpacity,
@@ -87,6 +102,68 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
         ),
       ),
       left: [
+        SettingsGroup(
+          title: context.l10n.overlayStyle,
+          footer: textOnly ? context.l10n.overlayStyleTextOnlyFooter : null,
+          children: [
+            SettingRow(
+              title: context.l10n.overlayStyle,
+              subtitle: textOnly ? context.l10n.overlayStyleTextOnlySub : context.l10n.overlayStylePanelSub,
+              trailing: SegmentedControl<OverlayStyle>(
+                width: 220,
+                segments: [
+                  Segment(OverlayStyle.textOnly, context.l10n.overlayStyleTextOnly),
+                  Segment(OverlayStyle.panel, context.l10n.overlayStylePanel),
+                ],
+                value: s.overlayStyle,
+                onChanged: (v) => n.update((x) => x.copyWith(overlayStyle: v)),
+              ),
+            ),
+            if (textOnly) ...[
+              SettingRow(
+                title: context.l10n.textColor,
+                trailing: _Swatches(
+                  colors: _textColors,
+                  value: s.textColor,
+                  onChanged: (v) => n.update((x) => x.copyWith(textColor: v)),
+                ),
+              ),
+              SettingRow(
+                title: context.l10n.outlineColor,
+                subtitle: s.outlineColor == null ? context.l10n.outlineAutoSub : null,
+                trailing: _Swatches(
+                  colors: _outlineColors,
+                  value: s.outlineColor,
+                  autoLabel: context.l10n.outlineAuto,
+                  onChanged: (v) =>
+                      n.update((x) => v == null ? x.copyWith(autoOutline: true) : x.copyWith(outlineColor: v)),
+                ),
+              ),
+              SettingRow(
+                title: context.l10n.outlineWidth,
+                trailing: SottoSlider(
+                  value: s.outlineWidth,
+                  min: 0,
+                  max: 4,
+                  divisions: 8,
+                  label: '${NumberFormat('0.#', context.l10n.localeName).format(s.outlineWidth)} px',
+                  onChanged: (v) => n.update((x) => x.copyWith(outlineWidth: v)),
+                ),
+              ),
+              SettingRow(
+                title: context.l10n.shadowStrength,
+                trailing: SottoSlider(
+                  value: s.shadowStrength,
+                  min: 0,
+                  max: 1,
+                  divisions: 20,
+                  label: NumberFormat.percentPattern(context.l10n.localeName).format(s.shadowStrength),
+                  onChanged: (v) => n.update((x) => x.copyWith(shadowStrength: v)),
+                ),
+              ),
+            ],
+          ],
+        ),
         SettingsGroup(
           title: context.l10n.theme,
           children: [
@@ -103,20 +180,21 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
                 onChanged: (v) => n.update((x) => x.copyWith(appTheme: v)),
               ),
             ),
-            SettingRow(
-              title: context.l10n.groupOverlay,
-              subtitle: context.l10n.overlayThemeSub,
-              trailing: SegmentedControl<OverlayThemeMode>(
-                width: 236,
-                segments: [
-                  Segment(OverlayThemeMode.dark, context.l10n.themeDark),
-                  Segment(OverlayThemeMode.light, context.l10n.themeLight),
-                  Segment(OverlayThemeMode.matchApp, context.l10n.matchApp),
-                ],
-                value: s.overlayTheme,
-                onChanged: (v) => n.update((x) => x.copyWith(overlayTheme: v)),
+            if (!textOnly)
+              SettingRow(
+                title: context.l10n.groupOverlay,
+                subtitle: context.l10n.overlayThemeSub,
+                trailing: SegmentedControl<OverlayThemeMode>(
+                  width: 236,
+                  segments: [
+                    Segment(OverlayThemeMode.dark, context.l10n.themeDark),
+                    Segment(OverlayThemeMode.light, context.l10n.themeLight),
+                    Segment(OverlayThemeMode.matchApp, context.l10n.matchApp),
+                  ],
+                  value: s.overlayTheme,
+                  onChanged: (v) => n.update((x) => x.copyWith(overlayTheme: v)),
+                ),
               ),
-            ),
           ],
         ),
         SettingsGroup(
@@ -151,19 +229,20 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
                 onChanged: (v) => n.update((x) => x.copyWith(linesShown: v)),
               ),
             ),
-            SettingRow(
-              title: context.l10n.opacity,
-              subtitle: context.l10n.opacitySub,
-              trailing: SottoSlider(
-                value: s.overlayOpacity,
-                min: 0.5,
-                max: 1,
-                divisions: 50,
-                marker: 0.7,
-                label: NumberFormat.percentPattern(context.l10n.localeName).format(s.overlayOpacity),
-                onChanged: (v) => n.update((x) => x.copyWith(overlayOpacity: v)),
+            if (!textOnly)
+              SettingRow(
+                title: context.l10n.opacity,
+                subtitle: context.l10n.opacitySub,
+                trailing: SottoSlider(
+                  value: s.overlayOpacity,
+                  min: 0.5,
+                  max: 1,
+                  divisions: 50,
+                  marker: 0.7,
+                  label: NumberFormat.percentPattern(context.l10n.localeName).format(s.overlayOpacity),
+                  onChanged: (v) => n.update((x) => x.copyWith(overlayOpacity: v)),
+                ),
               ),
-            ),
           ],
         ),
         SettingsGroup(
@@ -232,10 +311,7 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
               ),
               child: script == null
                   ? Center(
-                      child: Text(
-                        context.l10n.writeToPreview,
-                        style: TypeScale.body.copyWith(color: p.inkTertiary),
-                      ),
+                      child: Text(context.l10n.writeToPreview, style: TypeScale.body.copyWith(color: p.inkTertiary)),
                     )
                   : OverlayPreview(
                       script: script,
@@ -281,7 +357,10 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
               subtitle: context.l10n.scrollingSub,
               trailing: SegmentedControl<ScrollStyle>(
                 width: 160,
-                segments: [Segment(ScrollStyle.glide, context.l10n.scrollGlide), Segment(ScrollStyle.step, context.l10n.scrollStep)],
+                segments: [
+                  Segment(ScrollStyle.glide, context.l10n.scrollGlide),
+                  Segment(ScrollStyle.step, context.l10n.scrollStep),
+                ],
                 value: s.scrollStyle,
                 onChanged: (v) => n.update((x) => x.copyWith(scrollStyle: v)),
               ),
@@ -294,16 +373,66 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
                 onChanged: (v) => n.update((x) => x.copyWith(reduceMotion: v)),
               ),
             ),
-            SettingRow(
-              title: context.l10n.blurBehind,
-              subtitle: context.l10n.blurBehindSub,
-              trailing: SottoToggle(
-                value: s.blurBehind,
-                onChanged: (v) => n.update((x) => x.copyWith(blurBehind: v)),
+            if (!textOnly)
+              SettingRow(
+                title: context.l10n.blurBehind,
+                subtitle: context.l10n.blurBehindSub,
+                trailing: SottoToggle(
+                  value: s.blurBehind,
+                  onChanged: (v) => n.update((x) => x.copyWith(blurBehind: v)),
+                ),
               ),
-            ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+const _textColors = [0xFFFFFFFF, 0xFFFFE55C, 0xFF8BE9FF, 0xFF111111];
+const _outlineColors = [null, 0xFF000000, 0xFFFFFFFF];
+
+/// A row of round color swatches. A null entry is "Auto".
+class _Swatches extends StatelessWidget {
+  const _Swatches({required this.colors, required this.value, required this.onChanged, this.autoLabel});
+  final List<int?> colors;
+  final int? value;
+  final ValueChanged<int?> onChanged;
+  final String? autoLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final c in colors)
+          Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: Tooltip(
+              message: c == null
+                  ? (autoLabel ?? '')
+                  : '#${(c & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}',
+              child: Interactive(
+                onTap: () => onChanged(c),
+                builder: (context, s) => AnimatedContainer(
+                  duration: Motion.quick,
+                  width: 24,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: c == null ? p.raised : Color(c),
+                    border: Border.all(
+                      color: c == value ? p.cueFill : (s.hovered ? p.emphasis : p.control),
+                      width: c == value ? 2 : 1,
+                    ),
+                  ),
+                  child: c == null ? Text('A', style: TypeScale.captionStrong.copyWith(color: p.inkSecondary)) : null,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

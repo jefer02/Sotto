@@ -44,7 +44,8 @@ class MainFlutterWindow: NSPanel {
           excludeFromCapture: args["excludeFromCapture"] as? Bool ?? false,
           blur: args["blur"] as? Bool ?? false,
           dark: args["dark"] as? Bool ?? true,
-          radius: CGFloat(args["radius"] as? Double ?? 16))
+          radius: CGFloat(args["radius"] as? Double ?? 16),
+          textOnly: args["textOnly"] as? Bool ?? false)
         result(nil)
       default:
         result(FlutterMethodNotImplemented)
@@ -60,7 +61,8 @@ class MainFlutterWindow: NSPanel {
   override var canBecomeMain: Bool { !overlayActive }
 
   private func configureOverlay(
-    enabled: Bool, excludeFromCapture: Bool, blur: Bool, dark: Bool, radius: CGFloat
+    enabled: Bool, excludeFromCapture: Bool, blur: Bool, dark: Bool, radius: CGFloat,
+    textOnly: Bool
   ) {
     if enabled && !overlayActive {
       savedLevel = level
@@ -75,13 +77,16 @@ class MainFlutterWindow: NSPanel {
       // Best effort only: on macOS 15+, ScreenCaptureKit can still capture
       // the window during a full-screen share. Pre-flight says so.
       sharingType = excludeFromCapture ? .none : .readOnly
-      hasShadow = true
-      setBlur(blur, dark: dark, radius: radius)
+      // Text only: no vibrancy and no window shadow — a shadow would outline
+      // the invisible window rectangle. Glyphs bring their own.
+      hasShadow = !textOnly
+      setBlur(blur && !textOnly, dark: dark, radius: radius)
     } else {
       styleMask.remove(.nonactivatingPanel)
       level = savedLevel
       collectionBehavior = savedBehavior
       sharingType = .readOnly
+      hasShadow = true
       setBlur(false, dark: dark, radius: radius)
     }
     invalidateShadow()

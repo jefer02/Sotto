@@ -7,6 +7,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
@@ -41,6 +42,14 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   static const _actionsHeight = 50.0;
 
   bool _controlsVisible = false;
+
+  /// Text-only style: meta strip and controls appear on hover or while a
+  /// shortcut is held, then fade out [_chromeLinger] later.
+  bool _chromeVisible = false;
+  bool _hovering = false;
+  Timer? _chromeHide;
+  StreamSubscription<bool>? _pings;
+  static const _chromeLinger = Duration(seconds: 2);
   Timer? _hoverIntent;
   Timer? _hoverHide;
   Timer? _geometryDebounce;
@@ -60,6 +69,25 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   void initState() {
     super.initState();
     windowManager.addListener(this);
+    _pings = ref.read(liveControllerProvider.notifier).chromePings.listen((down) {
+      if (down) {
+        _showChrome();
+      } else if (!_hovering) {
+        _hideChromeLater();
+      }
+    });
+  }
+
+  void _showChrome() {
+    _chromeHide?.cancel();
+    if (!_chromeVisible && mounted) setState(() => _chromeVisible = true);
+  }
+
+  void _hideChromeLater() {
+    _chromeHide?.cancel();
+    _chromeHide = Timer(_chromeLinger, () {
+      if (mounted) setState(() => _chromeVisible = false);
+    });
   }
 
   @override
@@ -67,6 +95,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     windowManager.removeListener(this);
     _hoverIntent?.cancel();
     _hoverHide?.cancel();
+    _chromeHide?.cancel();
+    unawaited(_pings?.cancel());
     _geometryDebounce?.cancel();
     _edgeTimer?.cancel();
     super.dispose();
@@ -147,6 +177,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   // ─────────────────────────── Hover & input ───────────────────────────
 
   void _onEnter() {
+    _hovering = true;
+    _showChrome();
     _hoverHide?.cancel();
     _hoverIntent?.cancel();
     _hoverIntent = Timer(Motion.hoverIntent, () {
@@ -155,6 +187,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   }
 
   void _onExit() {
+    _hovering = false;
+    _hideChromeLater();
     _hoverIntent?.cancel();
     _hoverHide?.cancel();
     _hoverHide = Timer(Motion.hoverHide, () {
@@ -202,7 +236,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
       linesShown: settings.linesShown,
       glide: settings.scrollStyle == ScrollStyle.glide,
       reduceMotion: reduceMotion,
-      plate: settings.overlayOpacity < 0.7,
+      plate: !o.textOnly && settings.overlayOpacity < 0.7,
       wpm: settings.wordsPerMinute,
     );
 
@@ -224,6 +258,20 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
       LivePhase.answer => AnswerView(state: s, onMeasured: _onAnswerMeasured),
     };
 
+    // Text only: no ground, and the chrome fades with hover / shortcuts.
+    final textOnly = o.textOnly;
+    final chrome = !textOnly || _chromeVisible;
+    Widget fading(Widget child) => textOnly
+        ? IgnorePointer(
+            ignoring: !chrome,
+            child: AnimatedOpacity(
+              duration: chrome ? Motion.quick : Motion.smooth,
+              opacity: chrome ? 1 : 0,
+              child: child,
+            ),
+          )
+        : child;
+
     final surface = ClipRRect(
       borderRadius: Radii.rXl,
       child: DecoratedBox(
@@ -233,11 +281,13 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
             Expanded(
               child: Column(
                 children: [
-                  MetaStrip(
-                    density: s.phase == LivePhase.answer ? MetaDensity.full : metaDensityFor(layout),
-                    onDragStart: () => unawaited(_window.startDragging()),
+                  fading(
+                    MetaStrip(
+                      density: s.phase == LivePhase.answer ? MetaDensity.full : metaDensityFor(layout),
+                      onDragStart: () => unawaited(_window.startDragging()),
+                    ),
                   ),
-                  if (layout == ResolvedLayout.ticker && s.flat != null) _TickerProgress(state: s),
+                  if (layout == ResolvedLayout.ticker && s.flat != null) fading(_TickerProgress(state: s)),
                   Expanded(
                     child: Listener(
                       onPointerSignal: _onWheel,
@@ -273,51 +323,57 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
       body: MouseRegion(
         onEnter: (_) => _onEnter(),
         onExit: (_) => _onExit(),
-        child: Stack(
-          children: [
-            Positioned.fill(child: surface),
-            // Hairline edge + lit top edge (inset 0 1px 0 rgba(255,255,255,.05)).
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: Radii.rXl,
-                    border: Border.all(color: o.edge),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 16,
-              right: 16,
-              top: 0.5,
-              child: IgnorePointer(child: Container(height: 1, color: o.innerHighlight)),
-            ),
-            if (s.phase != LivePhase.answer)
-              Positioned(
-                left: 0,
-                right: s.historyOpen ? _historyWidth : 0,
-                bottom: 10,
-                child: Center(
+        // Text only: every glyph below carries the outline + soft shadow.
+        child: DefaultTextStyle.merge(
+          style: TextStyle(shadows: o.textShadows(1, true)),
+          child: Stack(
+            children: [
+              Positioned.fill(child: surface),
+              // Hairline edge + lit top edge (inset 0 1px 0 rgba(255,255,255,.05)).
+              if (!textOnly)
+                Positioned.fill(
                   child: IgnorePointer(
-                    ignoring: !_controlsVisible,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 120),
-                      opacity: _controlsVisible ? 1 : 0,
-                      child: OverlayControls(state: s, onEnd: () => unawaited(_end())),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: Radii.rXl,
+                        border: Border.all(color: o.edge),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            if (s.clickThrough) ...[
-              if (_showClickThroughEdge)
-                Positioned.fill(
-                  child: IgnorePointer(child: CustomPaint(painter: _DottedEdge(o.inkAt(0.5)))),
+              if (!textOnly)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  top: 0.5,
+                  child: IgnorePointer(child: Container(height: 1, color: o.innerHighlight)),
                 ),
-              Positioned(right: 10, bottom: 8, child: _ClickThroughBadge(palette: o)),
+              if (s.phase != LivePhase.answer)
+                Positioned(
+                  left: 0,
+                  right: s.historyOpen ? _historyWidth : 0,
+                  bottom: 10,
+                  child: Center(
+                    child: IgnorePointer(
+                      ignoring: !(textOnly ? _chromeVisible : _controlsVisible),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 120),
+                        opacity: (textOnly ? _chromeVisible : _controlsVisible) ? 1 : 0,
+                        child: OverlayControls(state: s, onEnd: () => unawaited(_end())),
+                      ),
+                    ),
+                  ),
+                ),
+              if (s.clickThrough) ...[
+                if (_showClickThroughEdge)
+                  Positioned.fill(
+                    child: IgnorePointer(child: CustomPaint(painter: _DottedEdge(o.inkAt(0.5)))),
+                  ),
+                Positioned(right: 10, bottom: 8, child: _ClickThroughBadge(palette: o)),
+              ],
+              if (!Platform.isMacOS) ..._resizeEdges(),
             ],
-            if (!Platform.isMacOS) ..._resizeEdges(),
-          ],
+          ),
         ),
       ),
     );

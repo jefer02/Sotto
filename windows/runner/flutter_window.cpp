@@ -13,8 +13,12 @@ namespace {
 constexpr DWORD kExcludeFromCapture = 0x00000011;  // WDA_EXCLUDEFROMCAPTURE
 constexpr DWORD kDwmUseImmersiveDarkMode = 20;       // DWMWA_USE_IMMERSIVE_DARK_MODE
 constexpr DWORD kDwmCornerPreference = 33;           // DWMWA_WINDOW_CORNER_PREFERENCE
+constexpr DWORD kDwmBorderColor = 34;                // DWMWA_BORDER_COLOR
 constexpr DWORD kDwmSystemBackdropType = 38;         // DWMWA_SYSTEMBACKDROP_TYPE
+constexpr int kCornerDoNotRound = 1;                 // DWMWCP_DONOTROUND
 constexpr int kCornerRound = 2;                      // DWMWCP_ROUND
+constexpr COLORREF kColorNone = 0xFFFFFFFE;          // DWMWA_COLOR_NONE
+constexpr COLORREF kColorDefault = 0xFFFFFFFF;       // DWMWA_COLOR_DEFAULT
 constexpr int kBackdropNone = 1;                     // DWMSBT_NONE
 constexpr int kBackdropTransient = 3;                // DWMSBT_TRANSIENTWINDOW (acrylic)
 
@@ -65,7 +69,8 @@ bool FlutterWindow::OnCreate() {
           return;
         }
         ConfigureOverlay(GetBool(*args, "enabled"), GetBool(*args, "excludeFromCapture"),
-                         GetBool(*args, "blur"), GetBool(*args, "dark"));
+                         GetBool(*args, "blur"), GetBool(*args, "dark"),
+                         GetBool(*args, "textOnly"));
         result->Success();
       });
 
@@ -84,7 +89,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::ConfigureOverlay(bool enabled, bool exclude_from_capture, bool blur,
-                                     bool dark) {
+                                     bool dark, bool text_only) {
   HWND hwnd = GetHandle();
   if (hwnd == nullptr) return;
   overlay_ = enabled;
@@ -111,11 +116,16 @@ void FlutterWindow::ConfigureOverlay(bool enabled, bool exclude_from_capture, bo
   }
 
   // Windows 11: rounded corners and an acrylic backdrop. Ignored elsewhere.
+  // Text only: nothing of the window may show — no backdrop, no rounded
+  // frame, no 1 px DWM border — only the glyphs Flutter draws.
+  const bool bare = enabled && text_only;
   BOOL dark_mode = dark ? TRUE : FALSE;
   DwmSetWindowAttribute(hwnd, kDwmUseImmersiveDarkMode, &dark_mode, sizeof(dark_mode));
-  int corner = kCornerRound;
+  int corner = bare ? kCornerDoNotRound : kCornerRound;
   DwmSetWindowAttribute(hwnd, kDwmCornerPreference, &corner, sizeof(corner));
-  int backdrop = (enabled && blur) ? kBackdropTransient : kBackdropNone;
+  COLORREF border = bare ? kColorNone : kColorDefault;
+  DwmSetWindowAttribute(hwnd, kDwmBorderColor, &border, sizeof(border));
+  int backdrop = (enabled && blur && !text_only) ? kBackdropTransient : kBackdropNone;
   DwmSetWindowAttribute(hwnd, kDwmSystemBackdropType, &backdrop, sizeof(backdrop));
 }
 

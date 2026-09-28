@@ -43,17 +43,17 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     tmp = Directory.systemTemp.createTempSync('sotto_render');
     final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(
-      const MethodChannel('plugins.flutter.io/path_provider'),
-      (_) async => tmp.path,
-    );
+    messenger.setMockMethodCallHandler(const MethodChannel('plugins.flutter.io/path_provider'), (_) async => tmp.path);
     // Native plugins that screens touch: answer with "nothing here".
     for (final name in [
       'com.llfbandit.record/messages',
       'dev.leanflutter.plugins/hotkey_manager',
       'dev.leanflutter.plugins/hotkey_manager_event',
     ]) {
-      messenger.setMockMethodCallHandler(MethodChannel(name), (call) async => call.method == 'listInputDevices' ? [] : null);
+      messenger.setMockMethodCallHandler(
+        MethodChannel(name),
+        (call) async => call.method == 'listInputDevices' ? [] : null,
+      );
     }
     messenger.setMockMethodCallHandler(
       const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
@@ -67,7 +67,10 @@ void main() {
       await initializeDateFormatting();
       final store = await LocalStore.open(path: tmp.path);
       container = ProviderContainer(
-        overrides: [localStoreProvider.overrideWithValue(store), windowServiceProvider.overrideWithValue(WindowService())],
+        overrides: [
+          localStoreProvider.overrideWithValue(store),
+          windowServiceProvider.overrideWithValue(WindowService()),
+        ],
       );
       container
           .read(settingsProvider.notifier)
@@ -139,6 +142,21 @@ void main() {
     for (final MapEntry(key: name, value: route) in routes.entries) {
       router.go(route);
       await shot(name);
+    }
+
+    // The overlay preview on every backdrop, in both overlay styles.
+    router.go('/settings/appearance');
+    for (final style in OverlayStyle.values) {
+      container.read(settingsProvider.notifier).update((s) => s.copyWith(overlayStyle: style));
+      for (final (bg, label) in [
+        ('dark', L10n.current.bgDarkSlide),
+        ('light', L10n.current.bgLightSlide),
+        ('call', L10n.current.bgVideoCall),
+      ]) {
+        await settle();
+        await tester.tap(find.text(label));
+        await shot('appearance-${style.name}-$bg');
+      }
     }
     // Leave no timers running.
     await tester.pumpWidget(const SizedBox());

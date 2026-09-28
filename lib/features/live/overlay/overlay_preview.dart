@@ -12,6 +12,7 @@ import '../../../domain/following/follow_engine.dart';
 import '../../../domain/following/script_aligner.dart';
 import '../../../l10n/l10n.dart';
 import '../live_state.dart';
+import '../overlay_palette.dart';
 import 'meta_strip.dart';
 import 'reading_view.dart';
 
@@ -67,9 +68,7 @@ class OverlayPreview extends ConsumerWidget {
           OverlayThemeMode.light => false,
           OverlayThemeMode.matchApp => context.palette.isDark,
         };
-    final overlay = (isDark ? OverlayPalette.dark : OverlayPalette.light).withGroundOpacity(
-      opacity ?? settings.overlayOpacity,
-    );
+    final overlay = overlayPaletteFor(settings, dark: isDark, opacity: opacity);
     final size = readingSize ?? settings.readingSize;
 
     final still = LiveState(
@@ -87,7 +86,7 @@ class OverlayPreview extends ConsumerWidget {
       linesShown: settings.linesShown,
       glide: settings.scrollStyle == ScrollStyle.glide,
       reduceMotion: settings.reduceMotion,
-      plate: (opacity ?? settings.overlayOpacity) < 0.7,
+      plate: !overlay.textOnly && (opacity ?? settings.overlayOpacity) < 0.7,
       wpm: settings.wordsPerMinute,
     );
     final card = cardSize(layout);
@@ -138,16 +137,23 @@ class OverlayPreview extends ConsumerWidget {
                             border: Border.all(color: o.edge),
                             boxShadow: [o.shadow],
                           ),
-                          child: Column(
-                            children: [
-                              MetaStrip(state: state, density: metaDensityFor(layout)),
-                              Expanded(
-                                child: MediaQuery(
-                                  data: MediaQuery.of(context).copyWith(disableAnimations: true),
-                                  child: ReadingView(state: state, layout: layout, style: style),
+                          child: DefaultTextStyle.merge(
+                            style: TextStyle(shadows: o.textShadows(1, true)),
+                            child: Column(
+                              children: [
+                                // Text only: the strip shows on hover, so the still frame hides it.
+                                Opacity(
+                                  opacity: o.textOnly ? 0 : 1,
+                                  child: MetaStrip(state: state, density: metaDensityFor(layout)),
                                 ),
-                              ),
-                            ],
+                                Expanded(
+                                  child: MediaQuery(
+                                    data: MediaQuery.of(context).copyWith(disableAnimations: true),
+                                    child: ReadingView(state: state, layout: layout, style: style),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

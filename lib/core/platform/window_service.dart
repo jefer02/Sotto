@@ -23,6 +23,7 @@ class _OverlayNative {
     bool excludeFromCapture = false,
     bool blur = false,
     bool dark = true,
+    bool textOnly = false,
     double radius = Radii.xl,
   }) async {
     try {
@@ -31,6 +32,7 @@ class _OverlayNative {
         'excludeFromCapture': excludeFromCapture,
         'blur': blur,
         'dark': dark,
+        'textOnly': textOnly,
         'radius': radius,
       });
     } on MissingPluginException {
@@ -136,7 +138,10 @@ class WindowService {
       excludeFromCapture: s.excludeFromCapture,
       blur: s.blurBehind,
       dark: s.overlayTheme != OverlayThemeMode.light,
+      textOnly: s.overlayStyle == OverlayStyle.textOnly,
     );
+    // Text only: the frame's shadow would draw the invisible window's box.
+    if (s.overlayStyle == OverlayStyle.textOnly) await windowManager.setHasShadow(false);
     await windowManager.show(inactive: true);
   }
 
@@ -146,6 +151,7 @@ class WindowService {
     _hidden = false;
     await setClickThrough(false);
     await _OverlayNative.configure(enabled: false);
+    await windowManager.setHasShadow(true);
     if (Platform.isMacOS) await windowManager.setVisibleOnAllWorkspaces(false);
     await windowManager.setAlwaysOnTop(false);
     await windowManager.setSkipTaskbar(false);

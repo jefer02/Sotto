@@ -10,6 +10,10 @@ enum AppLanguage { system, en, es }
 
 enum OverlayThemeMode { dark, light, matchApp }
 
+/// Text only: no background at all, glyphs carry an outline and a shadow.
+/// Panel: the translucent card.
+enum OverlayStyle { textOnly, panel }
+
 /// Container-query breakpoints (Overlay — responsive sizes board).
 enum OverlayLayout { auto, ticker, compact, standard, column, rail }
 
@@ -52,6 +56,11 @@ class AppSettings {
     this.appTheme = AppThemeMode.dark,
     this.uiLanguage = AppLanguage.system,
     this.overlayTheme = OverlayThemeMode.dark,
+    this.overlayStyle = OverlayStyle.textOnly,
+    this.textColor = 0xFFFFFFFF,
+    this.outlineColor,
+    this.outlineWidth = 2.0,
+    this.shadowStrength = 0.6,
     this.readingSize = ReadingSize.m,
     this.linesShown = 5,
     this.overlayOpacity = 0.8,
@@ -101,6 +110,13 @@ class AppSettings {
   final AppThemeMode appTheme;
   final AppLanguage uiLanguage;
   final OverlayThemeMode overlayTheme;
+  final OverlayStyle overlayStyle;
+
+  /// Text-only colors, as ARGB. A null outline contrasts with the text.
+  final int textColor;
+  final int? outlineColor;
+  final double outlineWidth;
+  final double shadowStrength;
   final ReadingSize readingSize;
   final int linesShown;
   final double overlayOpacity;
@@ -170,6 +186,12 @@ class AppSettings {
     AppThemeMode? appTheme,
     AppLanguage? uiLanguage,
     OverlayThemeMode? overlayTheme,
+    OverlayStyle? overlayStyle,
+    int? textColor,
+    int? outlineColor,
+    bool autoOutline = false,
+    double? outlineWidth,
+    double? shadowStrength,
     ReadingSize? readingSize,
     int? linesShown,
     double? overlayOpacity,
@@ -214,6 +236,11 @@ class AppSettings {
     appTheme: appTheme ?? this.appTheme,
     uiLanguage: uiLanguage ?? this.uiLanguage,
     overlayTheme: overlayTheme ?? this.overlayTheme,
+    overlayStyle: overlayStyle ?? this.overlayStyle,
+    textColor: textColor ?? this.textColor,
+    outlineColor: autoOutline ? null : (outlineColor ?? this.outlineColor),
+    outlineWidth: outlineWidth ?? this.outlineWidth,
+    shadowStrength: shadowStrength ?? this.shadowStrength,
     readingSize: readingSize ?? this.readingSize,
     linesShown: linesShown ?? this.linesShown,
     overlayOpacity: overlayOpacity ?? this.overlayOpacity,
@@ -259,6 +286,11 @@ class AppSettings {
     'appTheme': appTheme.name,
     'uiLanguage': uiLanguage.name,
     'overlayTheme': overlayTheme.name,
+    'overlayStyle': overlayStyle.name,
+    'textColor': textColor,
+    'outlineColor': outlineColor,
+    'outlineWidth': outlineWidth,
+    'shadowStrength': shadowStrength,
     'readingSize': readingSize.name,
     'linesShown': linesShown,
     'overlayOpacity': overlayOpacity,
@@ -312,6 +344,11 @@ class AppSettings {
       appTheme: e(AppThemeMode.values, j['appTheme'], d.appTheme),
       uiLanguage: e(AppLanguage.values, j['uiLanguage'], d.uiLanguage),
       overlayTheme: e(OverlayThemeMode.values, j['overlayTheme'], d.overlayTheme),
+      overlayStyle: e(OverlayStyle.values, j['overlayStyle'], d.overlayStyle),
+      textColor: j['textColor'] as int? ?? d.textColor,
+      outlineColor: j['outlineColor'] as int?,
+      outlineWidth: n(j['outlineWidth'], d.outlineWidth),
+      shadowStrength: n(j['shadowStrength'], d.shadowStrength),
       readingSize: e(ReadingSize.values, j['readingSize'], d.readingSize),
       linesShown: j['linesShown'] as int? ?? d.linesShown,
       overlayOpacity: n(j['overlayOpacity'], d.overlayOpacity),
