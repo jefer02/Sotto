@@ -20,6 +20,17 @@ add_executable(${BINARY_NAME} WIN32
 # that need different build settings.
 apply_standard_settings(${BINARY_NAME})
 
+# Screen capture and input. Built apart from the runner because C++/WinRT
+# needs exceptions, which the runner's standard settings turn off; the
+# boundary between the two is plain C (see native/*.h).
+add_library(sotto_native STATIC
+  "native/screen_capture.cpp"
+)
+target_compile_features(sotto_native PRIVATE cxx_std_20)
+target_compile_options(sotto_native PRIVATE /EHsc /W3 /permissive-)
+target_compile_definitions(sotto_native PRIVATE "NOMINMAX" "WIN32_LEAN_AND_MEAN")
+target_link_libraries(sotto_native PRIVATE "d3d11.lib" "dxgi.lib" "windowscodecs.lib" "shcore.lib" "windowsapp.lib")
+
 # Add preprocessor definitions for the build version.
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION=\"${FLUTTER_VERSION}\"")
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_MAJOR=${FLUTTER_VERSION_MAJOR}")
@@ -33,7 +44,7 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 # Add dependency libraries and include directories. Add any application-specific
 # dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
-target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
+target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib" sotto_native)
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.

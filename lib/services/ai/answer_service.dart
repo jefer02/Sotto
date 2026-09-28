@@ -187,7 +187,7 @@ class AnswerService {
 
   // ─────────────────────────── Drafting ───────────────────────────
 
-  static String _system(AppSettings s) {
+  static String _system(AppSettings s, {bool screenshot = false}) {
     final grounding = switch (s.grounding) {
       Grounding.scriptOnly =>
         'Answer ONLY from the excerpts. If they do not contain the answer, write exactly '
@@ -223,10 +223,14 @@ POINT: <2–5 word bold lead> || <rest of the talking point, at most 20 words>
 SOURCE: <the code of each excerpt you used, e.g. §3 or Prep:filename>
 GENERAL: yes|no
 
-Write numbers the way they are said in the script. Never invent figures that are not in the excerpts unless GENERAL is yes.''';
+Write numbers the way they are said in the script. Never invent figures that are not in the excerpts unless GENERAL is yes.${screenshot ? '''
+
+A screenshot of the presenter's screen is attached. What is visible on it counts as source material: cite it as SOURCE: Screen. Describe only what is actually visible; never guess at text you cannot read.''' : ''}''';
   }
 
-  static String _user(Script script, String question, List<Excerpt> excerpts, List<String> covered) {
+  /// [screen]: null without a screenshot; true when the question is about
+  /// the screen itself, false when the screenshot is extra context.
+  static String _user(Script script, String question, List<Excerpt> excerpts, List<String> covered, {bool? screen}) {
     final ex = excerpts
         .map(
           (e) => '[${e.source.code == 'Prep' ? 'Prep:${e.source.label}' : e.source.code}] ${e.source.label}\n${e.text}',
@@ -239,20 +243,33 @@ Sections already covered: ${covered.isEmpty ? 'none yet' : covered.join(', ')}
 Excerpts:
 $ex
 
-Question from the audience:
+${switch (screen) {
+      true => 'The presenter is asking about what is on their screen right now (screenshot attached):',
+      false => 'The screenshot shows the slide on screen right now. Question from the audience:',
+      null => 'Question from the audience:',
+    }}
 "$question"''';
   }
 
   /// Streams progressive drafts. The first event carries only the sources,
   /// which the overlay shows before any words arrive.
+  ///
+  /// [screenshot] (a JPEG data URL) is attached to the request; with
+  /// [aboutScreen] the question is about the screen itself ("Ask about
+  /// screen"), otherwise it is extra context for an audience question.
   Stream<AnswerDraft> draft({
     required Script script,
     required String question,
     required AppSettings settings,
     int? currentSection,
+    String? screenshot,
+    bool aboutScreen = false,
   }) async* {
     final excerpts = retrieve(corpus(script), question, currentSection: currentSection);
-    var d = AnswerDraft(sources: [for (final e in excerpts) e.source]);
+    final screen = screenshot == null
+        ? null
+        : SourceRef(kind: SourceKind.screen, label: L10n.current.sourceScreen, code: 'Screen');
+    var d = AnswerDraft(sources: [?screen, for (final e in excerpts) e.source]);
     yield d;
 
     final covered = [
@@ -261,20 +278,21 @@ Question from the audience:
 
     final buf = StringBuffer();
     await for (final chunk in client.stream(
-      system: _system(settings),
-      user: _user(script, question, excerpts, covered),
+      system: _system(settings, screenshot: screenshot != null),
+      user: _user(script, question, excerpts, covered, screen: screenshot == null ? null : aboutScreen),
       maxTokens: 1024,
+      images: [?screenshot],
     )) {
       buf.write(chunk);
-      final parsed = _parse(buf.toString(), excerpts, partial: true);
+      final parsed = _parse(buf.toString(), excerpts, partial: true, screen: screen);
       d = parsed.copyWith(sources: parsed.sources.isEmpty ? d.sources : parsed.sources);
       yield d;
     }
-    final done = _parse(buf.toString(), excerpts, partial: false);
+    final done = _parse(buf.toString(), excerpts, partial: false, screen: screen);
     yield done.copyWith(sources: done.sources.isEmpty ? d.sources : done.sources, complete: true);
   }
 
-  static AnswerDraft _parse(String text, List<Excerpt> excerpts, {required bool partial}) {
+  static AnswerDraft _parse(String text, List<Excerpt> excerpts, {required bool partial, SourceRef? screen}) {
     var headline = '';
     final points = <AnswerPoint>[];
     final sources = <SourceRef>[];
@@ -297,6 +315,10 @@ Question from the audience:
         );
       } else if (line.startsWith('SOURCE:')) {
         final code = line.substring(7).trim();
+        if (screen != null && code.toLowerCase() == 'screen') {
+          if (!sources.contains(screen)) sources.add(screen);
+          continue;
+        }
         final match = excerpts.where((e) {
           final c = e.source.code == 'Prep' ? 'Prep:${e.source.label}' : e.source.code;
           return c?.toLowerCase() == code.toLowerCase() || e.source.code == code;

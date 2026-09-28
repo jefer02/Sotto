@@ -7,6 +7,7 @@ import '../../data/models/settings.dart';
 import '../../data/repositories.dart';
 import '../../l10n/l10n.dart';
 import '../../services/ai/llm_client.dart';
+import '../../services/screen/screen_service.dart';
 import '../../services/speech/model_manager.dart';
 
 enum CheckLevel { ok, warn, missing }
@@ -25,6 +26,7 @@ class Readiness {
     required this.hotkeys,
     required this.answers,
     required this.share,
+    this.screen,
   });
 
   final ReadinessItem mic;
@@ -32,6 +34,9 @@ class Readiness {
   final ReadinessItem hotkeys;
   final ReadinessItem answers;
   final ReadinessItem share;
+
+  /// Screen Recording permission (macOS), only when screen awareness is on.
+  final ReadinessItem? screen;
 
   List<ReadinessItem> get sidebarItems => [mic, voice, hotkeys, share];
 
@@ -95,7 +100,16 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
       ? ReadinessItem('DeepSeek · ${settings.aiModel}', CheckLevel.ok)
       : ReadinessItem(l.readyNoKey, CheckLevel.missing, detail: l.readyAddKey);
 
+  ReadinessItem? screen;
+  if (settings.screenAwareness) {
+    final granted = await ref.read(screenServiceProvider).permission() != ScreenPermission.denied;
+    screen = granted
+        ? ReadinessItem(l.readyScreenOk, CheckLevel.ok)
+        : ReadinessItem(l.screenPermissionMissing, CheckLevel.missing, detail: l.screenPermissionMissingSub);
+  }
+
   return Readiness(
+    screen: screen,
     mic: ReadinessItem(micLabel, micLevel),
     voice: voice,
     hotkeys: hotkeys,

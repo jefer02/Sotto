@@ -68,6 +68,16 @@ class ListeningView extends ConsumerWidget {
               ],
             ),
           ),
+          if (state.screenAttached) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                SottoIcon(SottoIcons.display, size: 12, color: o.inkAt(0.6)),
+                const SizedBox(width: 6),
+                Text(context.l10n.screenshotAttached, style: TypeScale.caption.copyWith(color: o.inkAt(0.6))),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           Expanded(child: _StreamedQuestion(text: q?.text ?? '')),
           SizedBox(

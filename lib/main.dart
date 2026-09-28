@@ -46,13 +46,16 @@ Future<void> main() async {
 }
 
 /// DeepSeek renames models from time to time: if the saved one is gone, fall
-/// back to Flash (or whatever the API offers first). Offline → keep it.
+/// back to Flash (or whatever the API offers first), and pick a model that
+/// reads screenshots. Offline → keep what is saved.
 Future<void> _checkModel(ProviderContainer container) async {
   try {
-    final ids = await container.read(deepSeekModelsProvider.future);
+    final models = await container.read(deepSeekModelsProvider.future);
+    if (models.isEmpty) return;
+    final ids = [for (final m in models) m.id];
     final current = container.read(settingsProvider).aiModel;
-    if (ids.isEmpty || ids.contains(current)) return;
-    final next = ids.contains(defaultAiModel) ? defaultAiModel : ids.first;
-    container.read(settingsProvider.notifier).update((s) => s.copyWith(aiModel: next));
+    final next = ids.contains(current) ? current : (ids.contains(defaultAiModel) ? defaultAiModel : ids.first);
+    final vision = pickVisionModel(models, next) ?? next;
+    container.read(settingsProvider.notifier).update((s) => s.copyWith(aiModel: next, visionModel: vision));
   } catch (_) {}
 }

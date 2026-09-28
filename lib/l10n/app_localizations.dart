@@ -3407,7 +3407,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyDescription.
   ///
   /// In en, this message translates to:
-  /// **'Privacy by construction: presenter audio stays on this computer, room audio is captured only on the chord, and only text is sent to answer a question.'**
+  /// **'Privacy by construction: presenter audio stays on this computer, room audio is captured only on the chord, and only text is sent to answer a question — plus one screenshot when you ask about your screen, if you turn that on.'**
   String get privacyDescription;
 
   /// No description provided for @hideFromCapture.
@@ -3829,6 +3829,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shadow'**
   String get shadowStrength;
+
+  /// No description provided for @modelReadsImages.
+  ///
+  /// In en, this message translates to:
+  /// **'reads screenshots'**
+  String get modelReadsImages;
+
+  /// No description provided for @sourceScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Your screen'**
+  String get sourceScreen;
+
+  /// No description provided for @actionAskScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about the screen'**
+  String get actionAskScreen;
+
+  /// No description provided for @actionAskScreenSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Takes one screenshot, then listens for your question'**
+  String get actionAskScreenSub;
+
+  /// No description provided for @noticeScreenOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen awareness is off — turn it on in Settings → Privacy'**
+  String get noticeScreenOff;
+
+  /// No description provided for @noticeScreenPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto needs Screen Recording permission — see Settings → Privacy'**
+  String get noticeScreenPermission;
+
+  /// No description provided for @defaultScreenQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'What is on my screen right now, and what should I say about it?'**
+  String get defaultScreenQuestion;
+
+  /// No description provided for @capturingScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Capturing screen'**
+  String get capturingScreen;
+
+  /// No description provided for @screenshotAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot attached — sent to DeepSeek with your question'**
+  String get screenshotAttached;
+
+  /// No description provided for @screenAwareness.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen awareness'**
+  String get screenAwareness;
+
+  /// No description provided for @screenAwarenessFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots are taken only when you ask, scaled down, sent to DeepSeek with your question and never saved. Sotto\'s own overlay never appears in them. A red “Capturing screen” light shows each time.'**
+  String get screenAwarenessFooter;
+
+  /// No description provided for @screenAwarenessToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Let Sotto look at my screen when I ask'**
+  String get screenAwarenessToggle;
+
+  /// No description provided for @screenAwarenessToggleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Screenshots are sent to DeepSeek.'**
+  String get screenAwarenessToggleSub;
+
+  /// No description provided for @screenTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture'**
+  String get screenTarget;
+
+  /// No description provided for @screenTargetOverlay.
+  ///
+  /// In en, this message translates to:
+  /// **'The display with the overlay'**
+  String get screenTargetOverlay;
+
+  /// No description provided for @screenTargetCursor.
+  ///
+  /// In en, this message translates to:
+  /// **'The display under the pointer'**
+  String get screenTargetCursor;
+
+  /// No description provided for @attachSlide.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the slide with audience questions'**
+  String get attachSlide;
+
+  /// No description provided for @attachSlideSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Each question also sends one screenshot of what is on screen'**
+  String get attachSlideSub;
+
+  /// No description provided for @screenPermissionMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen Recording permission needed'**
+  String get screenPermissionMissing;
+
+  /// No description provided for @screenPermissionMissingSub.
+  ///
+  /// In en, this message translates to:
+  /// **'System Settings → Privacy & Security → Screen Recording → Sotto'**
+  String get screenPermissionMissingSub;
+
+  /// No description provided for @openSystemSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open System Settings'**
+  String get openSystemSettings;
+
+  /// No description provided for @privScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots'**
+  String get privScreen;
+
+  /// No description provided for @privScreenOffBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Off. Sotto never looks at your screen.'**
+  String get privScreenOffBody;
+
+  /// No description provided for @privScreenOnBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Only when you ask: one screenshot goes to DeepSeek with the question. Never saved.'**
+  String get privScreenOnBody;
+
+  /// No description provided for @readyScreenOk.
+  ///
+  /// In en, this message translates to:
+  /// **'On — one screenshot per question you ask about the screen'**
+  String get readyScreenOk;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

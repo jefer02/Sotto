@@ -113,6 +113,14 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
               level: readiness.answers.level,
               action: readiness.answers.level == CheckLevel.ok ? null : (l.pfAddKey, '/settings/integrations'),
             ),
+            if (readiness.screen case final screen?)
+              _Check(
+                icon: SottoIcons.display,
+                title: l.screenAwareness,
+                detail: screen.detail ?? screen.label,
+                level: screen.level,
+                action: screen.level == CheckLevel.ok ? null : (l.pfSetUp, '/settings/privacy'),
+              ),
             _Check(
               icon: SottoIcons.send,
               title: l.pfMeetingChat,

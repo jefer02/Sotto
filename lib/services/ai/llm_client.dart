@@ -56,9 +56,26 @@ Future<String?> resolveDeepSeekKey(SecretStore secrets) async {
   return kDeepSeekApiKey.isEmpty ? null : kDeepSeekApiKey;
 }
 
+/// A model `GET /models` returned.
+class DeepSeekModel {
+  const DeepSeekModel(this.id, {this.images = false});
+  final String id;
+
+  /// Accepts `image_url` parts (screenshots).
+  final bool images;
+}
+
 /// Minimal streaming text interface over raw HTTP + server-sent events.
 abstract class LlmClient {
-  Stream<String> stream({required String system, required String user, int maxTokens = 4096, bool fast = true});
+  /// [images] are JPEG data URLs, attached to the user message (DeepSeek
+  /// accepts images in user messages only).
+  Stream<String> stream({
+    required String system,
+    required String user,
+    int maxTokens = 4096,
+    bool fast = true,
+    List<String> images = const [],
+  });
 
   Future<String> complete({required String system, required String user, int maxTokens = 8192}) async {
     final buf = StringBuffer();
@@ -70,7 +87,8 @@ abstract class LlmClient {
 
   void close();
 
-  static LlmClient create(AppSettings s, String apiKey) => DeepSeekClient(apiKey: apiKey, model: s.aiModel);
+  static LlmClient create(AppSettings s, String apiKey) =>
+      DeepSeekClient(apiKey: apiKey, model: s.aiModel, visionModel: s.visionModel);
 
   /// A client for the current settings, or null when there is no key.
   static Future<LlmClient?> forSettings(AppSettings s, SecretStore secrets) async {
@@ -113,7 +131,7 @@ Future<http.StreamedResponse> _send(http.Client client, http.BaseRequest req) as
 /// DeepSeek's OpenAI-format API. Thinking models also stream
 /// `reasoning_content`; it is never shown and never breaks parsing.
 class DeepSeekClient extends LlmClient {
-  DeepSeekClient({required this.apiKey, required this.model, http.Client? httpClient})
+  DeepSeekClient({required this.apiKey, required this.model, this.visionModel, http.Client? httpClient})
     : _http = httpClient ?? http.Client();
 
   static const baseUrl = 'https://api.deepseek.com';
@@ -121,26 +139,42 @@ class DeepSeekClient extends LlmClient {
 
   final String apiKey;
   final String model;
+
+  /// Used instead of [model] when a request carries images and [model]
+  /// can't read them.
+  final String? visionModel;
   final http.Client _http;
 
   Map<String, String> get _headers => {'content-type': 'application/json', 'authorization': 'Bearer $apiKey'};
 
-  /// `GET /models` — the ids this key may use.
-  Future<List<String>> listModels() async {
+  /// `GET /models` — the models this key may use.
+  Future<List<DeepSeekModel>> listModels() async {
     final req = http.Request('GET', Uri.parse('$baseUrl/models'))..headers.addAll(_headers);
     final res = await _send(_http, req);
     final body = await res.stream.bytesToString();
     if (res.statusCode != 200) throw LlmException.fromStatus(res.statusCode, body);
     final data = (jsonDecode(body) as Map)['data'] as List? ?? const [];
-    return [for (final m in data) (m as Map)['id'] as String]..sort();
+    return [
+      for (final m in data.cast<Map<Object?, Object?>>())
+        DeepSeekModel(
+          m['id']! as String,
+          images: (m['input_modalities'] as List?)?.contains('image') ?? false,
+        ),
+    ]..sort((a, b) => a.id.compareTo(b.id));
   }
 
   @override
-  Stream<String> stream({required String system, required String user, int maxTokens = 4096, bool fast = true}) async* {
+  Stream<String> stream({
+    required String system,
+    required String user,
+    int maxTokens = 4096,
+    bool fast = true,
+    List<String> images = const [],
+  }) async* {
     final req = http.Request('POST', Uri.parse('$baseUrl/chat/completions'))
       ..headers.addAll(_headers)
       ..body = jsonEncode({
-        'model': model,
+        'model': images.isEmpty ? model : (visionModel ?? model),
         'stream': true,
         'max_tokens': maxTokens,
         // Live answers are latency-bound, so they skip thinking; organizing a
@@ -148,7 +182,7 @@ class DeepSeekClient extends LlmClient {
         if (fast) 'thinking': {'type': 'disabled'},
         'messages': [
           {'role': 'system', 'content': system},
-          {'role': 'user', 'content': user},
+          {'role': 'user', 'content': userContent(user, images)},
         ],
       });
 
@@ -170,6 +204,18 @@ class DeepSeekClient extends LlmClient {
       if (choice['finish_reason'] == 'content_filter') throw LlmRefusal();
     }
   }
+
+  /// Plain text, or text + `image_url` parts when there are images.
+  static Object userContent(String text, List<String> images) => images.isEmpty
+      ? text
+      : [
+          {'type': 'text', 'text': text},
+          for (final url in images)
+            {
+              'type': 'image_url',
+              'image_url': {'url': url},
+            },
+        ];
 
   @override
   void close() => _http.close();

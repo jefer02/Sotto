@@ -43,7 +43,7 @@ works except drafting answers.
 | → / ← | Next / previous section | X | Dismiss answer / cancel question |
 | O | Hide overlay instantly | H | Questions history |
 | T | Click-through | = / − | Text size |
-| M | Move to next display | | |
+| M | Move to next display | S | Ask about the screen (opt-in) |
 
 All shortcuts are global, so they work while Zoom or your slides have focus. You can rebind them, or
 change the shared chord, in Settings → Shortcuts. The recorder flags conflicts with system shortcuts
@@ -103,6 +103,16 @@ lib/
 and soft shadow, so it reads over dark slides, white slides and video grids alike. The status strip
 and controls appear on hover or while a shortcut is held and fade out 2 s later. *Panel* keeps the
 translucent card. Both keep capture exclusion and never take focus.
+
+**Screen awareness (opt-in).** Off by default; turn it on in Settings → Privacy. Then `⌃⌥S` /
+`Ctrl+Alt+S` takes one screenshot of the display with the overlay (or the one under the pointer),
+shows a red "Capturing screen" light, listens for an optional spoken question and answers about what
+is on screen. Optionally, audience questions can carry a screenshot of the current slide. Capture is
+native — Windows.Graphics.Capture with a BitBlt fallback (`windows/runner/native/screen_capture.cpp`),
+ScreenCaptureKit on macOS 14+ (`CGDisplayCreateImage` on 12–13) — scaled to 1300 px on the long side,
+JPEG-encoded and sent to DeepSeek as an `image_url` part in the user message. Sotto's own window is
+always excluded, screenshots are held in memory only and never written to disk, and nothing is ever
+captured in the background. On macOS this needs **Screen Recording** permission; pre-flight checks it.
 
 **One window, two personalities.** Going live morphs the main window into the overlay. It becomes
 frameless, always on top, transparent, resizable and draggable, and it snaps under the camera. Ending

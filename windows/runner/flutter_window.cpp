@@ -4,8 +4,11 @@
 #include <flutter/standard_method_codec.h>
 
 #include <optional>
+#include <string>
+#include <vector>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "native/screen_capture.h"
 
 namespace {
 
@@ -21,6 +24,20 @@ constexpr COLORREF kColorNone = 0xFFFFFFFE;          // DWMWA_COLOR_NONE
 constexpr COLORREF kColorDefault = 0xFFFFFFFF;       // DWMWA_COLOR_DEFAULT
 constexpr int kBackdropNone = 1;                     // DWMSBT_NONE
 constexpr int kBackdropTransient = 3;                // DWMSBT_TRANSIENTWINDOW (acrylic)
+
+int GetInt(const flutter::EncodableMap& args, const char* key, int fallback) {
+  auto it = args.find(flutter::EncodableValue(key));
+  if (it == args.end()) return fallback;
+  const int* value = std::get_if<int>(&it->second);
+  return value != nullptr ? *value : fallback;
+}
+
+std::string GetString(const flutter::EncodableMap& args, const char* key) {
+  auto it = args.find(flutter::EncodableValue(key));
+  if (it == args.end()) return std::string();
+  const std::string* value = std::get_if<std::string>(&it->second);
+  return value != nullptr ? *value : std::string();
+}
 
 bool GetBool(const flutter::EncodableMap& args, const char* key) {
   auto it = args.find(flutter::EncodableValue(key));
@@ -72,6 +89,15 @@ bool FlutterWindow::OnCreate() {
                          GetBool(*args, "blur"), GetBool(*args, "dark"),
                          GetBool(*args, "textOnly"));
         result->Success();
+      });
+
+  screen_channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "app.sotto/screen",
+      &flutter::StandardMethodCodec::GetInstance());
+  screen_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        HandleScreenCall(call, std::move(result));
       });
 
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
@@ -127,6 +153,59 @@ void FlutterWindow::ConfigureOverlay(bool enabled, bool exclude_from_capture, bo
   DwmSetWindowAttribute(hwnd, kDwmBorderColor, &border, sizeof(border));
   int backdrop = (enabled && blur && !text_only) ? kBackdropTransient : kBackdropNone;
   DwmSetWindowAttribute(hwnd, kDwmSystemBackdropType, &backdrop, sizeof(backdrop));
+}
+
+void FlutterWindow::HandleScreenCall(
+    const flutter::MethodCall<flutter::EncodableValue>& call,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  const std::string& method = call.method_name();
+  // Windows needs no permission for screen capture.
+  if (method == "permission") {
+    result->Success(flutter::EncodableValue("granted"));
+    return;
+  }
+  if (method != "capture") {
+    result->NotImplemented();
+    return;
+  }
+  const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
+  const flutter::EncodableMap empty;
+  const auto& a = args != nullptr ? *args : empty;
+  // The display the overlay sits on, or the one under the mouse pointer.
+  HMONITOR monitor;
+  if (GetString(a, "target") == "cursor") {
+    POINT pt{};
+    GetCursorPos(&pt);
+    monitor = MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
+  } else {
+    monitor = MonitorFromWindow(GetHandle(), MONITOR_DEFAULTTOPRIMARY);
+  }
+  // Sotto must never be in its own screenshots, even with "Hide from
+  // screen capture" turned off: exclude the window for this one capture.
+  HWND hwnd = GetHandle();
+  DWORD previous = WDA_NONE;
+  GetWindowDisplayAffinity(hwnd, &previous);
+  SetWindowDisplayAffinity(hwnd, kExcludeFromCapture);
+  SottoCapture capture{};
+  const bool ok = SottoCaptureMonitor(monitor, GetInt(a, "maxSide", 1300), GetInt(a, "quality", 80), &capture);
+  SetWindowDisplayAffinity(hwnd, previous);
+  if (!ok) {
+    result->Error("capture_failed", capture.error);
+    return;
+  }
+  std::vector<uint8_t> jpeg(capture.jpeg, capture.jpeg + capture.jpeg_size);
+  SottoCaptureFree(&capture);
+  result->Success(flutter::EncodableValue(flutter::EncodableMap{
+      {flutter::EncodableValue("jpeg"), flutter::EncodableValue(std::move(jpeg))},
+      {flutter::EncodableValue("width"), flutter::EncodableValue(capture.width)},
+      {flutter::EncodableValue("height"), flutter::EncodableValue(capture.height)},
+      {flutter::EncodableValue("left"), flutter::EncodableValue(capture.left)},
+      {flutter::EncodableValue("top"), flutter::EncodableValue(capture.top)},
+      {flutter::EncodableValue("screenWidth"), flutter::EncodableValue(capture.screen_width)},
+      {flutter::EncodableValue("screenHeight"), flutter::EncodableValue(capture.screen_height)},
+      {flutter::EncodableValue("scale"), flutter::EncodableValue(capture.scale)},
+      {flutter::EncodableValue("method"), flutter::EncodableValue(std::string(capture.method))},
+  }));
 }
 
 void FlutterWindow::OnDestroy() {

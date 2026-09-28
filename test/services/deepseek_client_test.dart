@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sotto/data/models/settings.dart';
 import 'package:sotto/l10n/l10n.dart';
+import 'package:sotto/services/ai/deepseek_models.dart';
 import 'package:sotto/services/ai/llm_client.dart';
 
 http.StreamedResponse _sse(List<Object> events, {int status = 200}) => http.StreamedResponse(
@@ -46,6 +47,33 @@ void main() {
     expect(sent['thinking'], {'type': 'disabled'});
   });
 
+  test('images go to the vision model as image_url parts in the user message', () async {
+    late Map<String, dynamic> sent;
+    final client = DeepSeekClient(
+      apiKey: 'k',
+      model: 'deepseek-v4-pro',
+      visionModel: 'deepseek-flash',
+      httpClient: MockClient.streaming((req, body) async {
+        sent = jsonDecode(await body.bytesToString()) as Map<String, dynamic>;
+        return _sse([
+          _delta({'content': 'ok'}),
+          '[DONE]',
+        ]);
+      }),
+    );
+    await client.stream(system: 's', user: 'what is this?', images: ['data:image/jpeg;base64,AAAA']).join();
+    expect(sent['model'], 'deepseek-flash');
+    final messages = sent['messages'] as List;
+    expect((messages.first as Map)['content'], 's');
+    expect((messages.last as Map)['content'], [
+      {'type': 'text', 'text': 'what is this?'},
+      {
+        'type': 'image_url',
+        'image_url': {'url': 'data:image/jpeg;base64,AAAA'},
+      },
+    ]);
+  });
+
   test('content_filter is a refusal', () async {
     final client = DeepSeekClient(
       apiKey: 'k',
@@ -77,15 +105,29 @@ void main() {
           jsonEncode({
             'object': 'list',
             'data': [
-              {'id': 'deepseek-v4-pro', 'object': 'model'},
-              {'id': 'deepseek-flash', 'object': 'model'},
+              {
+                'id': 'deepseek-v4-pro',
+                'object': 'model',
+                'input_modalities': ['text'],
+              },
+              {
+                'id': 'deepseek-flash',
+                'object': 'model',
+                'input_modalities': ['text', 'image'],
+              },
             ],
           }),
           200,
         );
       }),
     );
-    expect(await client.listModels(), ['deepseek-flash', 'deepseek-v4-pro']);
+    final models = await client.listModels();
+    expect([for (final m in models) m.id], ['deepseek-flash', 'deepseek-v4-pro']);
+    expect([for (final m in models) m.images], [true, false]);
+    // Screenshots go to a model that reads them.
+    expect(pickVisionModel(models, 'deepseek-v4-pro'), 'deepseek-flash');
+    expect(pickVisionModel(models, 'deepseek-flash'), 'deepseek-flash');
+    expect(pickVisionModel(const [DeepSeekModel('x')], 'x'), isNull);
   });
 
   test('settings saved with another provider migrate to DeepSeek', () {

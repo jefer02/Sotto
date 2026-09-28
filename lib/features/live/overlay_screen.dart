@@ -364,6 +364,13 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
                     ),
                   ),
                 ),
+              // Always visible while a screenshot is taken: nothing is captured silently.
+              if (s.capturingScreen)
+                Positioned(
+                  right: 10,
+                  top: 8,
+                  child: _Badge(palette: o, icon: SottoIcons.display, label: context.l10n.capturingScreen, alert: true),
+                ),
               if (s.clickThrough) ...[
                 if (_showClickThroughEdge)
                   Positioned.fill(
@@ -489,6 +496,38 @@ class _ClickThroughBadge extends StatelessWidget {
             LiveAction.clickThrough.title,
             style: TypeScale.micro.copyWith(color: o.inkAt(0.75), fontWeight: FontWeight.w400),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A small labelled chip on the overlay's edge (the screen-capture light).
+class _Badge extends StatelessWidget {
+  const _Badge({required this.palette, required this.icon, required this.label, this.alert = false});
+  final OverlayPalette palette;
+  final SottoIcons icon;
+  final String label;
+  final bool alert;
+
+  @override
+  Widget build(BuildContext context) {
+    final o = palette;
+    final color = alert ? o.capture : o.inkAt(0.75);
+    return Container(
+      height: 22,
+      padding: const EdgeInsets.symmetric(horizontal: 7),
+      decoration: BoxDecoration(
+        color: o.textOnly ? o.chromeGround : o.inkAt(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: alert ? o.capture.withValues(alpha: 0.6) : o.inkAt(0.14)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SottoIcon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Text(label, style: TypeScale.micro.copyWith(color: color, fontWeight: FontWeight.w600, shadows: const [])),
         ],
       ),
     );

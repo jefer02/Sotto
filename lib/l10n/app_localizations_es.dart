@@ -1886,7 +1886,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get privacyDescription =>
-      'Privacidad por diseño: el audio de quien presenta se queda en este equipo, el de la sala solo se captura con la combinación y solo se envía texto para responder una pregunta.';
+      'Privacidad por diseño: el audio de quien presenta se queda en este equipo, el de la sala solo se captura con la combinación y solo se envía texto para responder una pregunta — más una captura cuando preguntas por tu pantalla, si lo activas.';
 
   @override
   String get hideFromCapture => 'Ocultar la superposición de las capturas de pantalla';
@@ -2122,4 +2122,81 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get shadowStrength => 'Sombra';
+
+  @override
+  String get modelReadsImages => 'lee capturas';
+
+  @override
+  String get sourceScreen => 'Tu pantalla';
+
+  @override
+  String get actionAskScreen => 'Preguntar sobre la pantalla';
+
+  @override
+  String get actionAskScreenSub => 'Toma una captura y luego escucha tu pregunta';
+
+  @override
+  String get noticeScreenOff => 'La lectura de pantalla está desactivada — actívala en Ajustes → Privacidad';
+
+  @override
+  String get noticeScreenPermission => 'Sotto necesita permiso de Grabación de pantalla — mira Ajustes → Privacidad';
+
+  @override
+  String get defaultScreenQuestion => '¿Qué hay en mi pantalla ahora y qué debería decir sobre ello?';
+
+  @override
+  String get capturingScreen => 'Capturando pantalla';
+
+  @override
+  String get screenshotAttached => 'Captura adjunta — se envía a DeepSeek con tu pregunta';
+
+  @override
+  String get screenAwareness => 'Lectura de pantalla';
+
+  @override
+  String get screenAwarenessFooter =>
+      'Las capturas se toman solo cuando lo pides, se reducen, se envían a DeepSeek con tu pregunta y nunca se guardan. La superposición de Sotto nunca aparece en ellas. Una luz roja «Capturando pantalla» se muestra cada vez.';
+
+  @override
+  String get screenAwarenessToggle => 'Dejar que Sotto mire mi pantalla cuando lo pida';
+
+  @override
+  String get screenAwarenessToggleSub => 'Desactivado por defecto. Las capturas se envían a DeepSeek.';
+
+  @override
+  String get screenTarget => 'Capturar';
+
+  @override
+  String get screenTargetOverlay => 'La pantalla de la superposición';
+
+  @override
+  String get screenTargetCursor => 'La pantalla bajo el puntero';
+
+  @override
+  String get attachSlide => 'Enviar la diapositiva con las preguntas del público';
+
+  @override
+  String get attachSlideSub => 'Cada pregunta envía también una captura de lo que hay en pantalla';
+
+  @override
+  String get screenPermissionMissing => 'Falta el permiso de Grabación de pantalla';
+
+  @override
+  String get screenPermissionMissingSub =>
+      'Ajustes del Sistema → Privacidad y seguridad → Grabación de pantalla → Sotto';
+
+  @override
+  String get openSystemSettings => 'Abrir Ajustes del Sistema';
+
+  @override
+  String get privScreen => 'Capturas';
+
+  @override
+  String get privScreenOffBody => 'Desactivado. Sotto nunca mira tu pantalla.';
+
+  @override
+  String get privScreenOnBody => 'Solo cuando lo pides: una captura va a DeepSeek con la pregunta. Nunca se guarda.';
+
+  @override
+  String get readyScreenOk => 'Activada — una captura por cada pregunta sobre la pantalla';
 }

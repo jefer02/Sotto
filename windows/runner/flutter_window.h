@@ -32,9 +32,14 @@ class FlutterWindow : public Win32Window {
 
   // "app.sotto/overlay": native overlay behaviour window_manager lacks.
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> overlay_channel_;
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> screen_channel_;
 
   // True while the window is the live overlay.
   bool overlay_ = false;
+
+  // Screen capture for 'Ask about screen' (services/screen on the Dart side).
+  void HandleScreenCall(const flutter::MethodCall<flutter::EncodableValue>& call,
+                        std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   void ConfigureOverlay(bool enabled, bool exclude_from_capture, bool blur, bool dark, bool text_only);
 };

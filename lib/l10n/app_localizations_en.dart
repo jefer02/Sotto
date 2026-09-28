@@ -1880,7 +1880,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyDescription =>
-      'Privacy by construction: presenter audio stays on this computer, room audio is captured only on the chord, and only text is sent to answer a question.';
+      'Privacy by construction: presenter audio stays on this computer, room audio is captured only on the chord, and only text is sent to answer a question — plus one screenshot when you ask about your screen, if you turn that on.';
 
   @override
   String get hideFromCapture => 'Hide the overlay from screen capture';
@@ -2115,4 +2115,80 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shadowStrength => 'Shadow';
+
+  @override
+  String get modelReadsImages => 'reads screenshots';
+
+  @override
+  String get sourceScreen => 'Your screen';
+
+  @override
+  String get actionAskScreen => 'Ask about the screen';
+
+  @override
+  String get actionAskScreenSub => 'Takes one screenshot, then listens for your question';
+
+  @override
+  String get noticeScreenOff => 'Screen awareness is off — turn it on in Settings → Privacy';
+
+  @override
+  String get noticeScreenPermission => 'Sotto needs Screen Recording permission — see Settings → Privacy';
+
+  @override
+  String get defaultScreenQuestion => 'What is on my screen right now, and what should I say about it?';
+
+  @override
+  String get capturingScreen => 'Capturing screen';
+
+  @override
+  String get screenshotAttached => 'Screenshot attached — sent to DeepSeek with your question';
+
+  @override
+  String get screenAwareness => 'Screen awareness';
+
+  @override
+  String get screenAwarenessFooter =>
+      'Screenshots are taken only when you ask, scaled down, sent to DeepSeek with your question and never saved. Sotto\'s own overlay never appears in them. A red “Capturing screen” light shows each time.';
+
+  @override
+  String get screenAwarenessToggle => 'Let Sotto look at my screen when I ask';
+
+  @override
+  String get screenAwarenessToggleSub => 'Off by default. Screenshots are sent to DeepSeek.';
+
+  @override
+  String get screenTarget => 'Capture';
+
+  @override
+  String get screenTargetOverlay => 'The display with the overlay';
+
+  @override
+  String get screenTargetCursor => 'The display under the pointer';
+
+  @override
+  String get attachSlide => 'Show the slide with audience questions';
+
+  @override
+  String get attachSlideSub => 'Each question also sends one screenshot of what is on screen';
+
+  @override
+  String get screenPermissionMissing => 'Screen Recording permission needed';
+
+  @override
+  String get screenPermissionMissingSub => 'System Settings → Privacy & Security → Screen Recording → Sotto';
+
+  @override
+  String get openSystemSettings => 'Open System Settings';
+
+  @override
+  String get privScreen => 'Screenshots';
+
+  @override
+  String get privScreenOffBody => 'Off. Sotto never looks at your screen.';
+
+  @override
+  String get privScreenOnBody => 'Only when you ask: one screenshot goes to DeepSeek with the question. Never saved.';
+
+  @override
+  String get readyScreenOk => 'On — one screenshot per question you ask about the screen';
 }

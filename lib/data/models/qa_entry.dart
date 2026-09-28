@@ -1,7 +1,7 @@
-enum SourceKind { section, prep, general }
+enum SourceKind { section, prep, general, screen }
 
 /// Where part of an answer came from: `§3 Revenue & margin`, `Prep Carrier
-/// contracts.pdf`, or general knowledge (labelled "verify").
+/// contracts.pdf`, a screenshot, or general knowledge (labelled "verify").
 class SourceRef {
   const SourceRef({required this.kind, required this.label, this.code});
 

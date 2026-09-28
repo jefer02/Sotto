@@ -19,6 +19,7 @@ import '../../domain/following/script_aligner.dart';
 import '../../domain/structuring/script_structurer.dart';
 import '../../services/ai/answer_service.dart';
 import '../../services/ai/llm_client.dart';
+import '../../services/screen/screen_service.dart';
 import '../../services/speech/model_manager.dart';
 import '../../services/speech/speech_session.dart';
 import '../../services/tts/tts_service.dart';
@@ -42,6 +43,16 @@ class LiveController extends Notifier<LiveState> {
   int _lastSection = 0;
   int _questionCount = 0;
   SessionEnded? onEnded;
+
+  /// Screenshot (JPEG data URL) for the question being asked, and whether
+  /// the question is about the screen itself. Held in memory only — never
+  /// written to disk.
+  String? _screenshot;
+  bool _aboutScreen = false;
+
+  /// Kept for "Regenerate" on an answer that used the screen.
+  String? _lastScreenshot;
+  bool _lastAboutScreen = false;
 
   // Captured in build: teardown also runs from onDispose, where providers
   // can't be read.
@@ -254,6 +265,7 @@ class LiveController extends Notifier<LiveState> {
     LiveAction.nextSection: (onDown: nextSection, onUp: null),
     LiveAction.previousSection: (onDown: previousSection, onUp: null),
     LiveAction.ask: (onDown: askDown, onUp: askUp),
+    LiveAction.askScreen: (onDown: () => unawaited(askScreenDown()), onUp: askUp),
     LiveAction.sendToChat: (onDown: sendDown, onUp: sendUp),
     LiveAction.readAloud: (onDown: readAloud, onUp: null),
     LiveAction.dismiss: (onDown: dismiss, onUp: null),
@@ -410,6 +422,56 @@ class LiveController extends Notifier<LiveState> {
     }
   }
 
+  /// "Ask about screen": take a screenshot now, then listen for an
+  /// optional spoken question. Opt-in (Settings → Privacy).
+  Future<void> askScreenDown() async {
+    if (!_settings.screenAwareness) {
+      _notice(L10n.current.noticeScreenOff, seconds: 6);
+      return;
+    }
+    if (state.phase == LivePhase.listening) {
+      if (_aboutScreen && _settings.captureMode == CaptureMode.toggle) unawaited(finishQuestion());
+      return;
+    }
+    if (state.phase == LivePhase.drafting || state.capturingScreen) return;
+    final shot = await _captureScreen();
+    if (shot == null) return;
+    _screenshot = shot;
+    _aboutScreen = true;
+    if (_speech == null) {
+      // No speech engine: answer about the screen straight away.
+      await _answer(L10n.current.defaultScreenQuestion);
+      return;
+    }
+    await _startListening();
+  }
+
+  /// One on-demand screenshot, with the overlay's capture indicator on.
+  Future<String?> _captureScreen() async {
+    state = state.copyWith(capturingScreen: true);
+    try {
+      final shot = await ref
+          .read(screenServiceProvider)
+          .capture(
+            target: _settings.screenTarget == ScreenTarget.cursorDisplay
+                ? CaptureTarget.cursorDisplay
+                : CaptureTarget.overlayDisplay,
+          );
+      return shot.dataUrl;
+    } on ScreenCaptureException catch (e) {
+      _notice(e.permissionDenied ? L10n.current.noticeScreenPermission : e.message, seconds: 6);
+      return null;
+    } finally {
+      if (state.isLive) state = state.copyWith(capturingScreen: false);
+    }
+  }
+
+  void _clearScreenshot() {
+    _screenshot = null;
+    _aboutScreen = false;
+    if (state.screenAttached) state = state.copyWith(screenAttached: false);
+  }
+
   Future<void> _startListening() async {
     final speech = _speech;
     if (speech == null) {
@@ -432,6 +494,7 @@ class LiveController extends Notifier<LiveState> {
       clearAnswer: true,
       question: const QuestionProgress(text: '', silence: 0, elapsed: Duration.zero),
       historyOpen: false,
+      screenAttached: _screenshot != null,
     );
     await speech.beginQuestion();
     _subs.add(
@@ -452,6 +515,7 @@ class LiveController extends Notifier<LiveState> {
   Future<void> cancelQuestion() async {
     if (state.phase != LivePhase.listening) return;
     await _speech?.cancelQuestion();
+    _clearScreenshot();
     _resume();
   }
 
@@ -460,11 +524,15 @@ class LiveController extends Notifier<LiveState> {
     if (speech == null || state.phase != LivePhase.listening) return;
     final live = state.question?.text ?? '';
     state = state.copyWith(phase: LivePhase.drafting, questionText: live, clearQuestion: true);
-    final question = (await speech.endQuestion()).trim();
+    var question = (await speech.endQuestion()).trim();
     if (question.split(' ').length < 2) {
-      _notice(L10n.current.noticeNoQuestion);
-      _resume();
-      return;
+      if (!_aboutScreen) {
+        _notice(L10n.current.noticeNoQuestion);
+        _resume();
+        return;
+      }
+      // "Ask about screen" without words: explain what's on it.
+      question = L10n.current.defaultScreenQuestion;
     }
     await _answer(question);
   }
@@ -473,10 +541,14 @@ class LiveController extends Notifier<LiveState> {
     final script = state.script!;
     final settings = _settings;
     final started = DateTime.now();
+    var screenshot = _screenshot;
+    final aboutScreen = _aboutScreen;
+    _screenshot = null;
+    _aboutScreen = false;
     state = state.copyWith(phase: LivePhase.drafting, questionText: question, draftStartedAt: started);
 
     // Pre-drafted answers from Q&A prep appear instantly.
-    if (settings.predraft) {
+    if (settings.predraft && !aboutScreen) {
       final hit = AnswerService.matchPredrafted(script, question);
       if (hit != null) {
         _completeAnswer(question, hit, started);
@@ -489,9 +561,23 @@ class LiveController extends Notifier<LiveState> {
       state = state.copyWith(phase: LivePhase.answer, answerError: L10n.current.answerNeedsKey);
       return;
     }
+    // Opt-in: an audience question also sees the slide on screen.
+    if (screenshot == null && settings.screenAwareness && settings.attachSlideToAnswers) {
+      screenshot = await _captureScreen();
+    }
+    _lastScreenshot = screenshot;
+    _lastAboutScreen = aboutScreen;
+    state = state.copyWith(screenAttached: screenshot != null);
     final service = AnswerService(llm);
     _draftSub = service
-        .draft(script: script, question: question, settings: settings, currentSection: state.sectionIndex)
+        .draft(
+          script: script,
+          question: question,
+          settings: settings,
+          currentSection: state.sectionIndex,
+          screenshot: screenshot,
+          aboutScreen: aboutScreen,
+        )
         .listen(
           (d) {
             if (!state.isLive) return;
@@ -550,6 +636,8 @@ class LiveController extends Notifier<LiveState> {
       unawaited(ref.read(qaRepositoryProvider).save(qa.copyWith(outcome: AnswerOutcome.dismissed)));
     }
     unawaited(_tts.stop());
+    _clearScreenshot();
+    _lastScreenshot = null;
     _resume();
   }
 
@@ -640,6 +728,9 @@ class LiveController extends Notifier<LiveState> {
     state = state.copyWith(clearAnswer: true, phase: LivePhase.drafting, questionText: q);
     final llm = await _client();
     if (llm == null) return;
+    // Same screenshot as the first draft, if there was one.
+    _screenshot = _lastScreenshot;
+    _aboutScreen = _lastAboutScreen;
     await _answer(q);
   }
 

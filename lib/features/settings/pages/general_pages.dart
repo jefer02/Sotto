@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +23,7 @@ import '../../../core/platform/external_links.dart';
 import '../../../core/secrets.dart';
 import '../../../services/ai/deepseek_models.dart';
 import '../../../services/ai/llm_client.dart';
+import '../../../services/screen/screen_service.dart';
 import '../../library/readiness.dart';
 import '../settings_screen.dart';
 
@@ -236,7 +238,9 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
     final s = ref.watch(settingsProvider);
     final models = ref.watch(deepSeekModelsProvider);
     // The saved model stays selectable even if the list doesn't have it (yet).
-    final ids = {...?models.value, s.aiModel}.toList()..sort();
+    final available = models.value ?? const <DeepSeekModel>[];
+    final readsImages = {for (final m in available) m.id: m.images};
+    final ids = {...readsImages.keys, s.aiModel}.toList()..sort();
 
     return SettingsPageScaffold(
       title: l.setIntegrations,
@@ -281,8 +285,12 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
               trailing: SottoSelect<String>(
                 width: 240,
                 value: s.aiModel,
-                options: [for (final id in ids) SelectOption(id, id)],
-                onChanged: (v) => ref.read(settingsProvider.notifier).update((x) => x.copyWith(aiModel: v)),
+                options: [
+                  for (final id in ids) SelectOption(id, id, detail: readsImages[id] == true ? l.modelReadsImages : null),
+                ],
+                onChanged: (v) => ref
+                    .read(settingsProvider.notifier)
+                    .update((x) => x.copyWith(aiModel: v, visionModel: pickVisionModel(available, v) ?? x.visionModel)),
               ),
             ),
             SettingRow(
@@ -373,6 +381,7 @@ class PrivacyPage extends ConsumerWidget {
             ),
           ],
         ),
+        const _ScreenAwarenessGroup(),
         SettingsGroup(
           title: context.l10n.retention,
           children: [
@@ -460,6 +469,7 @@ class PrivacyPage extends ConsumerWidget {
                 (context.l10n.privVoice, context.l10n.privVoiceBody),
                 (context.l10n.privRoom, context.l10n.privRoomBody),
                 (context.l10n.privAnswers, context.l10n.privAnswersBody),
+                (context.l10n.privScreen, s.screenAwareness ? context.l10n.privScreenOnBody : context.l10n.privScreenOffBody),
                 (context.l10n.privModels, context.l10n.privModelsBody),
                 (context.l10n.privConsent, context.l10n.privConsentBody),
               ])
@@ -481,6 +491,94 @@ class PrivacyPage extends ConsumerWidget {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Opt-in for screenshots. Off by default; nothing is captured until the
+/// presenter asks, and nothing is kept.
+class _ScreenAwarenessGroup extends ConsumerStatefulWidget {
+  const _ScreenAwarenessGroup();
+
+  @override
+  ConsumerState<_ScreenAwarenessGroup> createState() => _ScreenAwarenessGroupState();
+}
+
+class _ScreenAwarenessGroupState extends ConsumerState<_ScreenAwarenessGroup> {
+  ScreenPermission? _permission;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_check());
+  }
+
+  Future<void> _check() async {
+    final p = await ref.read(screenServiceProvider).permission();
+    if (mounted) setState(() => _permission = p);
+  }
+
+  Future<void> _toggle(bool on) async {
+    ref.read(settingsProvider.notifier).update((x) => x.copyWith(screenAwareness: on));
+    // macOS asks once, the first time it is turned on.
+    if (on && _permission == ScreenPermission.denied) {
+      await ref.read(screenServiceProvider).requestPermission();
+      await _check();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final p = context.palette;
+    final s = ref.watch(settingsProvider);
+    final n = ref.read(settingsProvider.notifier);
+    final on = s.screenAwareness;
+    return SettingsGroup(
+      title: l.screenAwareness,
+      footer: l.screenAwarenessFooter,
+      children: [
+        SettingRow(
+          title: l.screenAwarenessToggle,
+          subtitle: l.screenAwarenessToggleSub,
+          trailing: SottoToggle(value: on, onChanged: (v) => unawaited(_toggle(v))),
+        ),
+        if (on) ...[
+          SettingRow(
+            title: l.screenTarget,
+            trailing: SottoSelect<ScreenTarget>(
+              width: 220,
+              value: s.screenTarget,
+              options: [
+                SelectOption(ScreenTarget.overlayDisplay, l.screenTargetOverlay),
+                SelectOption(ScreenTarget.cursorDisplay, l.screenTargetCursor),
+              ],
+              onChanged: (v) => n.update((x) => x.copyWith(screenTarget: v)),
+            ),
+          ),
+          SettingRow(
+            title: l.attachSlide,
+            subtitle: l.attachSlideSub,
+            trailing: SottoToggle(
+              value: s.attachSlideToAnswers,
+              onChanged: (v) => n.update((x) => x.copyWith(attachSlideToAnswers: v)),
+            ),
+          ),
+          if (Platform.isMacOS && _permission == ScreenPermission.denied)
+            SettingRow(
+              title: l.screenPermissionMissing,
+              subtitle: l.screenPermissionMissingSub,
+              leading: SottoIcon(SottoIcons.alert, size: 14, color: p.cueText),
+              trailing: SottoButton(
+                label: l.openSystemSettings,
+                size: ButtonSize.small,
+                onPressed: () async {
+                  await ref.read(screenServiceProvider).openPrivacySettings('screen');
+                },
+              ),
+            ),
+        ],
       ],
     );
   }

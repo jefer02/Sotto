@@ -46,6 +46,9 @@ enum AnswerTone { matchScript, conversational, formal }
 
 enum CaptureMode { toggle, hold }
 
+/// Which display "Ask about screen" captures.
+enum ScreenTarget { overlayDisplay, cursorDisplay }
+
 const defaultAiModel = 'deepseek-flash';
 
 /// Every preference Sotto keeps. Secrets (API keys) are NOT stored here —
@@ -100,8 +103,12 @@ class AppSettings {
     this.bindings = const {},
     // Integrations
     this.aiModel = defaultAiModel,
+    this.visionModel = defaultAiModel,
     // Privacy
     this.excludeFromCapture = true,
+    this.screenAwareness = false,
+    this.screenTarget = ScreenTarget.overlayDisplay,
+    this.attachSlideToAnswers = false,
     this.historyRetentionDays = 30,
     this.onboarded = false,
     this.welcomeDone = false,
@@ -170,7 +177,17 @@ class AppSettings {
   /// more than once, so nothing else in the app hardcodes them.
   final String aiModel;
 
+  /// Model used when a request carries a screenshot: [aiModel] if it reads
+  /// images, else one that does (from `GET /models`).
+  final String visionModel;
+
   final bool excludeFromCapture;
+
+  /// Opt-in: screenshots may be sent to DeepSeek, only when asked
+  /// ("Ask about screen", or a question with [attachSlideToAnswers]).
+  final bool screenAwareness;
+  final ScreenTarget screenTarget;
+  final bool attachSlideToAnswers;
   final int historyRetentionDays;
   final bool onboarded;
 
@@ -228,7 +245,11 @@ class AppSettings {
     Set<ShortcutModifier>? chord,
     Map<String, int>? bindings,
     String? aiModel,
+    String? visionModel,
     bool? excludeFromCapture,
+    bool? screenAwareness,
+    ScreenTarget? screenTarget,
+    bool? attachSlideToAnswers,
     int? historyRetentionDays,
     bool? onboarded,
     bool? welcomeDone,
@@ -276,7 +297,11 @@ class AppSettings {
     chord: chord ?? this.chord,
     bindings: bindings ?? this.bindings,
     aiModel: aiModel ?? this.aiModel,
+    visionModel: visionModel ?? this.visionModel,
     excludeFromCapture: excludeFromCapture ?? this.excludeFromCapture,
+    screenAwareness: screenAwareness ?? this.screenAwareness,
+    screenTarget: screenTarget ?? this.screenTarget,
+    attachSlideToAnswers: attachSlideToAnswers ?? this.attachSlideToAnswers,
     historyRetentionDays: historyRetentionDays ?? this.historyRetentionDays,
     onboarded: onboarded ?? this.onboarded,
     welcomeDone: welcomeDone ?? this.welcomeDone,
@@ -328,7 +353,11 @@ class AppSettings {
     'chord': chord.map((m) => m.name).toList(),
     'bindings': bindings,
     'aiModel': aiModel,
+    'visionModel': visionModel,
     'excludeFromCapture': excludeFromCapture,
+    'screenAwareness': screenAwareness,
+    'screenTarget': screenTarget.name,
+    'attachSlideToAnswers': attachSlideToAnswers,
     'historyRetentionDays': historyRetentionDays,
     'onboarded': onboarded,
     'welcomeDone': welcomeDone,
@@ -399,7 +428,14 @@ class AppSettings {
         final String m when m.startsWith('deepseek') => m,
         _ => d.aiModel,
       },
+      visionModel: switch (j['visionModel']) {
+        final String m when m.startsWith('deepseek') => m,
+        _ => d.visionModel,
+      },
       excludeFromCapture: j['excludeFromCapture'] as bool? ?? d.excludeFromCapture,
+      screenAwareness: j['screenAwareness'] as bool? ?? d.screenAwareness,
+      screenTarget: e(ScreenTarget.values, j['screenTarget'], d.screenTarget),
+      attachSlideToAnswers: j['attachSlideToAnswers'] as bool? ?? d.attachSlideToAnswers,
       historyRetentionDays: j['historyRetentionDays'] as int? ?? d.historyRetentionDays,
       onboarded: j['onboarded'] as bool? ?? d.onboarded,
       welcomeDone: j['welcomeDone'] as bool? ?? d.welcomeDone,
