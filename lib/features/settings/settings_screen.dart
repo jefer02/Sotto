@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
@@ -21,7 +22,10 @@ import 'pages/voice_page.dart';
 
 enum SettingsPage {
   // Keywords in English and Spanish, so search works in either language.
-  shortcuts(SottoIcons.keyboard, 'keys hotkeys chord pause next ask hide click-through teclas atajos combinación pausa'),
+  shortcuts(
+    SottoIcons.keyboard,
+    'keys hotkeys chord pause next ask hide click-through teclas atajos combinación pausa',
+  ),
   appearance(
     SottoIcons.layers,
     'theme dark light text size opacity placement camera layout motion tema oscuro claro texto tamaño opacidad cámara',
@@ -31,11 +35,11 @@ enum SettingsPage {
     SottoIcons.ask,
     'grounding sources length tone silence read aloud chat questionnaire form fill fuentes tono silencio respuestas cuestionario formulario rellenar',
   ),
-  general(SottoIcons.sliders, 'pace storage reset version language ritmo almacenamiento versión idioma español english'),
-  integrations(
-    SottoIcons.plug,
-    'api key anthropic openai model base url speech-to-text cloud clave modelo nube integraciones',
+  general(
+    SottoIcons.sliders,
+    'pace storage reset version language ritmo almacenamiento versión idioma español english',
   ),
+  integrations(SottoIcons.plug, 'api key deepseek model vision clave modelo integraciones'),
   privacy(SottoIcons.shield, 'history retention delete capture keys historial borrar captura claves privacidad');
 
   const SettingsPage(this.icon, this.keywords);
@@ -268,5 +272,6 @@ class ResetLink extends StatelessWidget {
   final String? label;
 
   @override
-  Widget build(BuildContext context) => SottoButton.ghost(label: label ?? context.l10n.resetToDefaults, onPressed: onTap);
+  Widget build(BuildContext context) =>
+      SottoButton.ghost(label: label ?? context.l10n.resetToDefaults, onPressed: onTap);
 }
