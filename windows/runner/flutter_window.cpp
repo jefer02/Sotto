@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "native/forms.h"
 #include "native/input.h"
 #include "native/screen_capture.h"
 
@@ -101,11 +102,16 @@ bool FlutterWindow::OnCreate() {
   overlay_channel_->SetMethodCallHandler(
       [this](const flutter::MethodCall<flutter::EncodableValue>& call,
              std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
+        if (call.method_name() == "keyboard") {
+          SetOverlayKeyboard(args != nullptr && GetBool(*args, "on"));
+          result->Success();
+          return;
+        }
         if (call.method_name() != "configure") {
           result->NotImplemented();
           return;
         }
-        const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
         if (args == nullptr) {
           result->Error("bad_args", "Expected a map");
           return;
@@ -132,6 +138,15 @@ bool FlutterWindow::OnCreate() {
       [this](const flutter::MethodCall<flutter::EncodableValue>& call,
              std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
         HandleInputCall(call, std::move(result));
+      });
+
+  forms_channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "app.sotto/forms",
+      &flutter::StandardMethodCodec::GetInstance());
+  forms_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        HandleFormsCall(call, std::move(result));
       });
 
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
@@ -207,10 +222,15 @@ void FlutterWindow::HandleScreenCall(
   const auto& a = args != nullptr ? *args : empty;
   // The display the overlay sits on, or the one under the mouse pointer.
   HMONITOR monitor;
-  if (GetString(a, "target") == "cursor") {
+  const std::string target = GetString(a, "target");
+  HWND foreground = GetForegroundWindow();
+  if (target == "cursor") {
     POINT pt{};
     GetCursorPos(&pt);
     monitor = MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
+  } else if (target == "foreground" && foreground != nullptr && foreground != GetHandle()) {
+    // The display of the window being worked on (a questionnaire).
+    monitor = MonitorFromWindow(foreground, MONITOR_DEFAULTTOPRIMARY);
   } else {
     monitor = MonitorFromWindow(GetHandle(), MONITOR_DEFAULTTOPRIMARY);
   }
@@ -303,6 +323,71 @@ void FlutterWindow::HandleInputCall(
   }
 }
 
+void FlutterWindow::SetOverlayKeyboard(bool on) {
+  HWND hwnd = GetHandle();
+  if (hwnd == nullptr || !overlay_ || on == overlay_keyboard_) return;
+  overlay_keyboard_ = on;
+  LONG_PTR ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+  if (on) {
+    focus_before_keyboard_ = GetForegroundWindow();
+    SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex & ~WS_EX_NOACTIVATE);
+    SetForegroundWindow(hwnd);
+  } else {
+    SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
+    // Give the keyboard back to Zoom / PowerPoint.
+    if (focus_before_keyboard_ != nullptr && IsWindow(focus_before_keyboard_)) {
+      SetForegroundWindow(focus_before_keyboard_);
+    }
+    focus_before_keyboard_ = nullptr;
+  }
+}
+
+void FlutterWindow::HandleFormsCall(
+    const flutter::MethodCall<flutter::EncodableValue>& call,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  const std::string& method = call.method_name();
+  const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
+  const flutter::EncodableMap empty;
+  const auto& a = args != nullptr ? *args : empty;
+  if (method == "permission") {
+    result->Success(flutter::EncodableValue("granted"));  // UI Automation needs none
+    return;
+  }
+  if (method == "read") {
+    char* json = nullptr;
+    const char* error = "";
+    if (!SottoFormRead(GetInt(a, "max", 800), &json, &error)) {
+      result->Error(error, error);
+      return;
+    }
+    std::string out(json);
+    SottoFormFree(json);
+    result->Success(flutter::EncodableValue(out));
+    return;
+  }
+  const std::string id = GetString(a, "id");
+  bool ok = false;
+  if (method == "setValue") {
+    ok = SottoFormSetValue(id.c_str(), Wide(GetString(a, "text")).c_str());
+  } else if (method == "select") {
+    ok = SottoFormSelect(id.c_str());
+  } else if (method == "toggle") {
+    ok = SottoFormToggle(id.c_str(), GetBool(a, "on"));
+  } else if (method == "choose") {
+    ok = SottoFormChoose(id.c_str(), Wide(GetString(a, "label")).c_str());
+  } else if (method == "invoke") {
+    ok = SottoFormInvoke(id.c_str());
+  } else if (method == "focus") {
+    ok = SottoFormFocus(id.c_str());
+  } else if (method == "scrollIntoView") {
+    ok = SottoFormScrollIntoView(id.c_str());
+  } else {
+    result->NotImplemented();
+    return;
+  }
+  result->Success(flutter::EncodableValue(ok));
+}
+
 void FlutterWindow::OnDestroy() {
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
@@ -317,7 +402,7 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               LPARAM const lparam) noexcept {
   // The overlay never activates on click; checked before plugins so no
   // handler can override it.
-  if (overlay_ && message == WM_MOUSEACTIVATE) {
+  if (overlay_ && !overlay_keyboard_ && message == WM_MOUSEACTIVATE) {
     return MA_NOACTIVATE;
   }
 

@@ -395,6 +395,7 @@ class PrivacyPage extends ConsumerWidget {
                 width: 140,
                 value: s.historyRetentionDays,
                 options: [
+                  SelectOption(0, context.l10n.historyOff),
                   SelectOption(7, context.l10n.daysCount(7)),
                   SelectOption(30, context.l10n.daysCount(30)),
                   SelectOption(90, context.l10n.daysCount(90)),

@@ -25,6 +25,7 @@ import '../../services/speech/speech_session.dart';
 import '../../services/tts/tts_service.dart';
 import '../../l10n/l10n.dart';
 import '../agent/agent_controller.dart';
+import '../questionnaire/questionnaire_controller.dart';
 import 'live_state.dart';
 
 /// Called when a session ends, with the ended session's record.
@@ -54,8 +55,9 @@ class LiveController extends Notifier<LiveState> {
   /// The spoken question is an agent task (chord + G), not a question.
   bool _agentTask = false;
 
-  /// Agent tasks run during this session, for its record.
+  /// Agent tasks and questionnaires run during this session, for its record.
   final _agentRuns = <AgentRunRecord>[];
+  final _formRuns = <FormRunRecord>[];
 
   /// Kept for "Regenerate" on an answer that used the screen.
   String? _lastScreenshot;
@@ -82,10 +84,12 @@ class LiveController extends Notifier<LiveState> {
 
   // ───────────────────────────── Lifecycle ─────────────────────────────
 
-  /// Idle-time shortcuts: ⌃⌥L works from anywhere to start from pre-flight.
-  Future<void> registerIdleHotkeys(VoidCallback openPreflight) async {
+  /// Idle-time shortcuts: ⌃⌥L works from anywhere to start from pre-flight;
+  /// [extra] adds the ones that also work outside a session (questionnaire,
+  /// chat).
+  Future<void> registerIdleHotkeys(VoidCallback openPreflight, {HotkeyHandlers extra = const {}}) async {
     if (state.isLive) return;
-    await _hotkeys.registerAll(_settings, {LiveAction.goLive: (onDown: openPreflight, onUp: null)});
+    await _hotkeys.registerAll(_settings, {LiveAction.goLive: (onDown: openPreflight, onUp: null), ...extra});
   }
 
   Future<void> start(Script script, {int startSection = 0, bool rehearsal = false}) async {
@@ -175,11 +179,16 @@ class LiveController extends Notifier<LiveState> {
       questionCount: _questionCount,
       plannedSeconds: s.plannedSeconds(_settings.wordsPerMinute),
       agentRuns: List.of(_agentRuns),
+      formRuns: List.of(_formRuns),
     );
     _agentRuns.clear();
+    _formRuns.clear();
     // Ending the session stops any agent task with it.
     final agent = ref.read(agentControllerProvider.notifier);
     if (ref.read(agentControllerProvider).active) unawaited(agent.close());
+    if (ref.read(questionnaireControllerProvider).active) {
+      unawaited(ref.read(questionnaireControllerProvider.notifier).close());
+    }
     await _teardown();
     state = LiveState(readingSize: _settings.readingSize);
 
@@ -279,7 +288,11 @@ class LiveController extends Notifier<LiveState> {
     LiveAction.ask: (onDown: askDown, onUp: askUp),
     LiveAction.askScreen: (onDown: () => unawaited(askScreenDown()), onUp: askUp),
     LiveAction.agentTask: (onDown: agentTaskDown, onUp: askUp),
-    LiveAction.agentStop: (onDown: () => ref.read(agentControllerProvider.notifier).stop(), onUp: null),
+    LiveAction.agentStop: (onDown: emergencyStop, onUp: null),
+    LiveAction.fillForm: (
+      onDown: () => unawaited(ref.read(questionnaireControllerProvider.notifier).start()),
+      onUp: null,
+    ),
     LiveAction.sendToChat: (onDown: sendDown, onUp: sendUp),
     LiveAction.readAloud: (onDown: readAloud, onUp: null),
     LiveAction.dismiss: (onDown: dismiss, onUp: null),
@@ -476,6 +489,14 @@ class LiveController extends Notifier<LiveState> {
   }
 
   void recordAgentRun(AgentRunRecord run) => _agentRuns.add(run);
+
+  void recordFormRun(FormRunRecord run) => _formRuns.add(run);
+
+  /// Chord + Esc: whatever Sotto is doing on screen stops at once.
+  void emergencyStop() {
+    ref.read(agentControllerProvider.notifier).stop();
+    ref.read(questionnaireControllerProvider.notifier).stop();
+  }
 
   /// One on-demand screenshot, with the overlay's capture indicator on.
   Future<String?> _captureScreen() async {

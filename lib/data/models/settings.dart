@@ -53,6 +53,13 @@ enum ScreenTarget { overlayDisplay, cursorDisplay }
 /// still confirm anything that submits, sends, pays, deletes or buys.
 enum AgentAutonomy { confirmEach, auto }
 
+/// Questionnaires on screen: fill at once, or show the answers first.
+enum FormFillMode { fillAutomatically, showFirst }
+
+enum FormAnswerLanguage { sameAsForm, appLanguage }
+
+enum FormAnswerStyle { short, detailed }
+
 const defaultAiModel = 'deepseek-flash';
 
 /// Every preference Sotto keeps. Secrets (API keys) are NOT stored here —
@@ -115,6 +122,11 @@ class AppSettings {
     this.attachSlideToAnswers = false,
     this.agentEnabled = false,
     this.agentAutonomy = AgentAutonomy.confirmEach,
+    this.formsEnabled = false,
+    this.formsMode = FormFillMode.fillAutomatically,
+    this.formsLanguage = FormAnswerLanguage.sameAsForm,
+    this.formsStyle = FormAnswerStyle.short,
+    this.formsInstructions = '',
     this.historyRetentionDays = 30,
     this.onboarded = false,
     this.welcomeDone = false,
@@ -198,6 +210,18 @@ class AppSettings {
   /// Opt-in: the agent may move the mouse and type. Off by default.
   final bool agentEnabled;
   final AgentAutonomy agentAutonomy;
+
+  /// Opt-in: answer questionnaires on screen with the model's own knowledge
+  /// (not the script) and fill them in. Off by default.
+  final bool formsEnabled;
+  final FormFillMode formsMode;
+  final FormAnswerLanguage formsLanguage;
+  final FormAnswerStyle formsStyle;
+
+  /// Context the model may use for questionnaires (name, role…).
+  final String formsInstructions;
+
+  /// 0: history off — Q&A and questionnaire logs aren't kept.
   final int historyRetentionDays;
   final bool onboarded;
 
@@ -262,6 +286,11 @@ class AppSettings {
     bool? attachSlideToAnswers,
     bool? agentEnabled,
     AgentAutonomy? agentAutonomy,
+    bool? formsEnabled,
+    FormFillMode? formsMode,
+    FormAnswerLanguage? formsLanguage,
+    FormAnswerStyle? formsStyle,
+    String? formsInstructions,
     int? historyRetentionDays,
     bool? onboarded,
     bool? welcomeDone,
@@ -316,6 +345,11 @@ class AppSettings {
     attachSlideToAnswers: attachSlideToAnswers ?? this.attachSlideToAnswers,
     agentEnabled: agentEnabled ?? this.agentEnabled,
     agentAutonomy: agentAutonomy ?? this.agentAutonomy,
+    formsEnabled: formsEnabled ?? this.formsEnabled,
+    formsMode: formsMode ?? this.formsMode,
+    formsLanguage: formsLanguage ?? this.formsLanguage,
+    formsStyle: formsStyle ?? this.formsStyle,
+    formsInstructions: formsInstructions ?? this.formsInstructions,
     historyRetentionDays: historyRetentionDays ?? this.historyRetentionDays,
     onboarded: onboarded ?? this.onboarded,
     welcomeDone: welcomeDone ?? this.welcomeDone,
@@ -374,6 +408,11 @@ class AppSettings {
     'attachSlideToAnswers': attachSlideToAnswers,
     'agentEnabled': agentEnabled,
     'agentAutonomy': agentAutonomy.name,
+    'formsEnabled': formsEnabled,
+    'formsMode': formsMode.name,
+    'formsLanguage': formsLanguage.name,
+    'formsStyle': formsStyle.name,
+    'formsInstructions': formsInstructions,
     'historyRetentionDays': historyRetentionDays,
     'onboarded': onboarded,
     'welcomeDone': welcomeDone,
@@ -454,6 +493,11 @@ class AppSettings {
       attachSlideToAnswers: j['attachSlideToAnswers'] as bool? ?? d.attachSlideToAnswers,
       agentEnabled: j['agentEnabled'] as bool? ?? d.agentEnabled,
       agentAutonomy: e(AgentAutonomy.values, j['agentAutonomy'], d.agentAutonomy),
+      formsEnabled: j['formsEnabled'] as bool? ?? d.formsEnabled,
+      formsMode: e(FormFillMode.values, j['formsMode'], d.formsMode),
+      formsLanguage: e(FormAnswerLanguage.values, j['formsLanguage'], d.formsLanguage),
+      formsStyle: e(FormAnswerStyle.values, j['formsStyle'], d.formsStyle),
+      formsInstructions: j['formsInstructions'] as String? ?? d.formsInstructions,
       historyRetentionDays: j['historyRetentionDays'] as int? ?? d.historyRetentionDays,
       onboarded: j['onboarded'] as bool? ?? d.onboarded,
       welcomeDone: j['welcomeDone'] as bool? ?? d.welcomeDone,

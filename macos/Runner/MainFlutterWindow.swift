@@ -14,6 +14,11 @@ class MainFlutterWindow: NSPanel {
   private var savedLevel: NSWindow.Level = .normal
   private var savedBehavior: NSWindow.CollectionBehavior = []
 
+  /// The overlay takes the keyboard for a moment (chat input, editing an
+  /// answer); the app that had it gets it back afterwards.
+  private var allowKey = false
+  private var appBeforeKeyboard: NSRunningApplication?
+
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     let windowFrame = self.frame
@@ -48,9 +53,20 @@ class MainFlutterWindow: NSPanel {
           radius: CGFloat(args["radius"] as? Double ?? 16),
           textOnly: args["textOnly"] as? Bool ?? false)
         result(nil)
+      case "keyboard":
+        let args = call.arguments as? [String: Any] ?? [:]
+        self.setOverlayKeyboard(args["on"] as? Bool ?? false)
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
+    }
+
+    let formsChannel = FlutterMethodChannel(
+      name: "app.sotto/forms",
+      binaryMessenger: flutterViewController.engine.binaryMessenger)
+    formsChannel.setMethodCallHandler { [weak self] call, result in
+      self?.handleForms(call, result: result)
     }
 
     let screenChannel = FlutterMethodChannel(
@@ -65,8 +81,23 @@ class MainFlutterWindow: NSPanel {
 
   // In the overlay, never become key: keystrokes keep going to the app the
   // presenter is actually using.
-  override var canBecomeKey: Bool { !overlayActive }
+  override var canBecomeKey: Bool { !overlayActive || allowKey }
   override var canBecomeMain: Bool { !overlayActive }
+
+  private func setOverlayKeyboard(_ on: Bool) {
+    guard overlayActive, on != allowKey else { return }
+    allowKey = on
+    if on {
+      appBeforeKeyboard = NSWorkspace.shared.frontmostApplication
+      NSApp.activate(ignoringOtherApps: true)
+      makeKey()
+    } else {
+      resignKey()
+      // Give the keyboard back to Zoom / Keynote.
+      appBeforeKeyboard?.activate()
+      appBeforeKeyboard = nil
+    }
+  }
 
   private func configureOverlay(
     enabled: Bool, excludeFromCapture: Bool, blur: Bool, dark: Bool, radius: CGFloat,
@@ -143,6 +174,7 @@ extension MainFlutterWindow {
     case "capture":
       captureScreen(
         cursor: (args["target"] as? String) == "cursor",
+        foreground: (args["target"] as? String) == "foreground",
         maxSide: args["maxSide"] as? Int ?? 1300,
         quality: args["quality"] as? Int ?? 80,
         result: result)
@@ -151,15 +183,17 @@ extension MainFlutterWindow {
     }
   }
 
-  private func captureScreen(cursor: Bool, maxSide: Int, quality: Int, result: @escaping FlutterResult) {
+  private func captureScreen(
+    cursor: Bool, foreground: Bool = false, maxSide: Int, quality: Int, result: @escaping FlutterResult
+  ) {
     guard CGPreflightScreenCaptureAccess() else {
       result(FlutterError(code: "permission_denied", message: "Screen Recording permission is off", details: nil))
       return
     }
     let mouse = NSEvent.mouseLocation
-    let target = cursor
-      ? NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
-      : self.screen
+    let target = foreground
+      ? MainFlutterWindow.foregroundScreen()
+      : (cursor ? NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } : self.screen)
     guard let screen = target ?? NSScreen.main,
       let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
     else {
@@ -244,5 +278,233 @@ extension MainFlutterWindow {
     let rep = NSBitmapImageRep(cgImage: scaled)
     return rep.representation(
       using: .jpeg, properties: [.compressionFactor: NSNumber(value: Double(quality) / 100.0)])
+  }
+}
+
+// MARK: - Questionnaires on screen: the AX API
+
+/// Reads and fills the frontmost app's form controls. Needs Accessibility
+/// permission — and an app outside the App Sandbox, which blocks AX access
+/// to other apps (see the README). Element ids are valid until the next read.
+extension MainFlutterWindow {
+  private static var formElements: [String: AXUIElement] = [:]
+
+  /// The screen of the frontmost app's front window (no permission needed:
+  /// window bounds come from the window server).
+  static func foregroundScreen() -> NSScreen? {
+    guard let app = NSWorkspace.shared.frontmostApplication,
+      app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+      let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+        as? [[String: Any]]
+    else { return NSScreen.main }
+    for w in info {
+      guard (w[kCGWindowOwnerPID as String] as? pid_t) == app.processIdentifier,
+        (w[kCGWindowLayer as String] as? Int) == 0,
+        let b = w[kCGWindowBounds as String] as? [String: CGFloat]
+      else { continue }
+      let center = CGPoint(x: (b["X"] ?? 0) + (b["Width"] ?? 0) / 2, y: (b["Y"] ?? 0) + (b["Height"] ?? 0) / 2)
+      return screen(containing: center) ?? NSScreen.main
+    }
+    return NSScreen.main
+  }
+
+  /// The screen whose display bounds (global, top-left points) hold [p].
+  fileprivate static func screen(containing p: CGPoint) -> NSScreen? {
+    NSScreen.screens.first { s in
+      guard let n = s.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return false }
+      return CGDisplayBounds(CGDirectDisplayID(n.uint32Value)).contains(p)
+    }
+  }
+
+  fileprivate func handleForms(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    let args = call.arguments as? [String: Any] ?? [:]
+    let id = args["id"] as? String ?? ""
+    let element = MainFlutterWindow.formElements[id]
+    switch call.method {
+    case "permission":
+      result(AXIsProcessTrusted() ? "granted" : "denied")
+    case "requestPermission":
+      let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+      result(AXIsProcessTrustedWithOptions([key: true] as CFDictionary))
+    case "read":
+      readForm(max: args["max"] as? Int ?? 800, result: result)
+    case "setValue":
+      guard let e = element else { return result(false) }
+      AXUIElementSetAttributeValue(e, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+      let text = (args["text"] as? String ?? "") as CFString
+      result(AXUIElementSetAttributeValue(e, kAXValueAttribute as CFString, text) == .success)
+    case "select", "invoke":
+      guard let e = element else { return result(false) }
+      result(AXUIElementPerformAction(e, kAXPressAction as CFString) == .success)
+    case "toggle":
+      guard let e = element else { return result(false) }
+      let on = args["on"] as? Bool ?? false
+      let current = (MainFlutterWindow.attr(e, kAXValueAttribute) as? NSNumber)?.intValue == 1
+      result(current == on || AXUIElementPerformAction(e, kAXPressAction as CFString) == .success)
+    case "choose":
+      guard let e = element else { return result(false) }
+      chooseOption(e, label: args["label"] as? String ?? "", result: result)
+    case "focus":
+      guard let e = element else { return result(false) }
+      result(AXUIElementSetAttributeValue(e, kAXFocusedAttribute as CFString, kCFBooleanTrue) == .success)
+    case "scrollIntoView":
+      guard let e = element else { return result(false) }
+      result(AXUIElementPerformAction(e, "AXScrollToVisible" as CFString) == .success)
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  fileprivate static func attr(_ e: AXUIElement, _ name: String) -> CFTypeRef? {
+    var v: CFTypeRef?
+    return AXUIElementCopyAttributeValue(e, name as CFString, &v) == .success ? v : nil
+  }
+
+  fileprivate static func string(_ e: AXUIElement, _ name: String) -> String? {
+    let s = attr(e, name) as? String
+    return (s?.isEmpty ?? true) ? nil : s
+  }
+
+  fileprivate static func children(_ e: AXUIElement) -> [AXUIElement] {
+    (attr(e, kAXChildrenAttribute) as? [AXUIElement]) ?? []
+  }
+
+  /// The visible label: title, description, the linked title element, or
+  /// the placeholder.
+  fileprivate static func label(_ e: AXUIElement) -> String {
+    if let t = string(e, kAXTitleAttribute) { return t }
+    if let d = string(e, kAXDescriptionAttribute) { return d }
+    if let titled = attr(e, kAXTitleUIElementAttribute), CFGetTypeID(titled) == AXUIElementGetTypeID() {
+      let t = titled as! AXUIElement
+      if let v = string(t, kAXValueAttribute) ?? string(t, kAXTitleAttribute) { return v }
+    }
+    return string(e, kAXPlaceholderValueAttribute) ?? ""
+  }
+
+  private func readForm(max: Int, result: @escaping FlutterResult) {
+    guard AXIsProcessTrusted() else {
+      return result(FlutterError(code: "permission_denied", message: "Accessibility permission is off", details: nil))
+    }
+    guard let app = NSWorkspace.shared.frontmostApplication else {
+      return result(FlutterError(code: "no_window", message: nil, details: nil))
+    }
+    if app.processIdentifier == ProcessInfo.processInfo.processIdentifier {
+      return result(FlutterError(code: "own_window", message: nil, details: nil))
+    }
+    let axApp = AXUIElementCreateApplication(app.processIdentifier)
+    guard let w = MainFlutterWindow.attr(axApp, kAXFocusedWindowAttribute),
+      CFGetTypeID(w) == AXUIElementGetTypeID()
+    else {
+      return result(FlutterError(code: "no_window", message: nil, details: nil))
+    }
+    let window = w as! AXUIElement
+    // Physical pixels, like the screenshot: global points × the display scale.
+    var scale: CGFloat = 2
+    if let pos = MainFlutterWindow.attr(window, kAXPositionAttribute) {
+      var p = CGPoint.zero
+      AXValueGetValue(pos as! AXValue, .cgPoint, &p)
+      scale = MainFlutterWindow.screen(containing: p)?.backingScaleFactor ?? 2
+    }
+
+    MainFlutterWindow.formElements = [:]
+    var out: [[String: Any]] = []
+    var counter = 0
+
+    func visit(_ e: AXUIElement, parent: String?, depth: Int) {
+      if out.count >= max || depth > 60 { return }
+      let role = MainFlutterWindow.string(e, kAXRoleAttribute) ?? ""
+      let subrole = MainFlutterWindow.string(e, kAXSubroleAttribute) ?? ""
+      let type: String?
+      switch role {
+      case "AXTextField", "AXTextArea", "AXSearchField": type = "edit"
+      case "AXRadioButton": type = "radio"
+      case "AXCheckBox", "AXSwitch": type = "checkbox"
+      case "AXPopUpButton", "AXComboBox": type = "combo"
+      case "AXButton": type = "button"
+      case "AXRadioGroup", "AXGroup", "AXList", "AXForm": type = "group"
+      default: type = nil
+      }
+      var here = parent
+      if let type = type {
+        counter += 1
+        let id = "ax\(counter)"
+        MainFlutterWindow.formElements[id] = e
+        here = id
+        let name = MainFlutterWindow.label(e)
+        // Unlabelled groups only exist to group radios and checkboxes.
+        if type != "group" || !name.isEmpty {
+          var m: [String: Any] = ["id": id, "type": type, "name": name]
+          if let parent = parent { m["parent"] = parent }
+          let value = MainFlutterWindow.attr(e, kAXValueAttribute)
+          if let v = value as? String { m["value"] = v }
+          if type == "checkbox" || type == "radio" { m["checked"] = (value as? NSNumber)?.intValue == 1 }
+          if let pos = MainFlutterWindow.attr(e, kAXPositionAttribute),
+            let size = MainFlutterWindow.attr(e, kAXSizeAttribute)
+          {
+            var p = CGPoint.zero
+            var z = CGSize.zero
+            AXValueGetValue(pos as! AXValue, .cgPoint, &p)
+            AXValueGetValue(size as! AXValue, .cgSize, &z)
+            m["bounds"] = [p.x * scale, p.y * scale, z.width * scale, z.height * scale]
+          }
+          m["enabled"] = (MainFlutterWindow.attr(e, kAXEnabledAttribute) as? Bool) ?? true
+          m["password"] = subrole == "AXSecureTextField"
+          var patterns: [String] = []
+          var settable: DarwinBoolean = false
+          if AXUIElementIsAttributeSettable(e, kAXValueAttribute as CFString, &settable) == .success,
+            settable.boolValue
+          {
+            patterns.append("value")
+          }
+          var actions: CFArray?
+          if AXUIElementCopyActionNames(e, &actions) == .success, let names = actions as? [String] {
+            if names.contains(kAXPressAction) { patterns += ["invoke", "select", "toggle"] }
+            if names.contains(kAXShowMenuAction) || role == "AXPopUpButton" { patterns.append("expand") }
+            if names.contains("AXScrollToVisible") { patterns.append("scroll") }
+          }
+          m["patterns"] = patterns
+          if type == "combo" {
+            // A pop-up's menu items, when the app exposes them closed.
+            var options: [String] = []
+            for menu in MainFlutterWindow.children(e) {
+              for item in MainFlutterWindow.children(menu) {
+                if let t = MainFlutterWindow.string(item, kAXTitleAttribute) { options.append(t) }
+              }
+            }
+            if !options.isEmpty { m["options"] = options }
+          }
+          out.append(m)
+        }
+        if type == "combo" { return }  // its menu items are options, not fields
+      }
+      for child in MainFlutterWindow.children(e) {
+        visit(child, parent: here, depth: depth + 1)
+      }
+    }
+    visit(window, parent: nil, depth: 0)
+
+    guard let data = try? JSONSerialization.data(withJSONObject: out),
+      let json = String(data: data, encoding: .utf8)
+    else {
+      return result(FlutterError(code: "uia_failed", message: "Could not encode the form", details: nil))
+    }
+    result(json)
+  }
+
+  /// Opens a pop-up, presses the item titled [label], or sets the value of
+  /// an editable combo box.
+  private func chooseOption(_ e: AXUIElement, label: String, result: @escaping FlutterResult) {
+    AXUIElementPerformAction(e, kAXPressAction as CFString)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+      let want = label.lowercased()
+      for menu in MainFlutterWindow.children(e) {
+        for item in MainFlutterWindow.children(menu)
+        where MainFlutterWindow.string(item, kAXTitleAttribute)?.lowercased() == want {
+          return result(AXUIElementPerformAction(item, kAXPressAction as CFString) == .success)
+        }
+      }
+      AXUIElementPerformAction(e, kAXCancelAction as CFString)
+      result(AXUIElementSetAttributeValue(e, kAXValueAttribute as CFString, label as CFString) == .success)
+    }
   }
 }

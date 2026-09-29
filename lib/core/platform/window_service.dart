@@ -43,6 +43,19 @@ class _OverlayNative {
   }
 }
 
+/// The overlay never takes the keyboard — except, for a moment, when the
+/// presenter clicks a text field in it (chat input, an answer to edit).
+/// Off gives focus back to the app that had it.
+Future<void> setOverlayKeyboard(bool on) async {
+  try {
+    await _OverlayNative._channel.invokeMethod('keyboard', {'on': on});
+  } on MissingPluginException {
+    // Tests / Linux.
+  } on PlatformException catch (e) {
+    debugPrint('overlay keyboard failed: ${e.message}');
+  }
+}
+
 /// Sotto uses one native window with two personalities: the main window for
 /// preparing, and — while live — the overlay for performing. Going live
 /// morphs the window; ending the session restores it exactly.

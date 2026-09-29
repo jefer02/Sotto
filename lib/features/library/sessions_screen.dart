@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
@@ -57,11 +58,10 @@ class SessionTile extends ConsumerWidget {
     final r = record;
     final delta = r.plannedSeconds == null ? null : r.durationSeconds - r.plannedSeconds!;
     final d = r.startedAt;
-    final date =
-        shortDateTime(d);
+    final date = shortDateTime(d);
 
     return Interactive(
-      onTap: () => context.go('/script/${r.scriptId}?tab=rehearsals'),
+      onTap: r.scriptId.isEmpty ? null : () => context.go('/script/${r.scriptId}?tab=rehearsals'),
       builder: (context, s) => SurfaceCard(
         hovered: s.hovered,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -83,6 +83,21 @@ class SessionTile extends ConsumerWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(date, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                  // Every questionnaire answer Sotto filled is kept for review.
+                  for (final run in r.formRuns)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Interactive(
+                        onTap: () => unawaited(showFormLog(context, run)),
+                        builder: (context, s) => Text(
+                          context.l10n.sessionFormRun(run.fields.where((f) => f.status == 'filled').length),
+                          style: TypeScale.caption.copyWith(
+                            color: s.hovered ? p.cueText : p.inkSecondary,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
                   // Every agent action is kept for review.
                   for (final run in r.agentRuns)
                     Padding(
@@ -104,7 +119,10 @@ class SessionTile extends ConsumerWidget {
               ),
             ),
             if (showTitle) ...[
-              StatusChip(r.rehearsal ? context.l10n.rehearsal : context.l10n.liveChip, tone: r.rehearsal ? ChipTone.neutral : ChipTone.cue),
+              StatusChip(
+                r.rehearsal ? context.l10n.rehearsal : context.l10n.liveChip,
+                tone: r.rehearsal ? ChipTone.neutral : ChipTone.cue,
+              ),
               const SizedBox(width: 20),
             ],
             SizedBox(
@@ -151,6 +169,56 @@ class SessionTile extends ConsumerWidget {
   }
 }
 
+/// Every field a questionnaire run answered, for review after the fact.
+Future<void> showFormLog(BuildContext context, FormRunRecord run) => showDialog<void>(
+  context: context,
+  builder: (context) {
+    final p = context.palette;
+    return AlertDialog(
+      backgroundColor: p.float,
+      shape: RoundedRectangleBorder(
+        borderRadius: Radii.rL,
+        side: BorderSide(color: p.control),
+      ),
+      title: Text(context.l10n.formsDialogTitle, style: TypeScale.title3.copyWith(color: p.inkPrimary)),
+      content: SizedBox(
+        width: 560,
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final f in run.fields)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 72,
+                      child: Text(f.status, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(f.question, style: TypeScale.caption.copyWith(color: p.inkSecondary)),
+                          Text(
+                            f.note.isEmpty ? f.answer : '${f.answer} — ${f.note}',
+                            style: TypeScale.body.copyWith(color: p.inkPrimary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [SottoButton(label: context.l10n.close, onPressed: () => Navigator.pop(context))],
+    );
+  },
+);
+
 /// Every action an agent task took, for review after the fact.
 Future<void> showAgentLog(BuildContext context, AgentRunRecord run) => showDialog<void>(
   context: context,
@@ -158,7 +226,10 @@ Future<void> showAgentLog(BuildContext context, AgentRunRecord run) => showDialo
     final p = context.palette;
     return AlertDialog(
       backgroundColor: p.float,
-      shape: RoundedRectangleBorder(borderRadius: Radii.rL, side: BorderSide(color: p.control)),
+      shape: RoundedRectangleBorder(
+        borderRadius: Radii.rL,
+        side: BorderSide(color: p.control),
+      ),
       title: Text(context.l10n.sessionAgentTask(run.task), style: TypeScale.title3.copyWith(color: p.inkPrimary)),
       content: SizedBox(
         width: 520,

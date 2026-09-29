@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../core/design/theme.dart';
 import '../core/design/tokens.dart';
 import '../data/models/settings.dart';
+import '../data/models/shortcut.dart';
 import '../data/repositories.dart';
 import '../l10n/l10n.dart';
 import '../features/agent/agent_controller.dart';
@@ -17,6 +18,8 @@ import '../features/library/library_actions.dart';
 import '../features/live/overlay_palette.dart';
 import '../features/live/overlay_screen.dart';
 import '../features/preflight/preflight_dialog.dart';
+import '../features/questionnaire/questionnaire_controller.dart';
+import '../features/questionnaire/questionnaire_view.dart';
 import 'router.dart';
 
 /// The script a global ⌃⌥L should start: the one open in the editor, or
@@ -67,8 +70,17 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
     WidgetsBinding.instance.addPostFrameCallback((_) => _registerIdle());
   }
 
-  Future<void> _registerIdle() =>
-      ref.read(liveControllerProvider.notifier).registerIdleHotkeys(_openPreflightFromHotkey);
+  Future<void> _registerIdle() => ref
+      .read(liveControllerProvider.notifier)
+      .registerIdleHotkeys(
+        _openPreflightFromHotkey,
+        extra: {
+          LiveAction.fillForm: (
+            onDown: () => unawaited(ref.read(questionnaireControllerProvider.notifier).start()),
+            onUp: null,
+          ),
+        },
+      );
 
   void _openPreflightFromHotkey() {
     final id = ref.read(focusedScriptProvider);
@@ -87,6 +99,7 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
     final isLive = ref.watch(liveControllerProvider.select((s) => s.isLive));
     // An agent task started from the main window turns it into an overlay too.
     final agentOverlay = ref.watch(agentControllerProvider.select((a) => a.active && a.standalone));
+    final formOverlay = ref.watch(questionnaireControllerProvider.select((q) => q.active && q.standalone));
     final locale = appLocale(settings.uiLanguage);
     // Controllers and services read strings without a BuildContext.
     L10n.current = lookupAppLocalizations(locale);
@@ -98,7 +111,7 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       AppThemeMode.auto => ThemeMode.system,
     };
 
-    if (isLive || agentOverlay) {
+    if (isLive || agentOverlay || formOverlay) {
       final platformDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
       final overlayDark = switch (settings.overlayTheme) {
         OverlayThemeMode.dark => true,
@@ -119,7 +132,9 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
           overlayDark ? SottoPalette.stage : SottoPalette.houseLights,
           overlay: overlay,
         ).copyWith(scaffoldBackgroundColor: const Color(0x00000000), canvasColor: const Color(0x00000000)),
-        home: isLive ? const OverlayScreen() : const AgentOverlayScreen(),
+        home: isLive
+            ? const OverlayScreen()
+            : (formOverlay ? const QuestionnaireOverlayScreen() : const AgentOverlayScreen()),
       );
     }
 

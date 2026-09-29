@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/icons.dart';
@@ -62,8 +63,7 @@ class AnswersPage extends ConsumerWidget {
 
     return SettingsPageScaffold(
       title: context.l10n.pfAnswers,
-      description:
-          context.l10n.answersDescription,
+      description: context.l10n.answersDescription,
       left: [
         SettingsGroup(
           title: context.l10n.grounding,
@@ -149,7 +149,8 @@ class AnswersPage extends ConsumerWidget {
               trailing: SegmentedControl<double>(
                 width: 190,
                 segments: [
-                  for (final v in const [0.8, 1.2, 2.0]) Segment(v, '${NumberFormat('0.#', context.l10n.localeName).format(v)} s'),
+                  for (final v in const [0.8, 1.2, 2.0])
+                    Segment(v, '${NumberFormat('0.#', context.l10n.localeName).format(v)} s'),
                 ],
                 value: s.silenceSeconds,
                 onChanged: (v) => n.update((x) => x.copyWith(silenceSeconds: v)),
@@ -165,6 +166,7 @@ class AnswersPage extends ConsumerWidget {
             ),
           ],
         ),
+        const _QuestionnairesGroup(),
         SettingsGroup(
           title: context.l10n.delivery,
           children: [
@@ -195,12 +197,7 @@ class AnswersPage extends ConsumerWidget {
       right: [
         SettingsGroup(
           title: context.l10n.pfMeetingChat,
-          children: [
-            SettingRow(
-              title: context.l10n.copyThenPaste,
-              subtitle: context.l10n.copyThenPasteSub,
-            ),
-          ],
+          children: [SettingRow(title: context.l10n.copyThenPaste, subtitle: context.l10n.copyThenPasteSub)],
         ),
         SurfaceCard(
           child: Column(
@@ -247,6 +244,92 @@ class _Leaves extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Settings → Answers → Questionnaires on screen (chord + F).
+class _QuestionnairesGroup extends ConsumerWidget {
+  const _QuestionnairesGroup();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
+    final l = context.l10n;
+    final s = ref.watch(settingsProvider);
+    final n = ref.read(settingsProvider.notifier);
+    final keys = PlatformKeys.describe(s.shortcutFor(LiveAction.fillForm));
+    final stop = PlatformKeys.describe(s.shortcutFor(LiveAction.agentStop));
+    return SettingsGroup(
+      title: l.formsGroup,
+      children: [
+        SettingRow(
+          title: l.formsEnable,
+          subtitle: l.formsEnableSub(keys),
+          trailing: SottoToggle(
+            value: s.formsEnabled,
+            onChanged: (v) => n.update((x) => x.copyWith(formsEnabled: v)),
+          ),
+        ),
+        if (s.formsEnabled) ...[
+          SettingRow(
+            title: l.formsMode,
+            trailing: SottoSelect<FormFillMode>(
+              width: 230,
+              value: s.formsMode,
+              options: [
+                SelectOption(FormFillMode.fillAutomatically, l.formsModeAuto),
+                SelectOption(FormFillMode.showFirst, l.formsModeFirst),
+              ],
+              onChanged: (v) => n.update((x) => x.copyWith(formsMode: v)),
+            ),
+          ),
+          SettingRow(
+            title: l.formsLanguage,
+            trailing: SottoSelect<FormAnswerLanguage>(
+              width: 230,
+              value: s.formsLanguage,
+              options: [
+                SelectOption(FormAnswerLanguage.sameAsForm, l.formsLangSame),
+                SelectOption(FormAnswerLanguage.appLanguage, l.formsLangApp),
+              ],
+              onChanged: (v) => n.update((x) => x.copyWith(formsLanguage: v)),
+            ),
+          ),
+          SettingRow(
+            title: l.formsStyle,
+            trailing: SegmentedControl<FormAnswerStyle>(
+              width: 190,
+              segments: [
+                Segment(FormAnswerStyle.short, l.formsStyleShort),
+                Segment(FormAnswerStyle.detailed, l.formsStyleDetailed),
+              ],
+              value: s.formsStyle,
+              onChanged: (v) => n.update((x) => x.copyWith(formsStyle: v)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l.formsInstructions, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
+                const SizedBox(height: 2),
+                Text(l.formsInstructionsSub, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                const SizedBox(height: 8),
+                SottoTextField(
+                  initialValue: s.formsInstructions,
+                  placeholder: l.formsInstructionsHint,
+                  maxLines: 4,
+                  minLines: 2,
+                  onChanged: (v) => n.update((x) => x.copyWith(formsInstructions: v)),
+                ),
+              ],
+            ),
+          ),
+        ],
+        SettingRow(title: l.formsPrivacy, subtitle: l.formsSubmitNote(stop)),
+      ],
     );
   }
 }

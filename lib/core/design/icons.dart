@@ -117,6 +117,13 @@ enum SottoIcons {
   auto(
     '<circle cx="8" cy="8" r="5.75"></circle><path d="M8 2.25v11.5A5.75 5.75 0 0 0 8 2.25z" fill="currentColor"></path>',
   ),
+  form(
+    '<rect x="2.75" y="2.75" width="10.5" height="10.5" rx="1.5"></rect><path d="M5 6l1 1 2-2M9.5 6.25h1.5M5 10l1 1 2-2M9.5 10.25h1.5"></path>',
+  ),
+  chat(
+    '<path d="M2.75 4.25a1.5 1.5 0 0 1 1.5-1.5h7.5a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H7.25l-3 2.5v-2.5a1.5 1.5 0 0 1-1.5-1.5z"></path>',
+  ),
+  stop('<rect x="4" y="4" width="8" height="8" rx="1.5"></rect>'),
   grip('<path d="M6 4h.01M10 4h.01M6 8h.01M10 8h.01M6 12h.01M10 12h.01"></path>');
 
   const SottoIcons(this.body);

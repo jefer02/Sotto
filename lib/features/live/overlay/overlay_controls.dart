@@ -12,6 +12,7 @@ import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
 import '../live_controller.dart';
 import '../live_state.dart';
+import '../../questionnaire/questionnaire_controller.dart';
 
 /// The hover toolbar. Appears after 150 ms of hover intent, hides 800 ms
 /// after the pointer leaves, and never appears from keyboard use — hotkeys
@@ -68,6 +69,12 @@ class OverlayControls extends ConsumerWidget {
             c.askDown,
             selected: state.phase == LivePhase.listening,
           ),
+          if (settings.formsEnabled)
+            b(
+              SottoIcons.form,
+              tip(LiveAction.fillForm.title, LiveAction.fillForm),
+              () => ref.read(questionnaireControllerProvider.notifier).start(),
+            ),
           b(
             SottoIcons.history,
             tip(context.l10n.questions, LiveAction.history),

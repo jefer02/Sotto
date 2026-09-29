@@ -1431,5 +1431,117 @@
         "type": "String"
       }
     }
-  }
+  },
+  "formsOff": "Questionnaires on screen are off. Turn them on in Settings → Answers.",
+  "formsUnsupported": "Filling questionnaires needs Windows or macOS.",
+  "formsNoWindow": "Click the questionnaire's window first, then press the shortcut.",
+  "formsReadFailed": "Couldn't read the form in front. Click into it and try again.",
+  "formsBadReply": "DeepSeek's answer couldn't be read. Try again.",
+  "formsWhySensitive": "password or payment field — never filled",
+  "formsWhyNoMatch": "the answer isn't one of the options",
+  "formsWhyNoField": "field not found",
+  "formsWhyNoAnswer": "no answer",
+  "formsSessionTitle": "Questionnaire on screen",
+  "formsReading": "Reading the form…",
+  "formsThinking": "Answering the questions…",
+  "formsReview": "Check the answers — edit any, then Enter to fill",
+  "formsAnswering": "Answering {done}/{total}…",
+  "@formsAnswering": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "formsVerifying": "Checking every answer stuck…",
+  "formsNextPage": "Page filled — Enter for “{label}”",
+  "@formsNextPage": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "formsDoneSubmit": "Done — review and submit",
+  "formsSubmitted": "Submitted.",
+  "formsStopped": "Stopped. Nothing more was typed.",
+  "formsFailed": "Couldn't fill this form.",
+  "formsReady": "{count, plural, =1{1 answer filled} other{{count} answers filled}} — review and submit when ready",
+  "@formsReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "formsFilling": "Sotto is filling",
+  "formsPage": "Page {page}",
+  "@formsPage": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "formsFillThese": "Fill these",
+  "formsGoNext": "Next page",
+  "formsSubmit": "Click “{label}”",
+  "@formsSubmit": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "formsIllSubmit": "I'll submit it",
+  "actionFillForm": "Fill questionnaire on screen",
+  "actionFillFormSub": "Reads the form in front, answers it and fills it in",
+  "actionOpenChat": "Chat",
+  "actionOpenChatSub": "Opens the assistant chat in the overlay",
+  "actionPushToTalk": "Talk to chat (hold)",
+  "actionPushToTalkSub": "Hold to dictate a chat message",
+  "formsGroup": "Questionnaires on screen",
+  "formsEnable": "Answer questionnaires on screen",
+  "formsEnableSub": "{keys} reads the form in front, answers with DeepSeek's own knowledge (not your script) and fills it in.",
+  "@formsEnableSub": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "formsMode": "Mode",
+  "formsModeAuto": "Fill automatically",
+  "formsModeFirst": "Show me the answers first",
+  "formsLanguage": "Answer language",
+  "formsLangSame": "Same as the questionnaire",
+  "formsLangApp": "App language",
+  "formsStyle": "Open answers",
+  "formsStyleShort": "Short",
+  "formsStyleDetailed": "Detailed",
+  "formsInstructions": "Extra instructions",
+  "formsInstructionsSub": "Optional context for the answers — your name, role, preferences.",
+  "formsInstructionsHint": "e.g. My name is Ana Ruiz, product manager at Acme. Prefer concise answers.",
+  "formsPrivacy": "Screenshots of the questionnaire are sent to DeepSeek and never saved. Nothing is stored unless history is on: then each filled answer is logged in Sessions.",
+  "formsSubmitNote": "Sotto never submits on its own: at the end it waits for Enter. Password and payment fields are never filled; {keys} stops at once.",
+  "@formsSubmitNote": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "historyOff": "Don't keep",
+  "sessionFormRun": "Questionnaire · {count, plural, =1{1 answer} other{{count} answers}}",
+  "@sessionFormRun": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "formsDialogTitle": "Questionnaire"
 }

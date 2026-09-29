@@ -34,9 +34,16 @@ class FlutterWindow : public Win32Window {
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> overlay_channel_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> screen_channel_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> input_channel_;
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> forms_channel_;
 
   // True while the window is the live overlay.
   bool overlay_ = false;
+
+  // The overlay accepts the keyboard for a moment (chat input, editing an
+  // answer); the app that had focus gets it back afterwards.
+  bool overlay_keyboard_ = false;
+  HWND focus_before_keyboard_ = nullptr;
+  void SetOverlayKeyboard(bool on);
 
   // Screen capture for 'Ask about screen' (services/screen on the Dart side).
   void HandleScreenCall(const flutter::MethodCall<flutter::EncodableValue>& call,
@@ -44,6 +51,10 @@ class FlutterWindow : public Win32Window {
 
   // Synthetic input for agent mode (services/agent on the Dart side).
   void HandleInputCall(const flutter::MethodCall<flutter::EncodableValue>& call,
+                       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
+  // Questionnaire filling through UI Automation (services/screen/form_access).
+  void HandleFormsCall(const flutter::MethodCall<flutter::EncodableValue>& call,
                        std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   void ConfigureOverlay(bool enabled, bool exclude_from_capture, bool blur, bool dark, bool text_only);

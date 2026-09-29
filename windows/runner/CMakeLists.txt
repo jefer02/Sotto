@@ -26,6 +26,7 @@ apply_standard_settings(${BINARY_NAME})
 add_library(sotto_native STATIC
   "native/screen_capture.cpp"
   "native/input.cpp"
+  "native/forms.cpp"
 )
 target_compile_features(sotto_native PRIVATE cxx_std_20)
 target_compile_options(sotto_native PRIVATE /EHsc /W3 /permissive-)

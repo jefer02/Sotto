@@ -43,6 +43,48 @@ class AgentRunRecord {
   );
 }
 
+/// One question Sotto answered on a questionnaire, and what happened.
+class FormFieldRecord {
+  const FormFieldRecord({required this.question, required this.answer, required this.status, this.note = ''});
+  final String question;
+  final String answer;
+
+  /// filled, failed, skipped or blocked.
+  final String status;
+  final String note;
+
+  Map<String, Object?> toJson() => {'q': question, 'a': answer, 'status': status, 'note': note};
+
+  factory FormFieldRecord.fromJson(Map<dynamic, dynamic> j) => FormFieldRecord(
+    question: j['q'] as String? ?? '',
+    answer: j['a'] as String? ?? '',
+    status: j['status'] as String? ?? '',
+    note: j['note'] as String? ?? '',
+  );
+}
+
+/// One questionnaire filled on screen.
+class FormRunRecord {
+  const FormRunRecord({required this.status, this.pages = 1, this.fields = const []});
+
+  /// submitted, ready (waiting for the presenter to submit), stopped or failed.
+  final String status;
+  final int pages;
+  final List<FormFieldRecord> fields;
+
+  Map<String, Object?> toJson() => {
+    'status': status,
+    'pages': pages,
+    'fields': [for (final f in fields) f.toJson()],
+  };
+
+  factory FormRunRecord.fromJson(Map<dynamic, dynamic> j) => FormRunRecord(
+    status: j['status'] as String? ?? '',
+    pages: j['pages'] as int? ?? 1,
+    fields: [for (final f in (j['fields'] as List? ?? const [])) FormFieldRecord.fromJson(f as Map)],
+  );
+}
+
 /// One live run or rehearsal, stored for the Sessions list, pace
 /// calibration and the "Last rehearsal 18:24 · +0:24" line. Agent tasks run
 /// outside a live session get a record of their own, with only [agentRuns].
@@ -59,6 +101,7 @@ class SessionRecord {
     this.questionCount = 0,
     this.plannedSeconds,
     this.agentRuns = const [],
+    this.formRuns = const [],
   });
 
   final String id;
@@ -77,8 +120,11 @@ class SessionRecord {
   /// Agent tasks run during the session, with every action they took.
   final List<AgentRunRecord> agentRuns;
 
-  /// A session that was only an agent task (no live run).
-  bool get agentOnly => agentRuns.isNotEmpty && wordsSpoken == 0 && sectionSeconds.isEmpty;
+  /// Questionnaires filled during the session, every field logged.
+  final List<FormRunRecord> formRuns;
+
+  /// A session that was only an agent task or a questionnaire (no live run).
+  bool get agentOnly => (agentRuns.isNotEmpty || formRuns.isNotEmpty) && wordsSpoken == 0 && sectionSeconds.isEmpty;
 
   int get durationSeconds => endedAt.difference(startedAt).inSeconds;
 
@@ -97,6 +143,7 @@ class SessionRecord {
     'questionCount': questionCount,
     'plannedSeconds': plannedSeconds,
     'agentRuns': [for (final r in agentRuns) r.toJson()],
+    'formRuns': [for (final r in formRuns) r.toJson()],
   };
 
   factory SessionRecord.fromJson(Map<dynamic, dynamic> j) => SessionRecord(
@@ -113,5 +160,6 @@ class SessionRecord {
     questionCount: j['questionCount'] as int? ?? 0,
     plannedSeconds: j['plannedSeconds'] as int?,
     agentRuns: [for (final r in (j['agentRuns'] as List? ?? const [])) AgentRunRecord.fromJson(r as Map)],
+    formRuns: [for (final r in (j['formRuns'] as List? ?? const [])) FormRunRecord.fromJson(r as Map)],
   );
 }

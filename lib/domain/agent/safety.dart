@@ -76,6 +76,12 @@ abstract final class SafetyGate {
     caseSensitive: false,
   );
 
+  /// A password, PIN or one-time-code field, by its label.
+  static bool isSecretLabel(String label) => _secret.hasMatch(label);
+
+  /// A card, bank-account or other payment field, by its label.
+  static bool isPaymentLabel(String label) => _payment.hasMatch(label);
+
   /// Card numbers pass the Luhn check; 13–19 digits once spaces and dashes
   /// are gone.
   static bool looksLikeCardNumber(String text) {

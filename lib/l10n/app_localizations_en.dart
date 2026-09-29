@@ -2440,4 +2440,187 @@ class AppLocalizationsEn extends AppLocalizations {
   String refineStopped(String reason) {
     return 'Refining stopped — $reason The quick organization stays.';
   }
+
+  @override
+  String get formsOff => 'Questionnaires on screen are off. Turn them on in Settings → Answers.';
+
+  @override
+  String get formsUnsupported => 'Filling questionnaires needs Windows or macOS.';
+
+  @override
+  String get formsNoWindow => 'Click the questionnaire\'s window first, then press the shortcut.';
+
+  @override
+  String get formsReadFailed => 'Couldn\'t read the form in front. Click into it and try again.';
+
+  @override
+  String get formsBadReply => 'DeepSeek\'s answer couldn\'t be read. Try again.';
+
+  @override
+  String get formsWhySensitive => 'password or payment field — never filled';
+
+  @override
+  String get formsWhyNoMatch => 'the answer isn\'t one of the options';
+
+  @override
+  String get formsWhyNoField => 'field not found';
+
+  @override
+  String get formsWhyNoAnswer => 'no answer';
+
+  @override
+  String get formsSessionTitle => 'Questionnaire on screen';
+
+  @override
+  String get formsReading => 'Reading the form…';
+
+  @override
+  String get formsThinking => 'Answering the questions…';
+
+  @override
+  String get formsReview => 'Check the answers — edit any, then Enter to fill';
+
+  @override
+  String formsAnswering(int done, int total) {
+    return 'Answering $done/$total…';
+  }
+
+  @override
+  String get formsVerifying => 'Checking every answer stuck…';
+
+  @override
+  String formsNextPage(String label) {
+    return 'Page filled — Enter for “$label”';
+  }
+
+  @override
+  String get formsDoneSubmit => 'Done — review and submit';
+
+  @override
+  String get formsSubmitted => 'Submitted.';
+
+  @override
+  String get formsStopped => 'Stopped. Nothing more was typed.';
+
+  @override
+  String get formsFailed => 'Couldn\'t fill this form.';
+
+  @override
+  String formsReady(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count answers filled',
+      one: '1 answer filled',
+    );
+    return '$_temp0 — review and submit when ready';
+  }
+
+  @override
+  String get formsFilling => 'Sotto is filling';
+
+  @override
+  String formsPage(int page) {
+    return 'Page $page';
+  }
+
+  @override
+  String get formsFillThese => 'Fill these';
+
+  @override
+  String get formsGoNext => 'Next page';
+
+  @override
+  String formsSubmit(String label) {
+    return 'Click “$label”';
+  }
+
+  @override
+  String get formsIllSubmit => 'I\'ll submit it';
+
+  @override
+  String get actionFillForm => 'Fill questionnaire on screen';
+
+  @override
+  String get actionFillFormSub => 'Reads the form in front, answers it and fills it in';
+
+  @override
+  String get actionOpenChat => 'Chat';
+
+  @override
+  String get actionOpenChatSub => 'Opens the assistant chat in the overlay';
+
+  @override
+  String get actionPushToTalk => 'Talk to chat (hold)';
+
+  @override
+  String get actionPushToTalkSub => 'Hold to dictate a chat message';
+
+  @override
+  String get formsGroup => 'Questionnaires on screen';
+
+  @override
+  String get formsEnable => 'Answer questionnaires on screen';
+
+  @override
+  String formsEnableSub(String keys) {
+    return '$keys reads the form in front, answers with DeepSeek\'s own knowledge (not your script) and fills it in.';
+  }
+
+  @override
+  String get formsMode => 'Mode';
+
+  @override
+  String get formsModeAuto => 'Fill automatically';
+
+  @override
+  String get formsModeFirst => 'Show me the answers first';
+
+  @override
+  String get formsLanguage => 'Answer language';
+
+  @override
+  String get formsLangSame => 'Same as the questionnaire';
+
+  @override
+  String get formsLangApp => 'App language';
+
+  @override
+  String get formsStyle => 'Open answers';
+
+  @override
+  String get formsStyleShort => 'Short';
+
+  @override
+  String get formsStyleDetailed => 'Detailed';
+
+  @override
+  String get formsInstructions => 'Extra instructions';
+
+  @override
+  String get formsInstructionsSub => 'Optional context for the answers — your name, role, preferences.';
+
+  @override
+  String get formsInstructionsHint => 'e.g. My name is Ana Ruiz, product manager at Acme. Prefer concise answers.';
+
+  @override
+  String get formsPrivacy =>
+      'Screenshots of the questionnaire are sent to DeepSeek and never saved. Nothing is stored unless history is on: then each filled answer is logged in Sessions.';
+
+  @override
+  String formsSubmitNote(String keys) {
+    return 'Sotto never submits on its own: at the end it waits for Enter. Password and payment fields are never filled; $keys stops at once.';
+  }
+
+  @override
+  String get historyOff => 'Don\'t keep';
+
+  @override
+  String sessionFormRun(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count answers', one: '1 answer');
+    return 'Questionnaire · $_temp0';
+  }
+
+  @override
+  String get formsDialogTitle => 'Questionnaire';
 }

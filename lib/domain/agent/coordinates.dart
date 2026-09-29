@@ -35,6 +35,20 @@ class CoordinateMapper {
     );
   }
 
+  /// [physical] screen rectangle in screenshot pixels — how the model sees
+  /// a control's bounds. Clipped to the screenshot.
+  Rect toImage(Rect physical) {
+    final kx = imageWidth / screen.width;
+    final ky = imageHeight / screen.height;
+    final r = Rect.fromLTRB(
+      (physical.left - screen.left) * kx,
+      (physical.top - screen.top) * ky,
+      (physical.right - screen.left) * kx,
+      (physical.bottom - screen.top) * ky,
+    );
+    return r.intersect(Rect.fromLTWH(0, 0, imageWidth.toDouble(), imageHeight.toDouble()));
+  }
+
   /// Logical (DIP / point) coordinates for [physical].
   Offset toLogical(Offset physical) => physical / scale;
 }

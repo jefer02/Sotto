@@ -11,6 +11,9 @@ enum CaptureTarget {
 
   /// The display under the mouse pointer.
   cursorDisplay,
+
+  /// The display of the window in front (a questionnaire being filled).
+  foregroundDisplay,
 }
 
 enum ScreenPermission { granted, denied, unsupported }
@@ -84,7 +87,11 @@ class ScreenService {
     if (!supported) throw ScreenCaptureException('Screen capture is not available on this platform.');
     try {
       final m = await _channel.invokeMethod<Map<Object?, Object?>>('capture', {
-        'target': target == CaptureTarget.cursorDisplay ? 'cursor' : 'overlay',
+        'target': switch (target) {
+          CaptureTarget.cursorDisplay => 'cursor',
+          CaptureTarget.foregroundDisplay => 'foreground',
+          CaptureTarget.overlayDisplay => 'overlay',
+        },
         'maxSide': maxSide,
         'quality': 80,
       });

@@ -20,6 +20,8 @@ import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
 import '../agent/agent_controller.dart';
 import '../agent/agent_view.dart';
+import '../questionnaire/questionnaire_controller.dart';
+import '../questionnaire/questionnaire_view.dart';
 import 'live_controller.dart';
 import 'live_state.dart';
 import 'overlay/history_panel.dart';
@@ -245,21 +247,26 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     final reading = s.flat == null ? const SizedBox.shrink() : ReadingView(state: s, layout: layout, style: style);
 
     final agentActive = ref.watch(agentControllerProvider.select((a) => a.active));
-    final Widget content = agentActive ? const AgentView() : switch (s.phase) {
-      LivePhase.idle || LivePhase.starting => Center(
-        child: Text(context.l10n.gettingReady, style: TypeScale.caption.copyWith(color: o.inkAt(0.6))),
-      ),
-      LivePhase.standby || LivePhase.reading || LivePhase.paused => reading,
-      LivePhase.listening => _Behind(
-        script: reading,
-        child: ListeningView(state: s),
-      ),
-      LivePhase.drafting => _Behind(
-        script: reading,
-        child: DraftingView(state: s),
-      ),
-      LivePhase.answer => AnswerView(state: s, onMeasured: _onAnswerMeasured),
-    };
+    final formActive = ref.watch(questionnaireControllerProvider.select((q) => q.active));
+    final Widget content = formActive
+        ? const QuestionnaireView()
+        : agentActive
+        ? const AgentView()
+        : switch (s.phase) {
+            LivePhase.idle || LivePhase.starting => Center(
+              child: Text(context.l10n.gettingReady, style: TypeScale.caption.copyWith(color: o.inkAt(0.6))),
+            ),
+            LivePhase.standby || LivePhase.reading || LivePhase.paused => reading,
+            LivePhase.listening => _Behind(
+              script: reading,
+              child: ListeningView(state: s),
+            ),
+            LivePhase.drafting => _Behind(
+              script: reading,
+              child: DraftingView(state: s),
+            ),
+            LivePhase.answer => AnswerView(state: s, onMeasured: _onAnswerMeasured),
+          };
 
     // Text only: no ground, and the chrome fades with hover / shortcuts.
     final textOnly = o.textOnly;
@@ -303,7 +310,10 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
                           switchOutCurve: Motion.leaveExit,
                           layoutBuilder: (current, previous) =>
                               Stack(fit: StackFit.expand, children: [...previous, ?current]),
-                          child: KeyedSubtree(key: ValueKey(agentActive ? 9 : _phaseGroup(s.phase)), child: content),
+                          child: KeyedSubtree(
+                            key: ValueKey(formActive ? 10 : (agentActive ? 9 : _phaseGroup(s.phase))),
+                            child: content,
+                          ),
                         ),
                       ),
                     ),
@@ -530,7 +540,10 @@ class _Badge extends StatelessWidget {
         children: [
           SottoIcon(icon, size: 12, color: color),
           const SizedBox(width: 5),
-          Text(label, style: TypeScale.micro.copyWith(color: color, fontWeight: FontWeight.w600, shadows: const [])),
+          Text(
+            label,
+            style: TypeScale.micro.copyWith(color: color, fontWeight: FontWeight.w600, shadows: const []),
+          ),
         ],
       ),
     );

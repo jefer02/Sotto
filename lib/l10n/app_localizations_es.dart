@@ -2448,4 +2448,188 @@ class AppLocalizationsEs extends AppLocalizations {
   String refineStopped(String reason) {
     return 'Se detuvo el refinado — $reason Se mantiene la organización rápida.';
   }
+
+  @override
+  String get formsOff => 'Los cuestionarios en pantalla están desactivados. Actívalos en Ajustes → Respuestas.';
+
+  @override
+  String get formsUnsupported => 'Rellenar cuestionarios requiere Windows o macOS.';
+
+  @override
+  String get formsNoWindow => 'Haz clic primero en la ventana del cuestionario y luego pulsa el atajo.';
+
+  @override
+  String get formsReadFailed => 'No se pudo leer el formulario en primer plano. Haz clic en él e inténtalo de nuevo.';
+
+  @override
+  String get formsBadReply => 'No se pudo leer la respuesta de DeepSeek. Inténtalo de nuevo.';
+
+  @override
+  String get formsWhySensitive => 'campo de contraseña o de pago — nunca se rellena';
+
+  @override
+  String get formsWhyNoMatch => 'la respuesta no es una de las opciones';
+
+  @override
+  String get formsWhyNoField => 'no se encontró el campo';
+
+  @override
+  String get formsWhyNoAnswer => 'sin respuesta';
+
+  @override
+  String get formsSessionTitle => 'Cuestionario en pantalla';
+
+  @override
+  String get formsReading => 'Leyendo el formulario…';
+
+  @override
+  String get formsThinking => 'Respondiendo las preguntas…';
+
+  @override
+  String get formsReview => 'Revisa las respuestas — edita las que quieras y pulsa Intro para rellenar';
+
+  @override
+  String formsAnswering(int done, int total) {
+    return 'Respondiendo $done/$total…';
+  }
+
+  @override
+  String get formsVerifying => 'Comprobando que cada respuesta quedó puesta…';
+
+  @override
+  String formsNextPage(String label) {
+    return 'Página rellenada — Intro para «$label»';
+  }
+
+  @override
+  String get formsDoneSubmit => 'Listo — revisa y envía';
+
+  @override
+  String get formsSubmitted => 'Enviado.';
+
+  @override
+  String get formsStopped => 'Detenido. No se escribió nada más.';
+
+  @override
+  String get formsFailed => 'No se pudo rellenar este formulario.';
+
+  @override
+  String formsReady(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count respuestas rellenadas',
+      one: '1 respuesta rellenada',
+    );
+    return '$_temp0 — revisa y envía cuando quieras';
+  }
+
+  @override
+  String get formsFilling => 'Sotto está rellenando';
+
+  @override
+  String formsPage(int page) {
+    return 'Página $page';
+  }
+
+  @override
+  String get formsFillThese => 'Rellenar';
+
+  @override
+  String get formsGoNext => 'Página siguiente';
+
+  @override
+  String formsSubmit(String label) {
+    return 'Pulsar «$label»';
+  }
+
+  @override
+  String get formsIllSubmit => 'Lo envío yo';
+
+  @override
+  String get actionFillForm => 'Rellenar cuestionario en pantalla';
+
+  @override
+  String get actionFillFormSub => 'Lee el formulario en primer plano, lo responde y lo rellena';
+
+  @override
+  String get actionOpenChat => 'Chat';
+
+  @override
+  String get actionOpenChatSub => 'Abre el chat del asistente en la superposición';
+
+  @override
+  String get actionPushToTalk => 'Hablar al chat (mantener)';
+
+  @override
+  String get actionPushToTalkSub => 'Mantén pulsado para dictar un mensaje';
+
+  @override
+  String get formsGroup => 'Cuestionarios en pantalla';
+
+  @override
+  String get formsEnable => 'Responder cuestionarios en pantalla';
+
+  @override
+  String formsEnableSub(String keys) {
+    return '$keys lee el formulario en primer plano, lo responde con el conocimiento propio de DeepSeek (no con tu guion) y lo rellena.';
+  }
+
+  @override
+  String get formsMode => 'Modo';
+
+  @override
+  String get formsModeAuto => 'Rellenar automáticamente';
+
+  @override
+  String get formsModeFirst => 'Mostrarme antes las respuestas';
+
+  @override
+  String get formsLanguage => 'Idioma de las respuestas';
+
+  @override
+  String get formsLangSame => 'El del cuestionario';
+
+  @override
+  String get formsLangApp => 'El de la app';
+
+  @override
+  String get formsStyle => 'Respuestas abiertas';
+
+  @override
+  String get formsStyleShort => 'Breves';
+
+  @override
+  String get formsStyleDetailed => 'Detalladas';
+
+  @override
+  String get formsInstructions => 'Instrucciones adicionales';
+
+  @override
+  String get formsInstructionsSub => 'Contexto opcional para las respuestas: tu nombre, tu puesto, tus preferencias.';
+
+  @override
+  String get formsInstructionsHint =>
+      'p. ej. Me llamo Ana Ruiz, soy product manager en Acme. Prefiero respuestas concisas.';
+
+  @override
+  String get formsPrivacy =>
+      'Las capturas del cuestionario se envían a DeepSeek y nunca se guardan. No se almacena nada salvo que el historial esté activado: entonces cada respuesta rellenada queda registrada en Sesiones.';
+
+  @override
+  String formsSubmitNote(String keys) {
+    return 'Sotto nunca envía por su cuenta: al final espera a que pulses Intro. Los campos de contraseña y de pago nunca se rellenan; $keys lo detiene al instante.';
+  }
+
+  @override
+  String get historyOff => 'No guardar';
+
+  @override
+  String sessionFormRun(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count respuestas', one: '1 respuesta');
+    return 'Cuestionario · $_temp0';
+  }
+
+  @override
+  String get formsDialogTitle => 'Cuestionario';
 }

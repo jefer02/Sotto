@@ -4399,6 +4399,324 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refining stopped — {reason} The quick organization stays.'**
   String refineStopped(String reason);
+
+  /// No description provided for @formsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaires on screen are off. Turn them on in Settings → Answers.'**
+  String get formsOff;
+
+  /// No description provided for @formsUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling questionnaires needs Windows or macOS.'**
+  String get formsUnsupported;
+
+  /// No description provided for @formsNoWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Click the questionnaire\'s window first, then press the shortcut.'**
+  String get formsNoWindow;
+
+  /// No description provided for @formsReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read the form in front. Click into it and try again.'**
+  String get formsReadFailed;
+
+  /// No description provided for @formsBadReply.
+  ///
+  /// In en, this message translates to:
+  /// **'DeepSeek\'s answer couldn\'t be read. Try again.'**
+  String get formsBadReply;
+
+  /// No description provided for @formsWhySensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'password or payment field — never filled'**
+  String get formsWhySensitive;
+
+  /// No description provided for @formsWhyNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'the answer isn\'t one of the options'**
+  String get formsWhyNoMatch;
+
+  /// No description provided for @formsWhyNoField.
+  ///
+  /// In en, this message translates to:
+  /// **'field not found'**
+  String get formsWhyNoField;
+
+  /// No description provided for @formsWhyNoAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'no answer'**
+  String get formsWhyNoAnswer;
+
+  /// No description provided for @formsSessionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaire on screen'**
+  String get formsSessionTitle;
+
+  /// No description provided for @formsReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the form…'**
+  String get formsReading;
+
+  /// No description provided for @formsThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Answering the questions…'**
+  String get formsThinking;
+
+  /// No description provided for @formsReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the answers — edit any, then Enter to fill'**
+  String get formsReview;
+
+  /// No description provided for @formsAnswering.
+  ///
+  /// In en, this message translates to:
+  /// **'Answering {done}/{total}…'**
+  String formsAnswering(int done, int total);
+
+  /// No description provided for @formsVerifying.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking every answer stuck…'**
+  String get formsVerifying;
+
+  /// No description provided for @formsNextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Page filled — Enter for “{label}”'**
+  String formsNextPage(String label);
+
+  /// No description provided for @formsDoneSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Done — review and submit'**
+  String get formsDoneSubmit;
+
+  /// No description provided for @formsSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted.'**
+  String get formsSubmitted;
+
+  /// No description provided for @formsStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped. Nothing more was typed.'**
+  String get formsStopped;
+
+  /// No description provided for @formsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t fill this form.'**
+  String get formsFailed;
+
+  /// No description provided for @formsReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 answer filled} other{{count} answers filled}} — review and submit when ready'**
+  String formsReady(int count);
+
+  /// No description provided for @formsFilling.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto is filling'**
+  String get formsFilling;
+
+  /// No description provided for @formsPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page}'**
+  String formsPage(int page);
+
+  /// No description provided for @formsFillThese.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill these'**
+  String get formsFillThese;
+
+  /// No description provided for @formsGoNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get formsGoNext;
+
+  /// No description provided for @formsSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Click “{label}”'**
+  String formsSubmit(String label);
+
+  /// No description provided for @formsIllSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ll submit it'**
+  String get formsIllSubmit;
+
+  /// No description provided for @actionFillForm.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill questionnaire on screen'**
+  String get actionFillForm;
+
+  /// No description provided for @actionFillFormSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads the form in front, answers it and fills it in'**
+  String get actionFillFormSub;
+
+  /// No description provided for @actionOpenChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get actionOpenChat;
+
+  /// No description provided for @actionOpenChatSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens the assistant chat in the overlay'**
+  String get actionOpenChatSub;
+
+  /// No description provided for @actionPushToTalk.
+  ///
+  /// In en, this message translates to:
+  /// **'Talk to chat (hold)'**
+  String get actionPushToTalk;
+
+  /// No description provided for @actionPushToTalkSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold to dictate a chat message'**
+  String get actionPushToTalkSub;
+
+  /// No description provided for @formsGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaires on screen'**
+  String get formsGroup;
+
+  /// No description provided for @formsEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer questionnaires on screen'**
+  String get formsEnable;
+
+  /// No description provided for @formsEnableSub.
+  ///
+  /// In en, this message translates to:
+  /// **'{keys} reads the form in front, answers with DeepSeek\'s own knowledge (not your script) and fills it in.'**
+  String formsEnableSub(String keys);
+
+  /// No description provided for @formsMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode'**
+  String get formsMode;
+
+  /// No description provided for @formsModeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill automatically'**
+  String get formsModeAuto;
+
+  /// No description provided for @formsModeFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Show me the answers first'**
+  String get formsModeFirst;
+
+  /// No description provided for @formsLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer language'**
+  String get formsLanguage;
+
+  /// No description provided for @formsLangSame.
+  ///
+  /// In en, this message translates to:
+  /// **'Same as the questionnaire'**
+  String get formsLangSame;
+
+  /// No description provided for @formsLangApp.
+  ///
+  /// In en, this message translates to:
+  /// **'App language'**
+  String get formsLangApp;
+
+  /// No description provided for @formsStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open answers'**
+  String get formsStyle;
+
+  /// No description provided for @formsStyleShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Short'**
+  String get formsStyleShort;
+
+  /// No description provided for @formsStyleDetailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed'**
+  String get formsStyleDetailed;
+
+  /// No description provided for @formsInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra instructions'**
+  String get formsInstructions;
+
+  /// No description provided for @formsInstructionsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional context for the answers — your name, role, preferences.'**
+  String get formsInstructionsSub;
+
+  /// No description provided for @formsInstructionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. My name is Ana Ruiz, product manager at Acme. Prefer concise answers.'**
+  String get formsInstructionsHint;
+
+  /// No description provided for @formsPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots of the questionnaire are sent to DeepSeek and never saved. Nothing is stored unless history is on: then each filled answer is logged in Sessions.'**
+  String get formsPrivacy;
+
+  /// No description provided for @formsSubmitNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto never submits on its own: at the end it waits for Enter. Password and payment fields are never filled; {keys} stops at once.'**
+  String formsSubmitNote(String keys);
+
+  /// No description provided for @historyOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t keep'**
+  String get historyOff;
+
+  /// No description provided for @sessionFormRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaire · {count, plural, =1{1 answer} other{{count} answers}}'**
+  String sessionFormRun(int count);
+
+  /// No description provided for @formsDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaire'**
+  String get formsDialogTitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -27,7 +27,10 @@ enum SettingsPage {
     'theme dark light text size opacity placement camera layout motion tema oscuro claro texto tamaño opacidad cámara',
   ),
   voice(SottoIcons.wave, 'microphone language engine model sensitivity pace wpm micrófono idioma motor modelo ritmo'),
-  answers(SottoIcons.ask, 'grounding sources length tone silence read aloud chat fuentes tono silencio respuestas'),
+  answers(
+    SottoIcons.ask,
+    'grounding sources length tone silence read aloud chat questionnaire form fill fuentes tono silencio respuestas cuestionario formulario rellenar',
+  ),
   general(SottoIcons.sliders, 'pace storage reset version language ritmo almacenamiento versión idioma español english'),
   integrations(
     SottoIcons.plug,
