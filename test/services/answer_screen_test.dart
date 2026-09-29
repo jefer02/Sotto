@@ -23,8 +23,9 @@ class _FakeLlm extends LlmClient {
     required String system,
     required String user,
     int maxTokens = 4096,
-    bool fast = true,
+    DeepSeekTaskProfile profile = DeepSeekTaskProfile.answers,
     List<String> images = const [],
+    bool json = false,
   }) async* {
     this.system = system;
     this.user = user;

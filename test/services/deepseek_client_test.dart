@@ -140,4 +140,47 @@ void main() {
     expect(AppSettings.fromJson({'aiModel': 'deepseek-v4-pro'}).aiModel, 'deepseek-v4-pro');
     expect(old.toJson().containsKey('aiProvider'), isFalse);
   });
+
+  test('task profiles decide thinking; JSON mode sets response_format', () async {
+    final sent = <Map<String, dynamic>>[];
+    final client = DeepSeekClient(
+      apiKey: 'k',
+      model: 'deepseek-flash',
+      httpClient: MockClient.streaming((req, body) async {
+        sent.add(jsonDecode(await body.bytesToString()) as Map<String, dynamic>);
+        return _sse([
+          _delta({'content': '{}'}),
+          '[DONE]',
+        ]);
+      }),
+    );
+    await client.complete(system: 's', user: 'Return only JSON', profile: DeepSeekTaskProfile.organize, json: true);
+    await client.complete(system: 's', user: 'u', profile: DeepSeekTaskProfile.questionnaire);
+    await client.streamMessages(messages: [], profile: DeepSeekTaskProfile.chat(thinkDeeper: true)).drain<void>();
+    expect(sent[0]['thinking'], {'type': 'disabled'});
+    expect(sent[0]['response_format'], {'type': 'json_object'});
+    expect(sent[1]['thinking'], {'type': 'enabled', 'reasoning_effort': 'low'});
+    expect(sent[1].containsKey('response_format'), isFalse);
+    expect(sent[2]['thinking'], {'type': 'enabled', 'reasoning_effort': 'high'});
+    expect(DeepSeekTaskProfile.chat().thinking, isFalse);
+    expect(DeepSeekTaskProfile.answers.thinking, isFalse);
+    expect(DeepSeekTaskProfile.agent.effort, ReasoningEffort.low);
+  });
+
+  test('streamMessages surfaces reasoning_content separately', () async {
+    final client = DeepSeekClient(
+      apiKey: 'k',
+      model: 'deepseek-flash',
+      httpClient: MockClient.streaming(
+        (req, body) async => _sse([
+          _delta({'reasoning_content': 'hmm'}),
+          _delta({'content': 'Hi'}),
+          '[DONE]',
+        ]),
+      ),
+    );
+    final deltas = await client.streamMessages(messages: [], profile: DeepSeekTaskProfile.chat()).toList();
+    expect(deltas.map((d) => d.reasoning).join(), 'hmm');
+    expect(deltas.map((d) => d.content).join(), 'Hi');
+  });
 }

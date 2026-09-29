@@ -13,7 +13,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Sotto';
 
   @override
-  String get statusOrganizing => 'Organizing…';
+  String get statusOrganizing => 'Refining…';
 
   @override
   String statusRehearsedTimes(int count) {
@@ -2421,4 +2421,23 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get privAgentOnBody =>
       'Only for tasks you start: one screenshot per step goes to DeepSeek; every action is logged in the session.';
+
+  @override
+  String refiningProgress(int done, int total) {
+    return 'Refining… $done/$total';
+  }
+
+  @override
+  String get refiningHint => 'You can read and edit now — parts you change are kept as you left them.';
+
+  @override
+  String refinedKeptEdits(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count parts', one: '1 part');
+    return 'Kept your edits in $_temp0';
+  }
+
+  @override
+  String refineStopped(String reason) {
+    return 'Refining stopped — $reason The quick organization stays.';
+  }
 }

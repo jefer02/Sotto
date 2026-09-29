@@ -54,6 +54,7 @@ dependencies:
   uuid: ^4.6.0
   screen_retriever: ^0.2.2
   collection: ^1.19.1
+  crypto: ^3.0.7
   path: ^1.9.1
   flutter_localizations:
     sdk: flutter

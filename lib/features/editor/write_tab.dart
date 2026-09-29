@@ -225,7 +225,8 @@ class _BeatRowState extends ConsumerState<BeatRow> {
   }
 
   void _onFocus() {
-    if (_focus.hasFocus) ref.read(editorProvider(widget.scriptId).notifier).focusBeat(widget.beat.id);
+    final c = ref.read(editorProvider(widget.scriptId).notifier)..caretIn(widget.beat.id, focused: _focus.hasFocus);
+    if (_focus.hasFocus) c.focusBeat(widget.beat.id);
     setState(() {});
   }
 

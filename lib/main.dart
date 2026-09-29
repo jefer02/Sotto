@@ -27,6 +27,7 @@ Future<void> main() async {
   // Seeded content and early messages use the interface language.
   L10n.current = lookupAppLocalizations(appLocale(container.read(settingsProvider).uiLanguage));
   await seedIfEmpty(container.read(scriptRepositoryProvider));
+  await container.read(scriptRepositoryProvider).finishInterruptedOrganizing();
 
   // First launch: listen for the presenter's own language by default.
   final settings = container.read(settingsProvider.notifier);

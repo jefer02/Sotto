@@ -7,13 +7,17 @@ import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 /// without generated adapters: unknown keys are ignored, missing ones fall
 /// back to defaults in each model's `fromJson`.
 class LocalStore {
-  LocalStore._(this.scripts, this.collections, this.settings, this.qa, this.sessions);
+  LocalStore._(this.scripts, this.collections, this.settings, this.qa, this.sessions, this.organizeCache);
 
   final Box<Map> scripts;
   final Box<Map> collections;
   final Box<Map> settings;
   final Box<Map> qa;
   final Box<Map> sessions;
+
+  /// AI organizing results by a hash of the text, so re-importing the same
+  /// file is instant. Derived from scripts, so "delete all" clears it too.
+  final Box<Map> organizeCache;
 
   /// [path] is for tests; the app uses the application-support directory.
   static Future<LocalStore> open({String? path}) async {
@@ -28,8 +32,9 @@ class LocalStore {
       Hive.openBox<Map>('settings'),
       Hive.openBox<Map>('qa_history'),
       Hive.openBox<Map>('sessions'),
+      Hive.openBox<Map>('organize_cache'),
     ]);
-    return LocalStore._(boxes[0], boxes[1], boxes[2], boxes[3], boxes[4]);
+    return LocalStore._(boxes[0], boxes[1], boxes[2], boxes[3], boxes[4], boxes[5]);
   }
 
   /// Emits the box's values now and after every change.
@@ -44,6 +49,6 @@ class LocalStore {
 
   /// "Delete all local data" in Privacy & data.
   Future<void> wipe() async {
-    await Future.wait([scripts.clear(), collections.clear(), qa.clear(), sessions.clear()]);
+    await Future.wait([scripts.clear(), collections.clear(), qa.clear(), sessions.clear(), organizeCache.clear()]);
   }
 }

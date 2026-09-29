@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @statusOrganizing.
   ///
   /// In en, this message translates to:
-  /// **'Organizing…'**
+  /// **'Refining…'**
   String get statusOrganizing;
 
   /// No description provided for @statusRehearsedTimes.
@@ -4375,6 +4375,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only for tasks you start: one screenshot per step goes to DeepSeek; every action is logged in the session.'**
   String get privAgentOnBody;
+
+  /// No description provided for @refiningProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Refining… {done}/{total}'**
+  String refiningProgress(int done, int total);
+
+  /// No description provided for @refiningHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can read and edit now — parts you change are kept as you left them.'**
+  String get refiningHint;
+
+  /// No description provided for @refinedKeptEdits.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept your edits in {count, plural, =1{1 part} other{{count} parts}}'**
+  String refinedKeptEdits(int count);
+
+  /// No description provided for @refineStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Refining stopped — {reason} The quick organization stays.'**
+  String refineStopped(String reason);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

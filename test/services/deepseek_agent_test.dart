@@ -64,7 +64,7 @@ void main() {
     expect(first.call!.name, 'click');
     final r0 = requests[0];
     expect(r0['model'], 'deepseek-flash');
-    expect(r0['thinking'], {'type': 'disabled'});
+    expect(r0['thinking'], {'type': 'enabled', 'reasoning_effort': 'low'});
     expect((r0['tools'] as List).length, 10);
     final messages0 = r0['messages'] as List;
     expect((messages0[0] as Map)['role'], 'system');

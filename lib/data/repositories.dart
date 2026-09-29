@@ -70,6 +70,17 @@ class ScriptRepository {
   }
 
   bool get isEmpty => _store.scripts.isEmpty;
+
+  /// Refinement that was cut short by quitting leaves the quick, rule-based
+  /// organization — which is complete, so the script is simply structured.
+  Future<void> finishInterruptedOrganizing() async {
+    for (final key in _store.scripts.keys.toList()) {
+      final raw = _store.scripts.get(key);
+      if (raw != null && raw['status'] == ScriptStatus.organizing.name) {
+        await _store.scripts.put(key, {...raw, 'status': ScriptStatus.structured.name});
+      }
+    }
+  }
 }
 
 final scriptRepositoryProvider = Provider<ScriptRepository>((ref) => ScriptRepository(ref.watch(localStoreProvider)));

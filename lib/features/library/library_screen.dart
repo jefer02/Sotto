@@ -26,6 +26,7 @@ import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
 import '../preflight/preflight_dialog.dart';
 import 'library_actions.dart';
+import 'organize_jobs.dart';
 import 'library_shell.dart';
 
 class LibraryFilter {
@@ -505,6 +506,7 @@ class ScriptCard extends ConsumerWidget {
     final collections = ref.watch(collectionsProvider).value ?? const <Collection>[];
     final collection = collections.firstWhereOrNull((c) => c.id == script.collectionId);
     final organizing = script.status == ScriptStatus.organizing;
+    final progress = organizing ? ref.watch(organizeProgressProvider(script.id)) : null;
 
     return ScriptContextMenu(
       script: script,
@@ -544,7 +546,7 @@ class ScriptCard extends ConsumerWidget {
               SizedBox(
                 height: 40,
                 child: Text(
-                  organizing
+                  organizing && script.excerpt.isEmpty
                       ? context.l10n.importedFinding(script.sourceName ?? context.l10n.importedFromText)
                       : (script.excerpt.isEmpty ? context.l10n.emptyScript : script.excerpt),
                   maxLines: 2,
@@ -554,7 +556,7 @@ class ScriptCard extends ConsumerWidget {
               ),
               const SizedBox(height: 14),
               if (organizing)
-                const _OrganizingBar()
+                progress == null ? const _OrganizingBar() : RefineProgressBar(fraction: progress.fraction)
               else
                 SectionBar(
                   weights: [for (final sec in script.sections) sec.estimatedSeconds(wpm).toDouble().clamp(1, 1e9)],
@@ -564,7 +566,9 @@ class ScriptCard extends ConsumerWidget {
                 children: [
                   Text(
                     organizing
-                        ? context.l10n.statusOrganizing
+                        ? (progress == null
+                              ? context.l10n.statusOrganizing
+                              : context.l10n.refiningProgress(progress.done, progress.total))
                         : '${formatMinutes(script.estimatedSeconds(wpm))} · ${context.l10n.sectionsCount(script.sections.length)}',
                     style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
                   ),
@@ -574,6 +578,38 @@ class ScriptCard extends ConsumerWidget {
                     style: TypeScale.caption.copyWith(color: p.inkTertiary),
                   ),
                 ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Chunks refined so far, as a filling hairline.
+class RefineProgressBar extends StatelessWidget {
+  const RefineProgressBar({super.key, required this.fraction});
+  final double fraction;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: fraction.clamp(0.0, 1.0)),
+      duration: Motion.smooth,
+      builder: (context, t, _) => ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: SizedBox(
+          height: 3,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ColoredBox(color: p.control),
+              FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: t,
+                child: ColoredBox(color: p.cueFill),
               ),
             ],
           ),

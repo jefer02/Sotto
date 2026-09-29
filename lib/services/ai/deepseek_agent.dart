@@ -103,7 +103,9 @@ $data
   }
 
   Future<AgentTurn> _turn() async {
-    final msg = await client.chat(messages: _messages, tools: agentToolSchemas(), model: model);
+    // Low-effort thinking (DeepSeekTaskProfile.agent); reasoning counts
+    // against max_tokens, hence the headroom.
+    final msg = await client.chat(messages: _messages, tools: agentToolSchemas(), model: model, maxTokens: 4096);
     final calls = [...?(msg['tool_calls'] as List?)?.cast<Map<Object?, Object?>>()];
     _messages.add({
       'role': 'assistant',

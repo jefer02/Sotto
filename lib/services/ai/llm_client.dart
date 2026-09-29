@@ -8,6 +8,9 @@ import '../../core/secrets.dart';
 import '../../data/models/settings.dart';
 import '../../data/storage/secret_store.dart';
 import '../../l10n/l10n.dart';
+import 'task_profile.dart';
+
+export 'task_profile.dart';
 
 const _provider = 'DeepSeek';
 
@@ -65,25 +68,59 @@ class DeepSeekModel {
   final bool images;
 }
 
+/// A piece of a streamed reply: visible [content], or the model's hidden
+/// [reasoning] (thinking mode), which chat keeps to send back next turn.
+class LlmDelta {
+  const LlmDelta({this.content = '', this.reasoning = ''});
+  final String content;
+  final String reasoning;
+}
+
 /// Minimal streaming text interface over raw HTTP + server-sent events.
+/// Every request names a [DeepSeekTaskProfile], which decides thinking.
 abstract class LlmClient {
   /// [images] are JPEG data URLs, attached to the user message (DeepSeek
-  /// accepts images in user messages only).
+  /// accepts images in user messages only). [json] asks for a JSON object
+  /// (`response_format`); the prompt must say "JSON" too.
   Stream<String> stream({
     required String system,
     required String user,
     int maxTokens = 4096,
-    bool fast = true,
+    DeepSeekTaskProfile profile = DeepSeekTaskProfile.answers,
     List<String> images = const [],
+    bool json = false,
   });
 
-  Future<String> complete({required String system, required String user, int maxTokens = 8192}) async {
+  Future<String> complete({
+    required String system,
+    required String user,
+    int maxTokens = 8192,
+    DeepSeekTaskProfile profile = DeepSeekTaskProfile.organize,
+    List<String> images = const [],
+    bool json = false,
+  }) async {
     final buf = StringBuffer();
-    await for (final chunk in stream(system: system, user: user, maxTokens: maxTokens, fast: false)) {
+    await for (final chunk in stream(
+      system: system,
+      user: user,
+      maxTokens: maxTokens,
+      profile: profile,
+      images: images,
+      json: json,
+    )) {
       buf.write(chunk);
     }
     return buf.toString();
   }
+
+  /// A multi-turn conversation (chat), streamed. [messages] are in API
+  /// form; [vision] routes to the model that reads images.
+  Stream<LlmDelta> streamMessages({
+    required List<Map<String, Object?>> messages,
+    required DeepSeekTaskProfile profile,
+    int maxTokens = 4096,
+    bool vision = false,
+  }) => throw UnimplementedError();
 
   void close();
 
@@ -156,10 +193,7 @@ class DeepSeekClient extends LlmClient {
     final data = (jsonDecode(body) as Map)['data'] as List? ?? const [];
     return [
       for (final m in data.cast<Map<Object?, Object?>>())
-        DeepSeekModel(
-          m['id']! as String,
-          images: (m['input_modalities'] as List?)?.contains('image') ?? false,
-        ),
+        DeepSeekModel(m['id']! as String, images: (m['input_modalities'] as List?)?.contains('image') ?? false),
     ]..sort((a, b) => a.id.compareTo(b.id));
   }
 
@@ -168,22 +202,53 @@ class DeepSeekClient extends LlmClient {
     required String system,
     required String user,
     int maxTokens = 4096,
-    bool fast = true,
+    DeepSeekTaskProfile profile = DeepSeekTaskProfile.answers,
     List<String> images = const [],
+    bool json = false,
+  }) async* {
+    await for (final d in _streamRequest(
+      model: images.isEmpty ? model : (visionModel ?? model),
+      messages: [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': userContent(user, images)},
+      ],
+      maxTokens: maxTokens,
+      profile: profile,
+      json: json,
+    )) {
+      if (d.content.isNotEmpty) yield d.content;
+    }
+  }
+
+  @override
+  Stream<LlmDelta> streamMessages({
+    required List<Map<String, Object?>> messages,
+    required DeepSeekTaskProfile profile,
+    int maxTokens = 4096,
+    bool vision = false,
+  }) => _streamRequest(
+    model: vision ? (visionModel ?? model) : model,
+    messages: messages,
+    maxTokens: maxTokens,
+    profile: profile,
+  );
+
+  Stream<LlmDelta> _streamRequest({
+    required String model,
+    required List<Map<String, Object?>> messages,
+    required int maxTokens,
+    required DeepSeekTaskProfile profile,
+    bool json = false,
   }) async* {
     final req = http.Request('POST', Uri.parse('$baseUrl/chat/completions'))
       ..headers.addAll(_headers)
       ..body = jsonEncode({
-        'model': images.isEmpty ? model : (visionModel ?? model),
+        'model': model,
         'stream': true,
         'max_tokens': maxTokens,
-        // Live answers are latency-bound, so they skip thinking; organizing a
-        // script can afford it.
-        if (fast) 'thinking': {'type': 'disabled'},
-        'messages': [
-          {'role': 'system', 'content': system},
-          {'role': 'user', 'content': userContent(user, images)},
-        ],
+        ...profile.requestFields,
+        if (json) 'response_format': {'type': 'json_object'},
+        'messages': messages,
       });
 
     final res = await _send(_http, req);
@@ -199,8 +264,12 @@ class DeepSeekClient extends LlmClient {
       final choices = j['choices'] as List?;
       if (choices == null || choices.isEmpty) continue;
       final choice = choices.first as Map;
-      final content = (choice['delta'] as Map?)?['content'];
-      if (content is String && content.isNotEmpty) yield content;
+      final delta = choice['delta'] as Map?;
+      final content = delta?['content'];
+      final reasoning = delta?['reasoning_content'];
+      if ((content is String && content.isNotEmpty) || (reasoning is String && reasoning.isNotEmpty)) {
+        yield LlmDelta(content: content is String ? content : '', reasoning: reasoning is String ? reasoning : '');
+      }
       if (choice['finish_reason'] == 'content_filter') throw LlmRefusal();
     }
   }
@@ -214,14 +283,14 @@ class DeepSeekClient extends LlmClient {
     List<Map<String, Object?>> tools = const [],
     String? model,
     int maxTokens = 1024,
-    bool thinking = false,
+    DeepSeekTaskProfile profile = DeepSeekTaskProfile.agent,
   }) async {
     final req = http.Request('POST', Uri.parse('$baseUrl/chat/completions'))
       ..headers.addAll(_headers)
       ..body = jsonEncode({
         'model': model ?? this.model,
         'max_tokens': maxTokens,
-        if (!thinking) 'thinking': {'type': 'disabled'},
+        ...profile.requestFields,
         'messages': messages,
         if (tools.isNotEmpty) 'tools': tools,
       });

@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
   "appTitle": "Sotto",
-  "statusOrganizing": "Organizing…",
+  "statusOrganizing": "Refining…",
   "statusRehearsedTimes": "Rehearsed ×{count}",
   "@statusRehearsedTimes": {
     "placeholders": {
@@ -1403,5 +1403,33 @@
   "agentWhyOutside": "outside the screenshot",
   "privAgent": "Agent",
   "privAgentOffBody": "Off. Sotto never moves your mouse or types.",
-  "privAgentOnBody": "Only for tasks you start: one screenshot per step goes to DeepSeek; every action is logged in the session."
+  "privAgentOnBody": "Only for tasks you start: one screenshot per step goes to DeepSeek; every action is logged in the session.",
+  "refiningProgress": "Refining… {done}/{total}",
+  "@refiningProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "refiningHint": "You can read and edit now — parts you change are kept as you left them.",
+  "refinedKeptEdits": "Kept your edits in {count, plural, =1{1 part} other{{count} parts}}",
+  "@refinedKeptEdits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "refineStopped": "Refining stopped — {reason} The quick organization stays.",
+  "@refineStopped": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  }
 }

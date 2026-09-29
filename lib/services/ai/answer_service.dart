@@ -350,20 +350,4 @@ ${switch (screen) {
     if (words.length <= 4) return AnswerPoint(lead: s, rest: '');
     return AnswerPoint(lead: words.take(3).join(' '), rest: words.skip(3).join(' '));
   }
-
-  // ─────────────────────────── Structuring ───────────────────────────
-
-  /// Asks the model to organize raw text into Markdown the rule-based
-  /// structurer can read with one beat per line.
-  Future<String> organize(String raw) => client.complete(
-    system: '''
-You organize a presenter's script for a teleprompter. Keep their words exactly; do not rewrite, summarize or add content.
-Output Markdown only:
-## <Section title>            (3–7 sections for a typical talk)
-- <key point>                  (2–3 short key points per section, optional)
-<one beat per line>            (a beat is one breath: 8–25 words, split long sentences at natural pauses)
-Put stage directions on their own beat line prefix: [SLIDE n], [PAUSE] or [DEMO].''',
-    user: raw,
-    maxTokens: 32000,
-  );
 }

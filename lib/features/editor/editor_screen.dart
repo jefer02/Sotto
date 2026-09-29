@@ -23,6 +23,8 @@ import '../../data/models/script.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
 import '../library/library_actions.dart';
+import '../library/library_screen.dart' show RefineProgressBar;
+import '../library/organize_jobs.dart';
 import '../library/library_shell.dart' show TitleBarDragSpacer;
 import '../preflight/preflight_dialog.dart';
 import 'editor_controller.dart';
@@ -325,6 +327,7 @@ class _StructureSidebar extends ConsumerWidget {
     final sessions = ref.watch(sessionsProvider).value ?? const [];
     final rehearsals = sessions.where((r) => r.scriptId == script.id && r.rehearsal).length;
     final organizing = script.status == ScriptStatus.organizing;
+    final progress = ref.watch(organizeProgressProvider(script.id));
 
     return Container(
       width: 264,
@@ -372,7 +375,9 @@ class _StructureSidebar extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(22, 2, 12, 12),
             child: Text(
               organizing
-                  ? context.l10n.statusOrganizing
+                  ? (progress == null
+                        ? context.l10n.statusOrganizing
+                        : context.l10n.refiningProgress(progress.done, progress.total))
                   : [
                       context.l10n.sectionsCount(script.sections.length),
                       context.l10n.beatsCount(script.beatCount),
@@ -382,6 +387,7 @@ class _StructureSidebar extends ConsumerWidget {
               style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
             ),
           ),
+          if (progress != null) _RefineStatus(progress: progress, organizing: organizing),
           Expanded(
             child: ReorderableListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -668,6 +674,42 @@ class _Footer extends ConsumerWidget {
             Text(
               context.l10n.beatWords(si + 1, bi + 1, section.beats[bi].wordCount),
               style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Under the structure header while (and shortly after) AI refinement
+/// runs: the progress, then whether any part kept the presenter's edits.
+class _RefineStatus extends StatelessWidget {
+  const _RefineStatus({required this.progress, required this.organizing});
+  final OrganizeProgress progress;
+  final bool organizing;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final l = context.l10n;
+    final lines = [
+      if (organizing && !progress.finished) l.refiningHint,
+      if (progress.kept > 0) l.refinedKeptEdits(progress.kept),
+      if (progress.error != null) l.refineStopped(progress.error!),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 0, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (organizing && !progress.finished) ...[
+            RefineProgressBar(fraction: progress.fraction),
+            const SizedBox(height: 8),
+          ],
+          for (final t in lines)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(t, style: TypeScale.caption.copyWith(color: p.inkSecondary)),
             ),
         ],
       ),

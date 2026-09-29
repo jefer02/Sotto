@@ -5,6 +5,7 @@ import '../../l10n/l10n.dart';
 
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
+import '../library/organize_jobs.dart';
 
 enum SaveState { saved, saving, dirty }
 
@@ -42,7 +43,7 @@ class EditorState {
 
 /// The editor's working copy. Edits apply instantly here and are written to
 /// disk 400 ms after typing stops, so fields never fight a round-trip.
-class EditorController extends Notifier<EditorState> {
+class EditorController extends Notifier<EditorState> implements ScriptWorkingCopy {
   EditorController(this.scriptId);
 
   final String scriptId;
@@ -52,11 +53,17 @@ class EditorController extends Notifier<EditorState> {
   // Plain copies of the unsaved work: `state` can't be read from onDispose.
   Script? _pending;
 
+  /// The beat whose text field has keyboard focus — AI refinement never
+  /// replaces the part it is in.
+  String? _caretBeat;
+
   @override
   EditorState build() {
     // Captured now: providers can't be read from onDispose.
     _repo = ref.read(scriptRepositoryProvider);
+    final copies = ref.read(workingCopiesProvider)..register(scriptId, this);
     ref.onDispose(() {
+      copies.unregister(scriptId, this);
       _saveTimer?.cancel();
       _flush(disposing: true);
     });
@@ -89,6 +96,28 @@ class EditorController extends Notifier<EditorState> {
     final status = s.status == ScriptStatus.draft && s.wordCount > 20 ? ScriptStatus.structured : s.status;
     unawaited(_repo.save(s.copyWith(status: status, updatedAt: s.updatedAt)));
     if (!disposing) state = state.copyWith(save: SaveState.saved);
+  }
+
+  /// Applies a background change (AI refinement) to the working copy: the
+  /// selected section stays selected and the caret's beat is untouched.
+  @override
+  void applyExternal(Script Function(Script script, String? caretBeat) patch) {
+    final s = state.script;
+    if (s == null) return;
+    final next = patch(s, _caretBeat);
+    if (identical(next, s)) return;
+    final selected = s.sections.elementAtOrNull(state.section)?.id;
+    update((_) => next);
+    final i = next.sections.indexWhere((x) => x.id == selected);
+    state = state.copyWith(section: i >= 0 ? i : state.section.clamp(0, next.sections.length - 1));
+  }
+
+  void caretIn(String beatId, {required bool focused}) {
+    if (focused) {
+      _caretBeat = beatId;
+    } else if (_caretBeat == beatId) {
+      _caretBeat = null;
+    }
   }
 
   void selectSection(int i) =>

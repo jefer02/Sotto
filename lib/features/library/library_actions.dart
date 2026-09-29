@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -10,9 +11,11 @@ import '../../core/utils/ids.dart';
 import '../../data/import/script_importer.dart';
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
+import '../../data/storage/organize_cache.dart';
+import '../../domain/structuring/organize_plan.dart';
 import '../../domain/structuring/script_structurer.dart';
-import '../../services/ai/answer_service.dart';
 import '../../services/ai/llm_client.dart';
+import 'organize_jobs.dart';
 import '../../l10n/l10n.dart';
 
 Future<Script> createScriptAndOpen(WidgetRef ref, {String? collectionId}) async {
@@ -22,59 +25,56 @@ Future<Script> createScriptAndOpen(WidgetRef ref, {String? collectionId}) async 
   return script;
 }
 
+/// The rule-based first pass, on a background isolate. Top-level so the
+/// closure sent to the isolate captures only the text and the labels.
+Future<OrganizePrep> _prepare(String text) {
+  final labels = StructurerLabels.current();
+  return Isolate.run(() => OrganizePrep.build(text, labels));
+}
+
 Future<LlmClient?> _llmFor(WidgetRef ref) async {
   return LlmClient.forSettings(ref.read(settingsProvider), ref.read(secretStoreProvider));
 }
 
-/// Creates the script immediately (status "Organizing…" in the library),
-/// then structures it: with the model when a key is set, otherwise — or if
-/// the model fails — with the offline rule-based structurer.
+/// Usable at once, refined in the background:
+/// 1. the same text organized before → the cached result, instantly;
+/// 2. otherwise the rule-based pass runs on a background isolate and the
+///    script opens with it ("Refining…"), editable right away;
+/// 3. with a DeepSeek key, [OrganizeJobs] refines it chunk by chunk.
 Future<Script> importText(WidgetRef ref, ImportResult result, {String? collectionId, bool useAi = true}) async {
   final repo = ref.read(scriptRepositoryProvider);
+  final settings = ref.read(settingsProvider);
+  final llm = useAi ? await _llmFor(ref) : null;
+  final cacheKey = OrganizeCache.keyFor(result.text, settings.aiModel);
   final now = DateTime.now();
-  final placeholder = Script(
+
+  Script scriptWith(List<Section> sections, ScriptStatus status) => Script(
     id: newId(),
     title: result.title,
-    sections: [Section.create(L10n.current.sectionOpening)],
+    sections: sections,
     createdAt: now,
     updatedAt: now,
     collectionId: collectionId,
-    status: ScriptStatus.organizing,
+    status: status,
     sourceName: result.sourceName,
+    hintWords: ScriptStructurer.hintWordsFor(sections),
   );
-  // Everything the background task needs is captured now: the widget that
-  // started the import may be gone by the time organizing finishes.
-  final llmFuture = useAi ? _llmFor(ref) : Future<LlmClient?>.value();
-  await repo.save(placeholder);
 
-  unawaited(() async {
-    const structurer = ScriptStructurer();
-    List<Section>? sections;
-    if (useAi) {
-      final llm = await llmFuture;
-      if (llm != null) {
-        try {
-          final md = await AnswerService(llm).organize(result.text);
-          final parsed = structurer.structure(md, linePerBeat: true);
-          if (parsed.fold<int>(0, (a, s) => a + s.wordCount) > 0) sections = parsed;
-        } catch (_) {
-          // Offline or rejected: the rule-based pass below still works.
-        } finally {
-          llm.close();
-        }
-      }
-    }
-    sections ??= structurer.structure(result.text);
-    final current = repo.get(placeholder.id) ?? placeholder;
-    await repo.save(
-      current.copyWith(
-        sections: sections,
-        status: ScriptStatus.structured,
-        hintWords: ScriptStructurer.hintWordsFor(sections),
-      ),
-    );
-  }());
-  return placeholder;
+  final cached = llm == null ? null : ref.read(organizeCacheProvider).get(cacheKey);
+  if (cached != null) {
+    llm?.close();
+    final script = scriptWith(cached, ScriptStatus.structured);
+    await repo.save(script);
+    return script;
+  }
+
+  final prep = await _prepare(result.text);
+  final script = scriptWith(prep.sections, llm == null ? ScriptStatus.structured : ScriptStatus.organizing);
+  await repo.save(script);
+  if (llm != null) {
+    unawaited(ref.read(organizeJobsProvider.notifier).start(script.id, prep, llm, cacheKey: cacheKey));
+  }
+  return script;
 }
 
 Future<void> importFiles(WidgetRef ref, BuildContext context, {List<String>? paths, String? collectionId}) async {
@@ -110,34 +110,49 @@ Future<void> importFromClipboard(WidgetRef ref, {String? collectionId}) async {
   ref.read(routerProvider).go('/script/${script.id}');
 }
 
-/// Re-runs organizing on an existing script's text.
+/// Re-runs organizing on an existing script's text, keeping section
+/// budgets where titles survive.
 Future<void> reorganize(WidgetRef ref, Script script, {bool useAi = true}) async {
   final raw = [
     for (final s in script.sections) ...[
       '## ${s.title}',
       for (final k in s.keyPoints) '- $k',
+      '',
       for (final b in s.beats) '${b.cue?.token ?? ''} ${b.text}'.trim(),
       '',
     ],
   ].join('\n');
-  final repo = ref.read(scriptRepositoryProvider);
-  await repo.save(script.copyWith(status: ScriptStatus.organizing));
-  const structurer = ScriptStructurer();
-  List<Section>? sections;
-  if (useAi) {
-    final llm = await _llmFor(ref);
-    if (llm != null) {
-      try {
-        sections = structurer.structure(await AnswerService(llm).organize(raw), linePerBeat: true);
-      } catch (_) {
-      } finally {
-        llm.close();
-      }
-    }
-  }
-  sections ??= structurer.structure(raw);
-  // Keep the presenter's budgets where section titles survived.
   final budgets = {for (final s in script.sections) s.title: s.budgetSeconds};
-  sections = [for (final s in sections) s.copyWith(budgetSeconds: budgets[s.title])];
-  await repo.save(script.copyWith(sections: sections, status: ScriptStatus.structured));
+  final llm = useAi ? await _llmFor(ref) : null;
+  final prep = await _prepare(raw);
+  if (llm == null) {
+    final sections = [for (final s in prep.sections) s.copyWith(budgetSeconds: budgets[s.title])];
+    final copy = ref.read(workingCopiesProvider).of(script.id);
+    if (copy != null) {
+      copy.applyExternal((s, _) => s.copyWith(sections: sections, status: ScriptStatus.structured));
+    } else {
+      await ref
+          .read(scriptRepositoryProvider)
+          .save(script.copyWith(sections: sections, status: ScriptStatus.structured));
+    }
+    return;
+  }
+  // The rule-based pass first, so the regions the refinement replaces are
+  // exactly what is on screen.
+  final start = [for (final s in prep.sections) s.copyWith(budgetSeconds: budgets[s.title])];
+  final regions = <List<Section>>[];
+  var i = 0;
+  for (final r in prep.regions) {
+    regions.add(start.sublist(i, i + r.length));
+    i += r.length;
+  }
+  final seeded = OrganizePrep(parsed: prep.parsed, chunks: prep.chunks, regions: regions);
+  Script apply(Script s) => s.copyWith(sections: start, status: ScriptStatus.organizing);
+  final copy = ref.read(workingCopiesProvider).of(script.id);
+  if (copy != null) {
+    copy.applyExternal((s, _) => apply(s));
+  } else {
+    await ref.read(scriptRepositoryProvider).save(apply(script));
+  }
+  unawaited(ref.read(organizeJobsProvider.notifier).start(script.id, seeded, llm, budgets: budgets));
 }
