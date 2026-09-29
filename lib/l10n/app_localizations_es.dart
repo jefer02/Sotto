@@ -2632,4 +2632,100 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get formsDialogTitle => 'Cuestionario';
+
+  @override
+  String get navChat => 'Chat';
+
+  @override
+  String get chatNew => 'Nuevo chat';
+
+  @override
+  String get chatNoConversations => 'Aún no hay conversaciones.';
+
+  @override
+  String get chatRename => 'Cambiar nombre';
+
+  @override
+  String get chatUntitled => 'Chat sin título';
+
+  @override
+  String get chatEmptyTitle => 'Pregunta lo que quieras';
+
+  @override
+  String get chatEmptyBody =>
+      'Preguntas extra antes o durante una charla. Adjunta tu pantalla o deja que lea tu guion. El razonamiento está desactivado por defecto para responder rápido: activa Pensar más cuando valga la espera.';
+
+  @override
+  String get chatPanelEmpty =>
+      'Escribe o mantén la tecla de hablar para preguntar. Zoom conserva el teclado hasta que hagas clic en el campo.';
+
+  @override
+  String get chatCopy => 'Copiar';
+
+  @override
+  String get chatReadAloud => 'Leer en voz alta';
+
+  @override
+  String get chatScreenAttached => 'pantalla adjunta';
+
+  @override
+  String get chatThinking => 'Pensando…';
+
+  @override
+  String get chatListening => 'Escuchando… suelta para terminar';
+
+  @override
+  String get chatTranscribing => 'Transcribiendo…';
+
+  @override
+  String chatPlaceholder(String keys) {
+    return 'Mensaje — Intro para enviar, Mayús+Intro para nueva línea · mantén $keys para hablar';
+  }
+
+  @override
+  String chatDictate(String keys) {
+    return 'Dictar (mantén $keys)';
+  }
+
+  @override
+  String get chatStopDictation => 'Terminar de dictar';
+
+  @override
+  String get chatAttachScreen => 'Adjuntar pantalla — envía una captura con el próximo mensaje';
+
+  @override
+  String get chatStop => 'Detener la respuesta';
+
+  @override
+  String get chatSend => 'Enviar';
+
+  @override
+  String get chatThinkDeeper => 'Pensar más';
+
+  @override
+  String get chatUseScript => 'Usar mi guion';
+
+  @override
+  String chatUseScriptNamed(String title) {
+    return 'Usar mi guion · $title';
+  }
+
+  @override
+  String get chatGroup => 'Chat';
+
+  @override
+  String get chatAutoSend => 'Enviar el dictado al momento';
+
+  @override
+  String get chatAutoSendSub => 'Desactivado: la transcripción queda en el campo para que la edites antes.';
+
+  @override
+  String get chatContext => 'Mensajes enviados como contexto';
+
+  @override
+  String get chatContextSub => 'Los más recientes; los anteriores se recortan.';
+
+  @override
+  String get chatPrivacy =>
+      'Los chats se guardan en este equipo durante el periodo de tu historial. Las capturas que adjuntas van a DeepSeek y nunca se guardan.';
 }

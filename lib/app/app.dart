@@ -7,12 +7,14 @@ import 'package:intl/intl.dart';
 
 import '../core/design/theme.dart';
 import '../core/design/tokens.dart';
+import '../core/platform/window_service.dart';
 import '../data/models/settings.dart';
 import '../data/models/shortcut.dart';
 import '../data/repositories.dart';
 import '../l10n/l10n.dart';
 import '../features/agent/agent_controller.dart';
 import '../features/agent/agent_view.dart';
+import '../features/chat/chat_controller.dart';
 import '../features/live/live_controller.dart';
 import '../features/library/library_actions.dart';
 import '../features/live/overlay_palette.dart';
@@ -79,8 +81,20 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
             onDown: () => unawaited(ref.read(questionnaireControllerProvider.notifier).start()),
             onUp: null,
           ),
+          LiveAction.openChat: (onDown: () => unawaited(_openChat()), onUp: null),
+          LiveAction.pushToTalk: (
+            onDown: () =>
+                unawaited(_openChat().then((_) => ref.read(chatControllerProvider.notifier).startDictation())),
+            onUp: () => unawaited(ref.read(chatControllerProvider.notifier).stopDictation()),
+          ),
         },
       );
+
+  /// Chord + C outside a session: the Chat page, in front.
+  Future<void> _openChat() async {
+    ref.read(routerProvider).go('/chat');
+    await ref.read(windowServiceProvider).bringToFront();
+  }
 
   void _openPreflightFromHotkey() {
     final id = ref.read(focusedScriptProvider);

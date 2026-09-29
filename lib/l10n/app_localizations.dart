@@ -4717,6 +4717,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Questionnaire'**
   String get formsDialogTitle;
+
+  /// No description provided for @navChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get navChat;
+
+  /// No description provided for @chatNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New chat'**
+  String get chatNew;
+
+  /// No description provided for @chatNoConversations.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations yet.'**
+  String get chatNoConversations;
+
+  /// No description provided for @chatRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get chatRename;
+
+  /// No description provided for @chatUntitled.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled chat'**
+  String get chatUntitled;
+
+  /// No description provided for @chatEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask anything'**
+  String get chatEmptyTitle;
+
+  /// No description provided for @chatEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra questions before or during a talk. Attach your screen, or let it read your script. Thinking is off by default for fast replies — turn on Think deeper when it\'s worth the wait.'**
+  String get chatEmptyBody;
+
+  /// No description provided for @chatPanelEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Type or hold the talk key to ask. Zoom keeps the keyboard until you click the input.'**
+  String get chatPanelEmpty;
+
+  /// No description provided for @chatCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get chatCopy;
+
+  /// No description provided for @chatReadAloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Read aloud'**
+  String get chatReadAloud;
+
+  /// No description provided for @chatScreenAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'screen attached'**
+  String get chatScreenAttached;
+
+  /// No description provided for @chatThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking…'**
+  String get chatThinking;
+
+  /// No description provided for @chatListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening… release to stop'**
+  String get chatListening;
+
+  /// No description provided for @chatTranscribing.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribing…'**
+  String get chatTranscribing;
+
+  /// No description provided for @chatPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Message — Enter to send, Shift+Enter for a new line · hold {keys} to talk'**
+  String chatPlaceholder(String keys);
+
+  /// No description provided for @chatDictate.
+  ///
+  /// In en, this message translates to:
+  /// **'Dictate (hold {keys})'**
+  String chatDictate(String keys);
+
+  /// No description provided for @chatStopDictation.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop dictating'**
+  String get chatStopDictation;
+
+  /// No description provided for @chatAttachScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach screen — sends a screenshot with the next message'**
+  String get chatAttachScreen;
+
+  /// No description provided for @chatStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop generating'**
+  String get chatStop;
+
+  /// No description provided for @chatSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get chatSend;
+
+  /// No description provided for @chatThinkDeeper.
+  ///
+  /// In en, this message translates to:
+  /// **'Think deeper'**
+  String get chatThinkDeeper;
+
+  /// No description provided for @chatUseScript.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my script'**
+  String get chatUseScript;
+
+  /// No description provided for @chatUseScriptNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my script · {title}'**
+  String chatUseScriptNamed(String title);
+
+  /// No description provided for @chatGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get chatGroup;
+
+  /// No description provided for @chatAutoSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send dictation at once'**
+  String get chatAutoSend;
+
+  /// No description provided for @chatAutoSendSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Off: the transcript lands in the input so you can edit it first.'**
+  String get chatAutoSendSub;
+
+  /// No description provided for @chatContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages sent as context'**
+  String get chatContext;
+
+  /// No description provided for @chatContextSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The most recent ones; older messages are trimmed.'**
+  String get chatContextSub;
+
+  /// No description provided for @chatPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved.'**
+  String get chatPrivacy;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

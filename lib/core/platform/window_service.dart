@@ -175,6 +175,15 @@ class WindowService {
     await windowManager.focus();
   }
 
+  /// The main window, in front (a global shortcut opened a page). Nothing
+  /// while it is the overlay.
+  Future<void> bringToFront() async {
+    if (!supported || _overlay) return;
+    if (await windowManager.isMinimized()) await windowManager.restore();
+    await windowManager.show();
+    await windowManager.focus();
+  }
+
   /// Hide instantly — no animation; speed is the feature.
   Future<void> toggleHidden() async {
     if (!_overlay) return;

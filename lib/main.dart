@@ -41,6 +41,7 @@ Future<void> main() async {
     );
   }
   unawaited(container.read(qaRepositoryProvider).prune(container.read(settingsProvider).historyRetentionDays));
+  unawaited(container.read(chatRepositoryProvider).prune(container.read(settingsProvider).historyRetentionDays));
   unawaited(_checkModel(container));
 
   runApp(UncontrolledProviderScope(container: container, child: const SottoApp()));

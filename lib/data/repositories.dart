@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/l10n.dart';
+import 'models/chat.dart';
 import 'models/qa_entry.dart';
 import 'models/script.dart';
 import 'models/session_record.dart';
@@ -186,3 +187,42 @@ final sessionRepositoryProvider = Provider<SessionRepository>(
 );
 
 final sessionsProvider = StreamProvider<List<SessionRecord>>((ref) => ref.watch(sessionRepositoryProvider).watchAll());
+
+// ───────────────────────────── Chats ─────────────────────────────
+
+class ChatRepository {
+  ChatRepository(this._store);
+
+  final LocalStore _store;
+
+  /// Newest first.
+  Stream<List<Conversation>> watchAll() =>
+      LocalStore.watchAll(_store.chats)
+          .map((maps) => maps.map(Conversation.fromJson).sortedBy((c) => c.updatedAt).reversed.toList());
+
+  Conversation? get(String id) {
+    final raw = _store.chats.get(id);
+    return raw == null ? null : Conversation.fromJson(raw);
+  }
+
+  Future<void> save(Conversation c) => _store.chats.put(c.id, c.toJson());
+
+  Future<void> delete(String id) => _store.chats.delete(id);
+
+  Future<void> clear() => _store.chats.clear();
+
+  /// Privacy → Keep history: conversations untouched for longer go.
+  Future<int> prune(int retentionDays) async {
+    final cutoff = DateTime.now().subtract(Duration(days: retentionDays));
+    final stale = _store.chats.keys.where((k) {
+      final at = DateTime.tryParse(_store.chats.get(k)?['updatedAt'] as String? ?? '');
+      return at != null && at.isBefore(cutoff);
+    }).toList();
+    await _store.chats.deleteAll(stale);
+    return stale.length;
+  }
+}
+
+final chatRepositoryProvider = Provider<ChatRepository>((ref) => ChatRepository(ref.watch(localStoreProvider)));
+
+final conversationsProvider = StreamProvider<List<Conversation>>((ref) => ref.watch(chatRepositoryProvider).watchAll());

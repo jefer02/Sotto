@@ -20,6 +20,8 @@ import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
 import '../agent/agent_controller.dart';
 import '../agent/agent_view.dart';
+import '../chat/chat_controller.dart';
+import '../chat/chat_panel.dart';
 import '../questionnaire/questionnaire_controller.dart';
 import '../questionnaire/questionnaire_view.dart';
 import 'live_controller.dart';
@@ -44,6 +46,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   static const _historyWidth = 340.0;
   static const _metaHeight = Layout.overlayMeta;
   static const _actionsHeight = 50.0;
+  static const _chatHeight = 440.0;
 
   bool _controlsVisible = false;
 
@@ -219,6 +222,10 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     ref.listen(liveControllerProvider.select((s) => s.phase), _onPhaseChanged);
     ref.listen(liveControllerProvider.select((s) => s.historyOpen), (_, open) => unawaited(_onHistoryChanged(open)));
     ref.listen(liveControllerProvider.select((s) => s.clickThrough), (_, on) => _onClickThroughChanged(on));
+    // The chat panel needs room; the reading size comes back on close.
+    ref.listen(chatControllerProvider.select((c) => c.overlayOpen), (_, open) {
+      unawaited(_resizeTo(open ? math.max(_readingHeight, _chatHeight) : _readingHeight));
+    });
 
     final s = ref.watch(liveControllerProvider);
     final settings = ref.watch(settingsProvider);
@@ -248,10 +255,13 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
     final agentActive = ref.watch(agentControllerProvider.select((a) => a.active));
     final formActive = ref.watch(questionnaireControllerProvider.select((q) => q.active));
+    final chatOpen = ref.watch(chatControllerProvider.select((c) => c.overlayOpen));
     final Widget content = formActive
         ? const QuestionnaireView()
         : agentActive
         ? const AgentView()
+        : chatOpen
+        ? const ChatPanel()
         : switch (s.phase) {
             LivePhase.idle || LivePhase.starting => Center(
               child: Text(context.l10n.gettingReady, style: TypeScale.caption.copyWith(color: o.inkAt(0.6))),
@@ -311,7 +321,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
                           layoutBuilder: (current, previous) =>
                               Stack(fit: StackFit.expand, children: [...previous, ?current]),
                           child: KeyedSubtree(
-                            key: ValueKey(formActive ? 10 : (agentActive ? 9 : _phaseGroup(s.phase))),
+                            key: ValueKey(formActive ? 10 : (agentActive ? 9 : (chatOpen ? 8 : _phaseGroup(s.phase)))),
                             child: content,
                           ),
                         ),

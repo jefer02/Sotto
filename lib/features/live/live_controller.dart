@@ -25,6 +25,7 @@ import '../../services/speech/speech_session.dart';
 import '../../services/tts/tts_service.dart';
 import '../../l10n/l10n.dart';
 import '../agent/agent_controller.dart';
+import '../chat/chat_controller.dart';
 import '../questionnaire/questionnaire_controller.dart';
 import 'live_state.dart';
 
@@ -70,6 +71,9 @@ class LiveController extends Notifier<LiveState> {
   late TtsService _tts;
 
   AppSettings get _settings => ref.read(settingsProvider);
+
+  /// The session's speech engines, for chat dictation while live.
+  SpeechSession? get speech => _speech;
 
   @override
   LiveState build() {
@@ -189,6 +193,7 @@ class LiveController extends Notifier<LiveState> {
     if (ref.read(questionnaireControllerProvider).active) {
       unawaited(ref.read(questionnaireControllerProvider.notifier).close());
     }
+    ref.read(chatControllerProvider.notifier).closeOverlay();
     await _teardown();
     state = LiveState(readingSize: _settings.readingSize);
 
@@ -212,6 +217,7 @@ class LiveController extends Notifier<LiveState> {
       });
     }
     unawaited(ref.read(qaRepositoryProvider).prune(_settings.historyRetentionDays));
+    unawaited(ref.read(chatRepositoryProvider).prune(_settings.historyRetentionDays));
     onEnded?.call(record);
     return record;
   }
@@ -289,6 +295,8 @@ class LiveController extends Notifier<LiveState> {
     LiveAction.askScreen: (onDown: () => unawaited(askScreenDown()), onUp: askUp),
     LiveAction.agentTask: (onDown: agentTaskDown, onUp: askUp),
     LiveAction.agentStop: (onDown: emergencyStop, onUp: null),
+    LiveAction.openChat: (onDown: ref.read(chatControllerProvider.notifier).toggleOverlay, onUp: null),
+    LiveAction.pushToTalk: (onDown: _talkDown, onUp: _talkUp),
     LiveAction.fillForm: (
       onDown: () => unawaited(ref.read(questionnaireControllerProvider.notifier).start()),
       onUp: null,
@@ -491,6 +499,16 @@ class LiveController extends Notifier<LiveState> {
   void recordAgentRun(AgentRunRecord run) => _agentRuns.add(run);
 
   void recordFormRun(FormRunRecord run) => _formRuns.add(run);
+
+  /// Hold chord + V: dictate a chat message (the panel opens if closed).
+  void _talkDown() {
+    if (state.phase == LivePhase.listening || state.phase == LivePhase.drafting) return;
+    final chat = ref.read(chatControllerProvider.notifier);
+    if (!ref.read(chatControllerProvider).overlayOpen) chat.toggleOverlay();
+    unawaited(chat.startDictation());
+  }
+
+  void _talkUp() => unawaited(ref.read(chatControllerProvider.notifier).stopDictation());
 
   /// Chord + Esc: whatever Sotto is doing on screen stops at once.
   void emergencyStop() {

@@ -12,6 +12,7 @@ import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
 import '../live_controller.dart';
 import '../live_state.dart';
+import '../../chat/chat_controller.dart';
 import '../../questionnaire/questionnaire_controller.dart';
 
 /// The hover toolbar. Appears after 150 ms of hover intent, hides 800 ms
@@ -68,6 +69,12 @@ class OverlayControls extends ConsumerWidget {
             tip(LiveAction.ask.title, LiveAction.ask),
             c.askDown,
             selected: state.phase == LivePhase.listening,
+          ),
+          b(
+            SottoIcons.chat,
+            tip(LiveAction.openChat.title, LiveAction.openChat),
+            ref.read(chatControllerProvider.notifier).toggleOverlay,
+            selected: ref.watch(chatControllerProvider.select((c) => c.overlayOpen)),
           ),
           if (settings.formsEnabled)
             b(

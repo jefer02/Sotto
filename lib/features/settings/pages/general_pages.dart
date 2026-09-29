@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/icons.dart';
@@ -98,10 +99,7 @@ class GeneralPage extends ConsumerWidget {
                 onPressed: dir == null ? null : () => Clipboard.setData(ClipboardData(text: dir)),
               ),
             ),
-            SettingRow(
-              title: context.l10n.format,
-              subtitle: context.l10n.formatSub,
-            ),
+            SettingRow(title: context.l10n.format, subtitle: context.l10n.formatSub),
           ],
         ),
         SettingsGroup(
@@ -126,17 +124,11 @@ class GeneralPage extends ConsumerWidget {
             children: [
               Text(context.l10n.aboutSotto, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
               const SizedBox(height: 6),
-              Text(
-                context.l10n.aboutSottoBody,
-                style: TypeScale.body.copyWith(color: p.inkSecondary),
-              ),
+              Text(context.l10n.aboutSottoBody, style: TypeScale.body.copyWith(color: p.inkSecondary)),
               const SizedBox(height: 12),
               Text(context.l10n.versionLine, style: TypeScale.monoSmall.copyWith(color: p.inkTertiary)),
               const SizedBox(height: 4),
-              Text(
-                context.l10n.typefaces,
-                style: TypeScale.caption.copyWith(color: p.inkTertiary),
-              ),
+              Text(context.l10n.typefaces, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
             ],
           ),
         ),
@@ -289,7 +281,8 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
                 width: 240,
                 value: s.aiModel,
                 options: [
-                  for (final id in ids) SelectOption(id, id, detail: readsImages[id] == true ? l.modelReadsImages : null),
+                  for (final id in ids)
+                    SelectOption(id, id, detail: readsImages[id] == true ? l.modelReadsImages : null),
                 ],
                 onChanged: (v) => ref
                     .read(settingsProvider.notifier)
@@ -404,6 +397,7 @@ class PrivacyPage extends ConsumerWidget {
                 onChanged: (v) {
                   n.update((x) => x.copyWith(historyRetentionDays: v));
                   unawaited(ref.read(qaRepositoryProvider).prune(v));
+                  unawaited(ref.read(chatRepositoryProvider).prune(v));
                 },
               ),
             ),
@@ -413,11 +407,7 @@ class PrivacyPage extends ConsumerWidget {
                 label: context.l10n.delete,
                 size: ButtonSize.small,
                 onPressed: () async {
-                  if (await _confirm(
-                    context,
-                    context.l10n.deleteQaHistoryConfirm,
-                    context.l10n.deleteQaHistoryBody,
-                  )) {
+                  if (await _confirm(context, context.l10n.deleteQaHistoryConfirm, context.l10n.deleteQaHistoryBody)) {
                     await ref.read(qaRepositoryProvider).clear();
                   }
                 },
@@ -449,11 +439,7 @@ class PrivacyPage extends ConsumerWidget {
                 label: context.l10n.deleteEverything,
                 size: ButtonSize.small,
                 onPressed: () async {
-                  if (await _confirm(
-                    context,
-                    context.l10n.deleteAllDataConfirm,
-                    context.l10n.deleteAllDataBody,
-                  )) {
+                  if (await _confirm(context, context.l10n.deleteAllDataConfirm, context.l10n.deleteAllDataBody)) {
                     await ref.read(localStoreProvider).wipe();
                     if (context.mounted) context.go('/');
                   }
@@ -474,7 +460,10 @@ class PrivacyPage extends ConsumerWidget {
                 (context.l10n.privVoice, context.l10n.privVoiceBody),
                 (context.l10n.privRoom, context.l10n.privRoomBody),
                 (context.l10n.privAnswers, context.l10n.privAnswersBody),
-                (context.l10n.privScreen, s.screenAwareness ? context.l10n.privScreenOnBody : context.l10n.privScreenOffBody),
+                (
+                  context.l10n.privScreen,
+                  s.screenAwareness ? context.l10n.privScreenOnBody : context.l10n.privScreenOffBody,
+                ),
                 (context.l10n.privAgent, s.agentEnabled ? context.l10n.privAgentOnBody : context.l10n.privAgentOffBody),
                 (context.l10n.privModels, context.l10n.privModelsBody),
                 (context.l10n.privConsent, context.l10n.privConsentBody),

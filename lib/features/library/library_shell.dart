@@ -190,6 +190,14 @@ class _Sidebar extends ConsumerWidget {
               ),
               const SizedBox(height: 2),
               NavItem(
+                label: context.l10n.navChat,
+                icon: SottoIcons.chat,
+                selected: location == '/chat',
+                collapsed: collapsed,
+                onTap: () => go('/chat'),
+              ),
+              const SizedBox(height: 2),
+              NavItem(
                 label: context.l10n.navArchive,
                 icon: SottoIcons.archive,
                 selected: location == '/archive',

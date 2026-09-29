@@ -1543,5 +1543,55 @@
       }
     }
   },
-  "formsDialogTitle": "Questionnaire"
+  "formsDialogTitle": "Questionnaire",
+  "navChat": "Chat",
+  "chatNew": "New chat",
+  "chatNoConversations": "No conversations yet.",
+  "chatRename": "Rename",
+  "chatUntitled": "Untitled chat",
+  "chatEmptyTitle": "Ask anything",
+  "chatEmptyBody": "Extra questions before or during a talk. Attach your screen, or let it read your script. Thinking is off by default for fast replies — turn on Think deeper when it's worth the wait.",
+  "chatPanelEmpty": "Type or hold the talk key to ask. Zoom keeps the keyboard until you click the input.",
+  "chatCopy": "Copy",
+  "chatReadAloud": "Read aloud",
+  "chatScreenAttached": "screen attached",
+  "chatThinking": "Thinking…",
+  "chatListening": "Listening… release to stop",
+  "chatTranscribing": "Transcribing…",
+  "chatPlaceholder": "Message — Enter to send, Shift+Enter for a new line · hold {keys} to talk",
+  "@chatPlaceholder": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "chatDictate": "Dictate (hold {keys})",
+  "@chatDictate": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "chatStopDictation": "Stop dictating",
+  "chatAttachScreen": "Attach screen — sends a screenshot with the next message",
+  "chatStop": "Stop generating",
+  "chatSend": "Send",
+  "chatThinkDeeper": "Think deeper",
+  "chatUseScript": "Use my script",
+  "chatUseScriptNamed": "Use my script · {title}",
+  "@chatUseScriptNamed": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGroup": "Chat",
+  "chatAutoSend": "Send dictation at once",
+  "chatAutoSendSub": "Off: the transcript lands in the input so you can edit it first.",
+  "chatContext": "Messages sent as context",
+  "chatContextSub": "The most recent ones; older messages are trimmed.",
+  "chatPrivacy": "Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved."
 }

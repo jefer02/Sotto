@@ -127,6 +127,8 @@ class AppSettings {
     this.formsLanguage = FormAnswerLanguage.sameAsForm,
     this.formsStyle = FormAnswerStyle.short,
     this.formsInstructions = '',
+    this.chatAutoSend = false,
+    this.chatContextMessages = 20,
     this.historyRetentionDays = 30,
     this.onboarded = false,
     this.welcomeDone = false,
@@ -221,6 +223,12 @@ class AppSettings {
   /// Context the model may use for questionnaires (name, role…).
   final String formsInstructions;
 
+  /// Chat: dictated text is sent at once instead of landing in the input.
+  final bool chatAutoSend;
+
+  /// Chat: how many recent messages go with each request.
+  final int chatContextMessages;
+
   /// 0: history off — Q&A and questionnaire logs aren't kept.
   final int historyRetentionDays;
   final bool onboarded;
@@ -291,6 +299,8 @@ class AppSettings {
     FormAnswerLanguage? formsLanguage,
     FormAnswerStyle? formsStyle,
     String? formsInstructions,
+    bool? chatAutoSend,
+    int? chatContextMessages,
     int? historyRetentionDays,
     bool? onboarded,
     bool? welcomeDone,
@@ -350,6 +360,8 @@ class AppSettings {
     formsLanguage: formsLanguage ?? this.formsLanguage,
     formsStyle: formsStyle ?? this.formsStyle,
     formsInstructions: formsInstructions ?? this.formsInstructions,
+    chatAutoSend: chatAutoSend ?? this.chatAutoSend,
+    chatContextMessages: chatContextMessages ?? this.chatContextMessages,
     historyRetentionDays: historyRetentionDays ?? this.historyRetentionDays,
     onboarded: onboarded ?? this.onboarded,
     welcomeDone: welcomeDone ?? this.welcomeDone,
@@ -413,6 +425,8 @@ class AppSettings {
     'formsLanguage': formsLanguage.name,
     'formsStyle': formsStyle.name,
     'formsInstructions': formsInstructions,
+    'chatAutoSend': chatAutoSend,
+    'chatContextMessages': chatContextMessages,
     'historyRetentionDays': historyRetentionDays,
     'onboarded': onboarded,
     'welcomeDone': welcomeDone,
@@ -498,6 +512,8 @@ class AppSettings {
       formsLanguage: e(FormAnswerLanguage.values, j['formsLanguage'], d.formsLanguage),
       formsStyle: e(FormAnswerStyle.values, j['formsStyle'], d.formsStyle),
       formsInstructions: j['formsInstructions'] as String? ?? d.formsInstructions,
+      chatAutoSend: j['chatAutoSend'] as bool? ?? d.chatAutoSend,
+      chatContextMessages: j['chatContextMessages'] as int? ?? d.chatContextMessages,
       historyRetentionDays: j['historyRetentionDays'] as int? ?? d.historyRetentionDays,
       onboarded: j['onboarded'] as bool? ?? d.onboarded,
       welcomeDone: j['welcomeDone'] as bool? ?? d.welcomeDone,

@@ -129,6 +129,7 @@ void main() {
       'scripts': '/scripts',
       'archive': '/archive',
       'sessions': '/sessions',
+      'chat': '/chat',
       'editor-write': '/script/$id',
       'editor-prep': '/script/$id?tab=prep',
       'editor-rehearsals': '/script/$id?tab=rehearsals',

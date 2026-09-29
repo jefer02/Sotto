@@ -2623,4 +2623,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formsDialogTitle => 'Questionnaire';
+
+  @override
+  String get navChat => 'Chat';
+
+  @override
+  String get chatNew => 'New chat';
+
+  @override
+  String get chatNoConversations => 'No conversations yet.';
+
+  @override
+  String get chatRename => 'Rename';
+
+  @override
+  String get chatUntitled => 'Untitled chat';
+
+  @override
+  String get chatEmptyTitle => 'Ask anything';
+
+  @override
+  String get chatEmptyBody =>
+      'Extra questions before or during a talk. Attach your screen, or let it read your script. Thinking is off by default for fast replies — turn on Think deeper when it\'s worth the wait.';
+
+  @override
+  String get chatPanelEmpty => 'Type or hold the talk key to ask. Zoom keeps the keyboard until you click the input.';
+
+  @override
+  String get chatCopy => 'Copy';
+
+  @override
+  String get chatReadAloud => 'Read aloud';
+
+  @override
+  String get chatScreenAttached => 'screen attached';
+
+  @override
+  String get chatThinking => 'Thinking…';
+
+  @override
+  String get chatListening => 'Listening… release to stop';
+
+  @override
+  String get chatTranscribing => 'Transcribing…';
+
+  @override
+  String chatPlaceholder(String keys) {
+    return 'Message — Enter to send, Shift+Enter for a new line · hold $keys to talk';
+  }
+
+  @override
+  String chatDictate(String keys) {
+    return 'Dictate (hold $keys)';
+  }
+
+  @override
+  String get chatStopDictation => 'Stop dictating';
+
+  @override
+  String get chatAttachScreen => 'Attach screen — sends a screenshot with the next message';
+
+  @override
+  String get chatStop => 'Stop generating';
+
+  @override
+  String get chatSend => 'Send';
+
+  @override
+  String get chatThinkDeeper => 'Think deeper';
+
+  @override
+  String get chatUseScript => 'Use my script';
+
+  @override
+  String chatUseScriptNamed(String title) {
+    return 'Use my script · $title';
+  }
+
+  @override
+  String get chatGroup => 'Chat';
+
+  @override
+  String get chatAutoSend => 'Send dictation at once';
+
+  @override
+  String get chatAutoSendSub => 'Off: the transcript lands in the input so you can edit it first.';
+
+  @override
+  String get chatContext => 'Messages sent as context';
+
+  @override
+  String get chatContextSub => 'The most recent ones; older messages are trimmed.';
+
+  @override
+  String get chatPrivacy =>
+      'Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved.';
 }

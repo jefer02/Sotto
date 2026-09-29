@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/design/tokens.dart';
+import '../features/chat/chat_screen.dart';
 import '../features/editor/editor_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/library/library_shell.dart';
@@ -50,6 +51,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/sessions',
             pageBuilder: (c, s) => const NoTransitionPage(child: SessionsScreen()),
+          ),
+          GoRoute(
+            path: '/chat',
+            pageBuilder: (c, s) => const NoTransitionPage(child: ChatScreen()),
           ),
         ],
       ),
