@@ -5143,6 +5143,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Read only — answer shown'**
   String get qtReadOnly;
+
+  /// No description provided for @showChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Show chat'**
+  String get showChat;
+
+  /// No description provided for @showChatSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds Chat to the sidebar and turns on its shortcuts (open chat, push to talk). Off by default: it stays out of the way.'**
+  String get showChatSub;
+
+  /// No description provided for @chatAutoClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the chat panel after'**
+  String get chatAutoClose;
+
+  /// No description provided for @chatAutoCloseSub.
+  ///
+  /// In en, this message translates to:
+  /// **'In the overlay, after this long with no activity — never while a reply is arriving'**
+  String get chatAutoCloseSub;
+
+  /// No description provided for @chatAutoCloseNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get chatAutoCloseNever;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -92,13 +92,14 @@ works except drafting answers.
 | T | Click-through | = / − | Text size |
 | M | Move to next display | S | Ask about the screen (opt-in) |
 | G | Agent task by voice (opt-in) | Esc | **Emergency stop** — agent and questionnaire filling |
-| F | Fill the questionnaire on screen (opt-in) | C | Chat panel in the overlay |
-| V (hold) | Push-to-talk: dictate a chat message | | |
+| F | Fill the questionnaire on screen (opt-in) | C | Chat panel in the overlay (with *Show chat*) |
+| V (hold) | Push-to-talk: dictate a chat message (with *Show chat*) | | |
 
 All shortcuts are global, so they work while Zoom or your slides have focus. You can rebind them, or
 change the shared chord, in Settings → Shortcuts. The recorder flags conflicts with system shortcuts
 and other apps. F, C and V also work outside a live session: F turns the main window into the
-questionnaire panel, C opens the Chat page, V opens it and starts dictating.
+questionnaire panel, C opens the Chat page, V opens it and starts dictating (C and V only with
+Settings → General → *Show chat* on).
 
 ## Importing and organizing scripts
 
@@ -260,9 +261,13 @@ extra instructions (name, role, preferences). Then it fills the form:
   logged in the session (Sessions shows it) unless Privacy → *Keep history* is *Don't keep*.
   Screenshots are never saved.
 
-**Chat.** A general assistant chat with DeepSeek: the *Chat* page in the main window (conversations
-you can rename and delete) and, while live, a compact panel in the overlay (`Ctrl+Alt+C`) that never
-takes the keyboard from Zoom or PowerPoint until you click its input. Enter sends, Shift+Enter is a
+**Chat (opt-in).** The chat is off by default so it stays out of the way: turn it on in
+Settings → General → *Show chat*. That adds *Chat* to the sidebar and turns on its shortcuts (C and
+V); with it off, neither exists. A general assistant chat with DeepSeek: the *Chat* page in the main
+window (conversations you can rename and delete) and, while live, a compact panel in the overlay
+(`Ctrl+Alt+C`) that opens only when you press it, never takes the keyboard from Zoom or PowerPoint
+until you click its input, and closes itself after 60 s without activity (30 s / 1 / 2 / 5 min or
+never, in Settings → General; never while a reply is arriving). Enter sends, Shift+Enter is a
 new line; hold `Ctrl+Alt+V` to dictate with the on-device Whisper model (the transcript lands in the
 input, or is sent at once — Settings → Answers → Chat). *Attach screen* sends a screenshot with the
 next message, *Use my script* adds your script as context (off by default), and replies stream as

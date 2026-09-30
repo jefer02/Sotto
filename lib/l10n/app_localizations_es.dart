@@ -2862,4 +2862,20 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get qtReadOnly => 'Solo lectura — respuesta mostrada';
+
+  @override
+  String get showChat => 'Mostrar chat';
+
+  @override
+  String get showChatSub =>
+      'Añade Chat a la barra lateral y activa sus atajos (abrir chat, pulsar para hablar). Desactivado por defecto: no estorba.';
+
+  @override
+  String get chatAutoClose => 'Cerrar el panel de chat tras';
+
+  @override
+  String get chatAutoCloseSub => 'En el overlay, tras este tiempo sin actividad — nunca mientras llega una respuesta';
+
+  @override
+  String get chatAutoCloseNever => 'Nunca';
 }

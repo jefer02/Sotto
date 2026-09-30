@@ -30,76 +30,83 @@ class ChatPanel extends ConsumerWidget {
     final messages = conv?.messages ?? const <ChatMessage>[];
     final keys = PlatformKeys.describe(ref.watch(settingsProvider).shortcutFor(LiveAction.openChat));
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 12, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              SottoIcon(SottoIcons.chat, size: 13, color: colors.soft),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  conv?.title ?? l.chatNew,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TypeScale.caption.copyWith(color: colors.soft, fontWeight: FontWeight.w600),
-                ),
-              ),
-              SottoIconButton(
-                icon: SottoIcons.plus,
-                tooltip: l.chatNew,
-                overlay: true,
-                size: 24,
-                iconSize: 12,
-                onPressed: c.newConversation,
-              ),
-              SottoIconButton(
-                icon: SottoIcons.close,
-                tooltip: '${l.close}  $keys',
-                overlay: true,
-                size: 24,
-                iconSize: 12,
-                onPressed: c.closeOverlay,
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Expanded(
-            child: messages.isEmpty
-                ? Center(
-                    child: Text(
-                      l.chatPanelEmpty,
-                      textAlign: TextAlign.center,
-                      style: TypeScale.caption.copyWith(color: colors.faint),
-                    ),
-                  )
-                : ListView.builder(
-                    reverse: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: messages.length,
-                    itemBuilder: (context, i) {
-                      final m = messages[messages.length - 1 - i];
-                      return MessageTile(
-                        key: ValueKey(m.id),
-                        message: m,
-                        colors: colors,
-                        compact: true,
-                        streamingText: m.id == s.streamingId ? s.streamingText : null,
-                      );
-                    },
+    // Any pointer activity keeps the panel open (it closes itself after
+    // Settings → General → "Close the chat panel after").
+    return Listener(
+      onPointerDown: (_) => c.touch(),
+      onPointerHover: (_) => c.touch(),
+      onPointerSignal: (_) => c.touch(),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                SottoIcon(SottoIcons.chat, size: 13, color: colors.soft),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    conv?.title ?? l.chatNew,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TypeScale.caption.copyWith(color: colors.soft, fontWeight: FontWeight.w600),
                   ),
-          ),
-          if (s.error != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(s.error!, style: TypeScale.micro.copyWith(color: colors.error)),
+                ),
+                SottoIconButton(
+                  icon: SottoIcons.plus,
+                  tooltip: l.chatNew,
+                  overlay: true,
+                  size: 24,
+                  iconSize: 12,
+                  onPressed: c.newConversation,
+                ),
+                SottoIconButton(
+                  icon: SottoIcons.close,
+                  tooltip: '${l.close}  $keys',
+                  overlay: true,
+                  size: 24,
+                  iconSize: 12,
+                  onPressed: c.closeOverlay,
+                ),
+              ],
             ),
-          ChatToggles(conversation: conv, colors: colors),
-          const SizedBox(height: 6),
-          ChatComposer(colors: colors, compact: true),
-        ],
+            const SizedBox(height: 4),
+            Expanded(
+              child: messages.isEmpty
+                  ? Center(
+                      child: Text(
+                        l.chatPanelEmpty,
+                        textAlign: TextAlign.center,
+                        style: TypeScale.caption.copyWith(color: colors.faint),
+                      ),
+                    )
+                  : ListView.builder(
+                      reverse: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: messages.length,
+                      itemBuilder: (context, i) {
+                        final m = messages[messages.length - 1 - i];
+                        return MessageTile(
+                          key: ValueKey(m.id),
+                          message: m,
+                          colors: colors,
+                          compact: true,
+                          streamingText: m.id == s.streamingId ? s.streamingText : null,
+                        );
+                      },
+                    ),
+            ),
+            if (s.error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(s.error!, style: TypeScale.micro.copyWith(color: colors.error)),
+              ),
+            ChatToggles(conversation: conv, colors: colors),
+            const SizedBox(height: 6),
+            ChatComposer(colors: colors, compact: true),
+          ],
+        ),
       ),
     );
   }

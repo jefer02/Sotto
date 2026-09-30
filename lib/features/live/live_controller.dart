@@ -296,8 +296,11 @@ class LiveController extends Notifier<LiveState> {
     LiveAction.askScreen: (onDown: () => unawaited(askScreenDown()), onUp: askUp),
     LiveAction.agentTask: (onDown: agentTaskDown, onUp: askUp),
     LiveAction.agentStop: (onDown: emergencyStop, onUp: null),
-    LiveAction.openChat: (onDown: ref.read(chatControllerProvider.notifier).toggleOverlay, onUp: null),
-    LiveAction.pushToTalk: (onDown: _talkDown, onUp: _talkUp),
+    // The chat's shortcuts exist only with the chat turned on.
+    if (_settings.showChat) ...{
+      LiveAction.openChat: (onDown: ref.read(chatControllerProvider.notifier).toggleOverlay, onUp: null),
+      LiveAction.pushToTalk: (onDown: _talkDown, onUp: _talkUp),
+    },
     LiveAction.fillForm: (onDown: () => unawaited(ref.read(autoFillControllerProvider.notifier).fillNow()), onUp: null),
     LiveAction.sendToChat: (onDown: sendDown, onUp: sendUp),
     LiveAction.readAloud: (onDown: readAloud, onUp: null),

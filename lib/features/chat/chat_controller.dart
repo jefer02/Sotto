@@ -103,7 +103,10 @@ class ChatController extends Notifier<ChatState> {
 
   @override
   ChatState build() {
+    // Typing in the panel counts as activity.
+    input.addListener(touch);
     ref.onDispose(() {
+      _idle?.cancel();
       unawaited(_sub?.cancel());
       _client?.close();
       unawaited(_standalone?.dispose());
@@ -162,9 +165,39 @@ class ChatController extends Notifier<ChatState> {
 
   // ─────────────────────────── Overlay panel ───────────────────────────
 
-  void toggleOverlay() => state = state.copyWith(overlayOpen: !state.overlayOpen);
+  /// Chord + C. Opens only when asked, and only with the chat turned on
+  /// (Settings → General → Show chat).
+  void toggleOverlay() {
+    if (!state.overlayOpen && !_settings.showChat) return;
+    state = state.copyWith(overlayOpen: !state.overlayOpen);
+    state.overlayOpen ? _armIdle() : _idle?.cancel();
+  }
 
-  void closeOverlay() => state = state.copyWith(overlayOpen: false);
+  void closeOverlay() {
+    _idle?.cancel();
+    if (state.overlayOpen) state = state.copyWith(overlayOpen: false);
+  }
+
+  Timer? _idle;
+
+  /// The overlay panel closes itself after [AppSettings.chatAutoClose]
+  /// seconds without activity (0: never) — never while a reply streams in
+  /// or the presenter is dictating.
+  void _armIdle() {
+    _idle?.cancel();
+    final seconds = _settings.chatAutoClose;
+    if (!state.overlayOpen || seconds <= 0) return;
+    _idle = Timer(Duration(seconds: seconds), () {
+      if (!state.overlayOpen) return;
+      if (state.streaming || state.recording || state.transcribing) return _armIdle();
+      closeOverlay();
+    });
+  }
+
+  /// Activity in the panel (a pointer, a key): the idle clock starts over.
+  void touch() {
+    if (state.overlayOpen) _armIdle();
+  }
 
   // ─────────────────────────── Sending ───────────────────────────
 
@@ -289,6 +322,8 @@ class ChatController extends Notifier<ChatState> {
       unawaited(_repo.save(c.copyWith(messages: messages)));
     }
     if (state.streamingId == reply.id) state = state.copyWith(clearStreaming: true, streamingText: '');
+    // Time to read the reply before the panel closes itself.
+    touch();
   }
 
   /// Stop generating: what arrived so far is kept.

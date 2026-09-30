@@ -118,6 +118,7 @@ class _Sidebar extends ConsumerWidget {
     final sessions = ref.watch(sessionsProvider).value ?? const [];
     final collections = ref.watch(collectionsProvider).value ?? const <Collection>[];
     final active = scripts.where((s) => !s.archived).toList();
+    final showChat = ref.watch(settingsProvider.select((s) => s.showChat));
 
     void go(String path) => context.go(path);
     final toggle = SottoIconButton(
@@ -189,14 +190,17 @@ class _Sidebar extends ConsumerWidget {
                 onTap: () => go('/sessions'),
               ),
               const SizedBox(height: 2),
-              NavItem(
-                label: context.l10n.navChat,
-                icon: SottoIcons.chat,
-                selected: location == '/chat',
-                collapsed: collapsed,
-                onTap: () => go('/chat'),
-              ),
-              const SizedBox(height: 2),
+              // Opt-in (Settings → General → Show chat).
+              if (showChat) ...[
+                NavItem(
+                  label: context.l10n.navChat,
+                  icon: SottoIcons.chat,
+                  selected: location == '/chat',
+                  collapsed: collapsed,
+                  onTap: () => go('/chat'),
+                ),
+                const SizedBox(height: 2),
+              ],
               NavItem(
                 label: context.l10n.navArchive,
                 icon: SottoIcons.archive,

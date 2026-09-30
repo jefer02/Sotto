@@ -66,6 +66,31 @@ class GeneralPage extends ConsumerWidget {
                 onChanged: (v) => n.update((x) => x.copyWith(uiLanguage: v)),
               ),
             ),
+            SettingRow(
+              title: context.l10n.showChat,
+              subtitle: context.l10n.showChatSub,
+              trailing: SottoToggle(
+                value: s.showChat,
+                onChanged: (v) => n.update((x) => x.copyWith(showChat: v)),
+              ),
+            ),
+            if (s.showChat)
+              SettingRow(
+                title: context.l10n.chatAutoClose,
+                subtitle: context.l10n.chatAutoCloseSub,
+                trailing: SegmentedControl<int>(
+                  width: 300,
+                  segments: [
+                    const Segment(30, '30 s'),
+                    const Segment(60, '1 min'),
+                    const Segment(120, '2 min'),
+                    const Segment(300, '5 min'),
+                    Segment(0, context.l10n.chatAutoCloseNever),
+                  ],
+                  value: s.chatAutoClose,
+                  onChanged: (v) => n.update((x) => x.copyWith(chatAutoClose: v)),
+                ),
+              ),
           ],
         ),
         SettingsGroup(

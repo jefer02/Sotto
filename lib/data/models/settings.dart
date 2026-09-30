@@ -137,6 +137,8 @@ class AppSettings {
     this.formsStyle = FormAnswerStyle.short,
     this.formsInstructions = '',
     this.chatAutoSend = false,
+    this.showChat = false,
+    this.chatAutoClose = 60,
     this.chatContextMessages = 20,
     this.historyRetentionDays = 30,
     this.onboarded = false,
@@ -251,6 +253,14 @@ class AppSettings {
   /// Chat: dictated text is sent at once instead of landing in the input.
   final bool chatAutoSend;
 
+  /// The assistant chat — its sidebar entry and chord + C / + V — is
+  /// opt-in.
+  final bool showChat;
+
+  /// The overlay chat closes after this many seconds without activity
+  /// (0: never).
+  final int chatAutoClose;
+
   /// Chat: how many recent messages go with each request.
   final int chatContextMessages;
 
@@ -329,6 +339,8 @@ class AppSettings {
     FormAnswerStyle? formsStyle,
     String? formsInstructions,
     bool? chatAutoSend,
+    bool? showChat,
+    int? chatAutoClose,
     int? chatContextMessages,
     int? historyRetentionDays,
     bool? onboarded,
@@ -394,6 +406,8 @@ class AppSettings {
     formsStyle: formsStyle ?? this.formsStyle,
     formsInstructions: formsInstructions ?? this.formsInstructions,
     chatAutoSend: chatAutoSend ?? this.chatAutoSend,
+    showChat: showChat ?? this.showChat,
+    chatAutoClose: chatAutoClose ?? this.chatAutoClose,
     chatContextMessages: chatContextMessages ?? this.chatContextMessages,
     historyRetentionDays: historyRetentionDays ?? this.historyRetentionDays,
     onboarded: onboarded ?? this.onboarded,
@@ -464,6 +478,8 @@ class AppSettings {
     'formsStyle': formsStyle.name,
     'formsInstructions': formsInstructions,
     'chatAutoSend': chatAutoSend,
+    'showChat': showChat,
+    'chatAutoClose': chatAutoClose,
     'chatContextMessages': chatContextMessages,
     'historyRetentionDays': historyRetentionDays,
     'onboarded': onboarded,
@@ -565,6 +581,8 @@ class AppSettings {
       formsStyle: e(FormAnswerStyle.values, j['formsStyle'], d.formsStyle),
       formsInstructions: j['formsInstructions'] as String? ?? d.formsInstructions,
       chatAutoSend: j['chatAutoSend'] as bool? ?? d.chatAutoSend,
+      showChat: j['showChat'] as bool? ?? d.showChat,
+      chatAutoClose: j['chatAutoClose'] as int? ?? d.chatAutoClose,
       chatContextMessages: j['chatContextMessages'] as int? ?? d.chatContextMessages,
       historyRetentionDays: j['historyRetentionDays'] as int? ?? d.historyRetentionDays,
       onboarded: j['onboarded'] as bool? ?? d.onboarded,

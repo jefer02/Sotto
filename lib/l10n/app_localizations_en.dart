@@ -2852,4 +2852,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get qtReadOnly => 'Read only — answer shown';
+
+  @override
+  String get showChat => 'Show chat';
+
+  @override
+  String get showChatSub =>
+      'Adds Chat to the sidebar and turns on its shortcuts (open chat, push to talk). Off by default: it stays out of the way.';
+
+  @override
+  String get chatAutoClose => 'Close the chat panel after';
+
+  @override
+  String get chatAutoCloseSub => 'In the overlay, after this long with no activity — never while a reply is arriving';
+
+  @override
+  String get chatAutoCloseNever => 'Never';
 }

@@ -1655,5 +1655,10 @@
   "qtMatching": "Matching",
   "qtOrdering": "Ordering",
   "qtImageChoice": "Image choice",
-  "qtReadOnly": "Read only — answer shown"
+  "qtReadOnly": "Read only — answer shown",
+  "showChat": "Show chat",
+  "showChatSub": "Adds Chat to the sidebar and turns on its shortcuts (open chat, push to talk). Off by default: it stays out of the way.",
+  "chatAutoClose": "Close the chat panel after",
+  "chatAutoCloseSub": "In the overlay, after this long with no activity — never while a reply is arriving",
+  "chatAutoCloseNever": "Never"
 }

@@ -841,5 +841,10 @@
   "qtMatching": "Relacionar",
   "qtOrdering": "Ordenar",
   "qtImageChoice": "Elegir imagen",
-  "qtReadOnly": "Solo lectura — respuesta mostrada"
+  "qtReadOnly": "Solo lectura — respuesta mostrada",
+  "showChat": "Mostrar chat",
+  "showChatSub": "Añade Chat a la barra lateral y activa sus atajos (abrir chat, pulsar para hablar). Desactivado por defecto: no estorba.",
+  "chatAutoClose": "Cerrar el panel de chat tras",
+  "chatAutoCloseSub": "En el overlay, tras este tiempo sin actividad — nunca mientras llega una respuesta",
+  "chatAutoCloseNever": "Nunca"
 }

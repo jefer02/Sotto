@@ -87,12 +87,15 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
           // Chord + Esc, outside a session too: whatever Sotto is doing on
           // screen stops at once, and auto-fill rests.
           LiveAction.agentStop: (onDown: _emergencyStop, onUp: null),
-          LiveAction.openChat: (onDown: () => unawaited(_openChat()), onUp: null),
-          LiveAction.pushToTalk: (
-            onDown: () =>
-                unawaited(_openChat().then((_) => ref.read(chatControllerProvider.notifier).startDictation())),
-            onUp: () => unawaited(ref.read(chatControllerProvider.notifier).stopDictation()),
-          ),
+          // The chat's shortcuts exist only with the chat turned on.
+          if (ref.read(settingsProvider).showChat) ...{
+            LiveAction.openChat: (onDown: () => unawaited(_openChat()), onUp: null),
+            LiveAction.pushToTalk: (
+              onDown: () =>
+                  unawaited(_openChat().then((_) => ref.read(chatControllerProvider.notifier).startDictation())),
+              onUp: () => unawaited(ref.read(chatControllerProvider.notifier).stopDictation()),
+            ),
+          },
         },
       );
 
@@ -116,8 +119,9 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    // Re-bind ⌃⌥L when the chord or its key changes in Settings.
-    ref.listen(settingsProvider.select((s) => (s.chord, s.bindings)), (_, _) {
+    // Re-bind ⌃⌥L when the chord or its key changes in Settings — and the
+    // chat's shortcuts when the chat is turned on or off.
+    ref.listen(settingsProvider.select((s) => (s.chord, s.bindings, s.showChat)), (_, _) {
       if (!ref.read(liveControllerProvider).isLive) unawaited(_registerIdle());
     });
     final settings = ref.watch(settingsProvider);
