@@ -2718,4 +2718,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chatPrivacy =>
       'Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved.';
+
+  @override
+  String get formsNeedsAccessibility =>
+      'Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again.';
 }

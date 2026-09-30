@@ -2728,4 +2728,8 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get chatPrivacy =>
       'Los chats se guardan en este equipo durante el periodo de tu historial. Las capturas que adjuntas van a DeepSeek y nunca se guardan.';
+
+  @override
+  String get formsNeedsAccessibility =>
+      'Sotto necesita el permiso de Accesibilidad para leer y rellenar formularios. Permite Sotto en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad y vuelve a pulsar el atajo.';
 }

@@ -1593,5 +1593,6 @@
   "chatAutoSendSub": "Off: the transcript lands in the input so you can edit it first.",
   "chatContext": "Messages sent as context",
   "chatContextSub": "The most recent ones; older messages are trimmed.",
-  "chatPrivacy": "Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved."
+  "chatPrivacy": "Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved.",
+  "formsNeedsAccessibility": "Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again."
 }

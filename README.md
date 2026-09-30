@@ -33,7 +33,34 @@ capture and UI Automation for questionnaires). No permissions are needed.
 |---|---|---|
 | Microphone | Following your voice, capturing questions, chat dictation (push-to-talk) | First live session or first dictation |
 | Screen Recording | Screen awareness, "Attach screen" in chat, questionnaires on screen | When you first use one; pre-flight checks it |
-| Accessibility | Questionnaires on screen (reading and filling forms through the AX API) and agent mode | When you first press the questionnaire shortcut — needs an app outside the App Sandbox, see *Known limitations* |
+| Accessibility | Questionnaires on screen (reading and filling forms through the AX API) and agent mode | When you turn questionnaires on in Settings → Answers, or first press the shortcut |
+
+**No App Sandbox on macOS.** Sotto is a personal-use app, not distributed through the App Store, so
+`macos/Runner/Release.entitlements` and `DebugProfile.entitlements` don't enable
+`com.apple.security.app-sandbox`. The sandbox would block exactly what questionnaire filling and agent
+mode need: reading other apps' accessibility trees (AX API) and posting mouse and keyboard events
+(CGEvent). Nothing is open by default — macOS still gates each capability behind the privacy
+permissions above, and every feature that uses them is opt-in.
+
+**Granting the permissions (once):**
+
+1. `flutter run -d macos` (or open the built `Sotto.app`). The first live session asks for the
+   **Microphone** — choose *Allow*.
+2. **Screen Recording:** turn on Settings → Privacy → *Screen awareness* (or Settings → Answers →
+   *Questionnaires on screen*). macOS shows its prompt; choose *Open System Settings*, switch **Sotto**
+   on under Privacy & Security → Screen Recording, then quit and reopen Sotto (macOS applies Screen
+   Recording only after a relaunch).
+3. **Accessibility:** turn on *Questionnaires on screen* (or Settings → Privacy → *Agent mode*). macOS
+   shows its prompt; choose *Open System Settings* and switch **Sotto** on under Privacy & Security →
+   Accessibility. If Sotto isn't listed, press **+** and pick the app
+   (`build/macos/Build/Products/Debug/Sotto.app` for a debug build).
+4. Both settings pages show a warning row with *Open System Settings* while a permission is missing,
+   and pre-flight checks them before going live.
+
+Debug builds are signed ad hoc, so each rebuild looks like a new app to macOS: if a permission is
+switched on but stops working after a rebuild, remove Sotto from the list (**−**) and add it again, or
+reset it with `tccutil reset Accessibility app.sotto.sotto` and
+`tccutil reset ScreenCapture app.sotto.sotto`.
 
 On first launch the library is seeded with the design's example talk: "Q3 Board Review", or
 "Revisión del tercer trimestre" on a Spanish system.
@@ -291,16 +318,12 @@ models is ignored.
   Whisper, re-transcribing about once a second, so they react a little later.
 - Not built from the design: the menu-bar item, calendar integration, presentation-clicker following
   and cloud accounts.
-- **Agent mode on macOS is not wired up yet.** The Dart side is ready (`services/agent`), but the
-  native half — CGEvent posting in `MainFlutterWindow.swift` — is not in the repo, and it also
-  requires turning off the App Sandbox in `macos/Runner/*.entitlements` (sandboxed apps can't post
-  input events to other apps). That is a security trade-off to decide deliberately; until then the
-  agent reports "Windows only" on macOS.
-- **Questionnaires on macOS** use the AX API (`MainFlutterWindow.swift`). The App Sandbox blocks AX
-  access to other apps, so they need the same decision as agent mode: a build without
-  `com.apple.security.app-sandbox`, plus Accessibility permission. There is no click / type fallback
-  on macOS yet (it needs the CGEvent half above), so controls without AX actions are reported as not
-  filled.
+- **Agent mode on macOS is not wired up yet.** The Dart side is ready (`services/agent`) and the
+  sandbox no longer blocks it, but the native half — CGEvent posting in `MainFlutterWindow.swift` —
+  is not in the repo; until then the agent reports "Windows only" on macOS.
+- **Questionnaires on macOS** use the AX API (`MainFlutterWindow.swift`), which works now that the
+  sandbox is off (with Accessibility permission). There is no click / type fallback on macOS yet (it
+  needs the CGEvent half above), so controls without AX actions are reported as not filled.
 - The macOS ScreenCaptureKit and AX code is written but has not been compiled on a Mac yet.
 - Linux builds and runs for development (used for verification), but it is not a target. Global
   arrow-key hotkeys and read-aloud aren't available there.

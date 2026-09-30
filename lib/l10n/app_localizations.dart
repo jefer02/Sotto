@@ -4891,6 +4891,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved.'**
   String get chatPrivacy;
+
+  /// No description provided for @formsNeedsAccessibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again.'**
+  String get formsNeedsAccessibility;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

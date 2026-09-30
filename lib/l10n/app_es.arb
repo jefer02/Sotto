@@ -799,5 +799,6 @@
   "chatAutoSendSub": "Desactivado: la transcripción queda en el campo para que la edites antes.",
   "chatContext": "Mensajes enviados como contexto",
   "chatContextSub": "Los más recientes; los anteriores se recortan.",
-  "chatPrivacy": "Los chats se guardan en este equipo durante el periodo de tu historial. Las capturas que adjuntas van a DeepSeek y nunca se guardan."
+  "chatPrivacy": "Los chats se guardan en este equipo durante el periodo de tu historial. Las capturas que adjuntas van a DeepSeek y nunca se guardan.",
+  "formsNeedsAccessibility": "Sotto necesita el permiso de Accesibilidad para leer y rellenar formularios. Permite Sotto en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad y vuelve a pulsar el atajo."
 }

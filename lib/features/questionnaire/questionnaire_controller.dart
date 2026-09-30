@@ -171,8 +171,16 @@ class QuestionnaireController extends Notifier<QuestionnaireState> {
     final l = L10n.current;
     if (!_settings.formsEnabled) return l.formsOff;
     if (!FormAccessService.supported) return l.formsUnsupported;
-    if (!await ref.read(formAccessProvider).hasPermission()) return l.agentNeedsAccessibility;
-    if (await ref.read(screenServiceProvider).permission() == ScreenPermission.denied) {
+    // macOS: the system prompt appears the first time; after that the
+    // message says where to allow it.
+    final forms = ref.read(formAccessProvider);
+    if (!await forms.hasPermission()) {
+      await forms.requestPermission();
+      return l.formsNeedsAccessibility;
+    }
+    final screen = ref.read(screenServiceProvider);
+    if (await screen.permission() == ScreenPermission.denied) {
+      await screen.requestPermission();
       return l.noticeScreenPermission;
     }
     if (await resolveDeepSeekKey(ref.read(secretStoreProvider)) == null) return l.answerNeedsKey;

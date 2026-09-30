@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -16,6 +19,8 @@ import '../../../core/widgets/interactive.dart';
 import '../../../data/models/settings.dart';
 import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
+import '../../../services/screen/form_access.dart';
+import '../../../services/screen/screen_service.dart';
 import '../../../services/tts/tts_service.dart';
 import '../settings_screen.dart';
 
@@ -275,11 +280,46 @@ class _Leaves extends StatelessWidget {
 }
 
 /// Settings → Answers → Questionnaires on screen (chord + F).
-class _QuestionnairesGroup extends ConsumerWidget {
+class _QuestionnairesGroup extends ConsumerStatefulWidget {
   const _QuestionnairesGroup();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_QuestionnairesGroup> createState() => _QuestionnairesGroupState();
+}
+
+class _QuestionnairesGroupState extends ConsumerState<_QuestionnairesGroup> {
+  /// macOS: Accessibility (read and fill forms) and Screen Recording.
+  bool? _trusted;
+  ScreenPermission? _screen;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_check());
+  }
+
+  Future<void> _check() async {
+    final trusted = await ref.read(formAccessProvider).hasPermission();
+    final screen = await ref.read(screenServiceProvider).permission();
+    if (!mounted) return;
+    setState(() {
+      _trusted = trusted;
+      _screen = screen;
+    });
+  }
+
+  /// Turning it on asks macOS for both permissions (each prompt appears
+  /// once; after that, only System Settings can grant them).
+  Future<void> _toggle(bool on) async {
+    ref.read(settingsProvider.notifier).update((x) => x.copyWith(formsEnabled: on));
+    if (!on || !Platform.isMacOS) return;
+    if (_trusted == false) await ref.read(formAccessProvider).requestPermission();
+    if (_screen == ScreenPermission.denied) await ref.read(screenServiceProvider).requestPermission();
+    await _check();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final p = context.palette;
     final l = context.l10n;
     final s = ref.watch(settingsProvider);
@@ -292,11 +332,30 @@ class _QuestionnairesGroup extends ConsumerWidget {
         SettingRow(
           title: l.formsEnable,
           subtitle: l.formsEnableSub(keys),
-          trailing: SottoToggle(
-            value: s.formsEnabled,
-            onChanged: (v) => n.update((x) => x.copyWith(formsEnabled: v)),
-          ),
+          trailing: SottoToggle(value: s.formsEnabled, onChanged: (v) => unawaited(_toggle(v))),
         ),
+        if (s.formsEnabled && Platform.isMacOS && _trusted == false)
+          SettingRow(
+            title: l.accessibilityMissing,
+            subtitle: l.accessibilityMissingSub,
+            leading: SottoIcon(SottoIcons.alert, size: 14, color: p.cueText),
+            trailing: SottoButton(
+              label: l.openSystemSettings,
+              size: ButtonSize.small,
+              onPressed: () => unawaited(ref.read(screenServiceProvider).openPrivacySettings('accessibility')),
+            ),
+          ),
+        if (s.formsEnabled && Platform.isMacOS && _screen == ScreenPermission.denied)
+          SettingRow(
+            title: l.screenPermissionMissing,
+            subtitle: l.screenPermissionMissingSub,
+            leading: SottoIcon(SottoIcons.alert, size: 14, color: p.cueText),
+            trailing: SottoButton(
+              label: l.openSystemSettings,
+              size: ButtonSize.small,
+              onPressed: () => unawaited(ref.read(screenServiceProvider).openPrivacySettings('screen')),
+            ),
+          ),
         if (s.formsEnabled) ...[
           SettingRow(
             title: l.formsMode,
