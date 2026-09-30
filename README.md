@@ -4,8 +4,9 @@
 under the camera, follows your voice line by line, and drafts an answer when the room asks a question.
 
 Built with Flutter 3.47 / Dart 3.13. Fully local: no backend and no account. Everything is stored on
-this computer. The only network calls are DeepSeek (answers and, if you opt in, screenshots for screen
-awareness and agent mode) and a one-time download of the on-device speech models.
+this computer. The only network calls are DeepSeek (organizing scripts, answers, chat and, if you opt
+in, screenshots for screen awareness, questionnaires and agent mode) and a one-time download of the
+on-device speech models from GitHub. Speech recognition never leaves the computer.
 
 ## Run it
 
@@ -24,15 +25,15 @@ need a key in Integrations).
 
 **Windows** builds need `nuget.exe` on `PATH` (for the `flutter_tts` plugin) and Visual Studio's C++
 workload with a Windows 10/11 SDK (the runner's `sotto_native` library uses C++/WinRT for screen
-capture). No permissions are needed.
+capture and UI Automation for questionnaires). No permissions are needed.
 
 **macOS permissions** (System Settings → Privacy & Security):
 
 | Permission | Needed for | When it's asked |
 |---|---|---|
-| Microphone | Following your voice, capturing questions | First live session |
-| Screen Recording | Screen awareness ("Ask about the screen") | When you turn it on in Settings → Privacy; pre-flight checks it |
-| Accessibility | Agent mode (mouse and keyboard) | Not yet — see *Known limitations* |
+| Microphone | Following your voice, capturing questions, chat dictation (push-to-talk) | First live session or first dictation |
+| Screen Recording | Screen awareness, "Attach screen" in chat, questionnaires on screen | When you first use one; pre-flight checks it |
+| Accessibility | Questionnaires on screen (reading and filling forms through the AX API) and agent mode | When you first press the questionnaire shortcut — needs an app outside the App Sandbox, see *Known limitations* |
 
 On first launch the library is seeded with the design's example talk: "Q3 Board Review", or
 "Revisión del tercer trimestre" on a Spanish system.
@@ -63,11 +64,41 @@ works except drafting answers.
 | O | Hide overlay instantly | H | Questions history |
 | T | Click-through | = / − | Text size |
 | M | Move to next display | S | Ask about the screen (opt-in) |
-| G | Agent task by voice (opt-in) | Esc | Emergency stop for the agent |
+| G | Agent task by voice (opt-in) | Esc | **Emergency stop** — agent and questionnaire filling |
+| F | Fill the questionnaire on screen (opt-in) | C | Chat panel in the overlay |
+| V (hold) | Push-to-talk: dictate a chat message | | |
 
 All shortcuts are global, so they work while Zoom or your slides have focus. You can rebind them, or
 change the shared chord, in Settings → Shortcuts. The recorder flags conflicts with system shortcuts
-and other apps.
+and other apps. F, C and V also work outside a live session: F turns the main window into the
+questionnaire panel, C opens the Chat page, V opens it and starts dictating.
+
+## Importing and organizing scripts
+
+A script is usable within a second or two of importing, even at 10,000+ words:
+
+1. **Instant first pass.** Files are parsed off the UI thread (`.txt` / `.md` / `.docx` on
+   `Isolate.run`, PDFs on pdfrx's PDFium worker isolate) and the offline rule-based organizer runs on
+   a background isolate too. The script opens right away as *Refining…* — you can read and edit it.
+2. **AI refinement that never rewrites.** The text is split locally into numbered sentences (English
+   and Spanish aware: abbreviations, initials, "3.5" / "48,2"). DeepSeek gets `[1] … [2] …` and
+   returns only boundaries as JSON — `{"sections":[{"title":"…","beats":[[1,2],[3]],"cues":[{"after":3,"type":"slide","label":"4"}]}]}` —
+   and the sections are rebuilt locally from the original sentences, so the wording is guaranteed
+   unchanged and output tokens drop by ~90 %. Replies are validated (every sentence once, in order)
+   and repaired locally; an unusable reply keeps the rule-based result for that part.
+3. **Fast requests.** Thinking is off for organizing (`DeepSeekTaskProfile`), long scripts are cut
+   into ~1,500-word chunks at headings (with one paragraph of context), sent 4 at a time with retry
+   and exponential backoff on 429 / 5xx, and the identical system prompt comes first so DeepSeek's
+   prefix cache applies.
+4. **Progressive.** The library card and the editor show a real progress bar (chunks done / total).
+   Each chunk lands in the open editor as it arrives — never in a part you edited or where your cursor
+   is ("Kept your edits in 1 part"). Results are cached by a hash of the text, so importing the same
+   file again is instant.
+
+`DeepSeekTaskProfile` (`lib/services/ai/task_profile.dart`) is the one place that decides DeepSeek's
+thinking per task: organize, answers and chat off (chat has a per-conversation *Think deeper*),
+questionnaires and agent mode at low effort. Multi-turn requests with thinking on send each
+`reasoning_content` back, as the API requires.
 
 ## Languages
 
@@ -104,13 +135,19 @@ lib/
   l10n/           ARB catalogs (en, es), generated AppLocalizations, L10n helpers
   domain/
     agent/        Agent loop, tool actions, coordinate mapping, safety gate (pure, tested)
+    forms/        Questionnaires: fields from accessibility trees, option matching, answer →
+                  action mapping, verification, paging (pure, tested)
+    chat/         Chat history trimming, request building, streaming-safe Markdown
     following/    Text normalizer ("$48.2" → "forty eight point two"), Smith–Waterman aligner,
                   FollowEngine (the rules from the "Following your voice" board)
-    structuring/  Offline rule-based organizer: sections, one-breath beats, cues, hint words
+    structuring/  Rule-based organizer, sentence splitter, ID-based AI plan: chunking,
+                  validation / repair, local rebuild, progressive merge
   services/
-    speech/       Mic capture (record), sherpa-onnx worker isolate, Whisper, VAD, models
-    ai/           DeepSeek client (SSE streaming, tool calls), model list, answers, agent model
-    screen/       On-demand screenshots (Windows.Graphics.Capture / ScreenCaptureKit)
+    speech/       Mic capture (record), sherpa-onnx worker isolate, Whisper, VAD, models, dictation
+    ai/           DeepSeek client (SSE, tool calls, task profiles), organizer, answers, chat,
+                  questionnaires, agent model
+    screen/       On-demand screenshots (Windows.Graphics.Capture / ScreenCaptureKit) and form
+                  access (UI Automation / AX)
     agent/        Native input (SendInput + UI Automation) and the real agent executor
     tts/          Read aloud (flutter_tts)
   features/
@@ -120,6 +157,8 @@ lib/
     settings/     Shortcuts, Appearance, Voice & following, Answers, General, Integrations, Privacy
     live/         LiveController (the session state machine) and the overlay UI
     agent/        AgentController (confirmations, emergency stop, logging) and the agent panel
+    questionnaire/  Questionnaire filling controller and overlay panel
+    chat/         Chat page, overlay chat panel, composer, Markdown rendering
     onboarding/   First-run welcome
 ```
 
@@ -159,6 +198,37 @@ is a password (`windows/runner/native/input.cpp`). Safety rules, all mandatory:
 - An amber frame and an "Agent in control" badge are shown whenever the agent has the controls.
 - Every action is logged in the session record; Sessions shows it for review.
 
+**Questionnaires on screen (opt-in).** Off by default; turn it on in Settings → Answers →
+*Questionnaires on screen* (mode, answer language, short / detailed open answers, extra instructions).
+`Ctrl+Alt+F` (or the overlay button) captures the display of the window in front, reads its form
+through accessibility — Windows UI Automation (`windows/runner/native/forms.cpp`: text fields, radio
+groups, checkboxes, combo boxes with labels and options), the AX API on macOS — and asks DeepSeek to
+answer **from its own knowledge, not your script**, with the screenshot, the field list and your
+extra instructions (name, role, preferences). Then it fills the form:
+
+- Accessibility patterns first (`ValuePattern.SetValue`, `SelectionItemPattern.Select`,
+  `TogglePattern`, `ExpandCollapsePattern` + select; `AXValue` / `AXPress`); a click and typing through
+  the agent executor only when a control has none, with screenshot points mapped to physical pixels
+  (DPI and multi-monitor aware). 100–300 ms between fields so web forms register each change.
+- It re-reads the form to verify every value, retries failed fields once, presses *Next* on
+  multi-page forms (up to 10 pages) and scrolls for more — and **stops before Submit**: "Done — review
+  and submit", and only Enter clicks it.
+- *Show me the answers first* lists every answer in the overlay (editable) and fills on Enter.
+- Password and payment fields are never sent or filled, card numbers are never typed, `Ctrl+Alt+Esc`
+  stops at once, an amber "Sotto is filling" frame shows while it works, and every filled field is
+  logged in the session (Sessions shows it) unless Privacy → *Keep history* is *Don't keep*.
+  Screenshots are never saved.
+
+**Chat.** A general assistant chat with DeepSeek: the *Chat* page in the main window (conversations
+you can rename and delete) and, while live, a compact panel in the overlay (`Ctrl+Alt+C`) that never
+takes the keyboard from Zoom or PowerPoint until you click its input. Enter sends, Shift+Enter is a
+new line; hold `Ctrl+Alt+V` to dictate with the on-device Whisper model (the transcript lands in the
+input, or is sent at once — Settings → Answers → Chat). *Attach screen* sends a screenshot with the
+next message, *Use my script* adds your script as context (off by default), and replies stream as
+Markdown with copy, read-aloud and stop. Thinking is off unless you turn on *Think deeper* for a
+conversation. The last 20 messages go as context (10 / 20 / 40 in Settings). Chats are stored in
+the `chats` Hive box and follow Privacy → *Keep history* and *Delete all local data*.
+
 **One window, two personalities.** Going live morphs the main window into the overlay. It becomes
 frameless, always on top, transparent, resizable and draggable, and it snaps under the camera. Ending
 the session restores it exactly. The platform extras window_manager doesn't cover live in a small
@@ -194,11 +264,18 @@ models is ignored.
 ## Tests
 
 - `test/domain` — normalizer, aligner and follow rules (advance, hold, relock, backward jumps,
-  section skips), including Spanish numbers and a Spanish script read aloud.
+  section skips), including Spanish numbers and a Spanish script read aloud; the sentence splitter,
+  ID-based organizing (validation, repair, rebuild, chunking, merge) and a 15,000-word benchmark
+  (`flutter test test/domain/organize_test.dart` prints the timings); questionnaire fields, option
+  matching, answer mapping and verification over fake UI Automation trees; chat history, dictation
+  insertion and streaming Markdown.
+- `test/services` — DeepSeek request shapes (task profiles, JSON mode, vision, tool calls) and a guard
+  that speech stays on-device (no cloud STT endpoint, no host but DeepSeek and GitHub).
 - `test/integration` — real speech: a sample WAV streamed through the sherpa-onnx worker, driving the
   follow engine. It runs once the light English model is installed (or with `SOTTO_MODEL_DIR`); on
   Linux, point `LD_LIBRARY_PATH` at `build/linux/x64/debug/bundle/lib`.
-- `test/widgets` — renders the live answer card with the bundled fonts to `build/answer_card.png`.
+- `test/widgets` — renders the live answer card with the bundled fonts to `build/answer_card.png`, and
+  the questionnaire panel, overlay chat and Chat page at their real sizes.
 - `test/visual` — opt-in: `SOTTO_RENDER=1 flutter test test/visual` renders every main-window screen
   (and the welcome dialog) to `build/screens/*.png`; `SOTTO_RENDER_LANG=en` for English.
 
@@ -215,11 +292,16 @@ models is ignored.
 - Not built from the design: the menu-bar item, calendar integration, presentation-clicker following
   and cloud accounts.
 - **Agent mode on macOS is not wired up yet.** The Dart side is ready (`services/agent`), but the
-  native half — CGEvent posting and the AX API in `MainFlutterWindow.swift`, an Accessibility
-  permission check — is not in the repo, and it also requires turning off the App Sandbox in
-  `macos/Runner/*.entitlements` (sandboxed apps can't post input events to other apps). That is a
-  security trade-off to decide deliberately; until then the agent reports "Windows only" on macOS.
-- The macOS ScreenCaptureKit code is written but has not been compiled on a Mac yet.
+  native half — CGEvent posting in `MainFlutterWindow.swift` — is not in the repo, and it also
+  requires turning off the App Sandbox in `macos/Runner/*.entitlements` (sandboxed apps can't post
+  input events to other apps). That is a security trade-off to decide deliberately; until then the
+  agent reports "Windows only" on macOS.
+- **Questionnaires on macOS** use the AX API (`MainFlutterWindow.swift`). The App Sandbox blocks AX
+  access to other apps, so they need the same decision as agent mode: a build without
+  `com.apple.security.app-sandbox`, plus Accessibility permission. There is no click / type fallback
+  on macOS yet (it needs the CGEvent half above), so controls without AX actions are reported as not
+  filled.
+- The macOS ScreenCaptureKit and AX code is written but has not been compiled on a Mac yet.
 - Linux builds and runs for development (used for verification), but it is not a target. Global
   arrow-key hotkeys and read-aloud aren't available there.
 
