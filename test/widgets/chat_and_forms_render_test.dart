@@ -24,12 +24,12 @@ class _Settings extends SettingsNotifier {
 }
 
 class _Filling extends QuestionnaireController {
-  _Filling(this.phase);
-  final FormPhase phase;
+  _Filling(this.initial);
+  final FormPhase initial;
 
   @override
   QuestionnaireState build() => QuestionnaireState(
-    phase: phase,
+    phase: initial,
     page: 2,
     current: 1,
     items: const [

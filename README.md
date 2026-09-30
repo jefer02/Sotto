@@ -205,7 +205,7 @@ JPEG-encoded and sent to DeepSeek as an `image_url` part in the user message. So
 always excluded, screenshots are held in memory only and never written to disk, and nothing is ever
 captured in the background. On macOS this needs **Screen Recording** permission; pre-flight checks it.
 
-**Agent mode (opt-in, Windows).** Off by default; turn it on in Settings → Privacy. Describe a task
+**Agent mode (opt-in).** Off by default; turn it on in Settings → Privacy. Describe a task
 in the Q&A prep tab ("fill this form with my details from the prep docs") or say it with `Ctrl+Alt+G`
 while live. The loop — `lib/domain/agent/agent_loop.dart`, pure and tested with a fake executor —
 takes a screenshot, asks DeepSeek for one tool call (`click`, `double_click`, `right_click`,
@@ -233,13 +233,27 @@ groups, checkboxes, combo boxes with labels and options), the AX API on macOS �
 answer **from its own knowledge, not your script**, with the screenshot, the field list and your
 extra instructions (name, role, preferences). Then it fills the form:
 
-- Accessibility patterns first (`ValuePattern.SetValue`, `SelectionItemPattern.Select`,
-  `TogglePattern`, `ExpandCollapsePattern` + select; `AXValue` / `AXPress`); a click and typing through
-  the agent executor only when a control has none, with screenshot points mapped to physical pixels
-  (DPI and multi-monitor aware). 100–300 ms between fields so web forms register each change.
-- It re-reads the form to verify every value, retries failed fields once, presses *Next* on
-  multi-page forms (up to 10 pages) and scrolls for more — and **stops before Submit**: "Done — review
-  and submit", and only Enter clicks it.
+- Every field is marked **native_ax** (it has a working accessibility action) or **visual_only** (it
+  doesn't — or isn't in the tree at all, as with much browser content on macOS). native_ax fields use
+  the accessibility action (`ValuePattern.SetValue`, `SelectionItemPattern.Select`, `TogglePattern`,
+  `ExpandCollapsePattern` + select; `AXValue` / `AXPress`). On macOS, Sotto also asks Chrome, Edge and
+  Electron apps to build their web accessibility tree (`AXManualAccessibility`), so more fields take
+  that path.
+- visual_only fields are filled where the screenshot shows them — DeepSeek reads each question's kind
+  and box off the screenshot, and the box is mapped to real screen coordinates (DPI and
+  multi-monitor aware). Text: click the field, wait 80 ms, select what's there, then type the answer as
+  one Unicode key event per character (SendInput on Windows, CGEvent on macOS — never a clipboard
+  paste, so web inputs register real typing); line breaks only in multi-line fields. Drop-downs: click
+  to open, find the option on a fresh screenshot and click it (or type its label + Enter if it can't be
+  seen). Radios and checkboxes: click the centre. 100–300 ms between fields.
+- It then re-reads the tree and takes a new screenshot to verify every value. A field that didn't take
+  is retried once, typing at half speed (40 ms between keys instead of 20 ms); if it still fails, the
+  overlay marks it **could not fill** so you can fill it yourself. It presses *Next* on multi-page forms
+  (up to 10 pages; buttons found in the tree or on the screenshot) and scrolls for more — and **stops
+  before Submit**: "Done — review and submit", and only Enter clicks it.
+- The loop is `lib/domain/forms/form_runner.dart` — pure, driven in tests by a fake browser window that
+  exposes no accessibility content (`test/integration/form_fill_fake_browser_test.dart`: single- and
+  multi-line text, a native select, a radio group, a checkbox group, a Next button to a second page).
 - *Show me the answers first* lists every answer in the overlay (editable) and fills on Enter.
 - Password and payment fields are never sent or filled, card numbers are never typed, `Ctrl+Alt+Esc`
   stops at once, an amber "Sotto is filling" frame shows while it works, and every filled field is
@@ -318,13 +332,15 @@ models is ignored.
   Whisper, re-transcribing about once a second, so they react a little later.
 - Not built from the design: the menu-bar item, calendar integration, presentation-clicker following
   and cloud accounts.
-- **Agent mode on macOS is not wired up yet.** The Dart side is ready (`services/agent`) and the
-  sandbox no longer blocks it, but the native half — CGEvent posting in `MainFlutterWindow.swift` —
-  is not in the repo; until then the agent reports "Windows only" on macOS.
-- **Questionnaires on macOS** use the AX API (`MainFlutterWindow.swift`), which works now that the
-  sandbox is off (with Accessibility permission). There is no click / type fallback on macOS yet (it
-  needs the CGEvent half above), so controls without AX actions are reported as not filled.
-- The macOS ScreenCaptureKit and AX code is written but has not been compiled on a Mac yet.
+- **Questionnaires on macOS** use the AX API where the page exposes it and fall back to clicking and
+  typing (CGEvent, `SyntheticInput` in `MainFlutterWindow.swift`) where it doesn't — this covers
+  Chrome, Edge and Firefox pages that don't expose their content to AX. The same CGEvent input now
+  backs agent mode on macOS. Both need Accessibility permission.
+- **Visual-only fields depend on the model's eyes.** Where a page exposes nothing, DeepSeek finds the
+  questions, their boxes and the drop-down options on screenshots; small or crowded controls can be
+  missed. Anything that doesn't verify is marked *could not fill* rather than guessed.
+- The macOS ScreenCaptureKit, AX and CGEvent code is written but has not been compiled or run on a
+  Mac yet (this branch was built on Windows).
 - Linux builds and runs for development (used for verification), but it is not a target. Global
   arrow-key hotkeys and read-aloud aren't available there.
 

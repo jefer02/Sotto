@@ -20,6 +20,7 @@ class UiElement {
     this.parent,
     this.options = const [],
     this.patterns = const {},
+    this.multiline = false,
   });
 
   /// Opaque, stable while the page stays: the UIA runtime id, an AX handle.
@@ -48,6 +49,9 @@ class UiElement {
   /// value, toggle, select, expand, invoke, scroll, focus.
   final Set<String> patterns;
 
+  /// A text area (Enter makes a new line rather than submitting).
+  final bool multiline;
+
   bool has(String pattern) => patterns.contains(pattern);
 
   factory UiElement.fromMap(Map<Object?, Object?> m) {
@@ -67,6 +71,7 @@ class UiElement {
       parent: m['parent'] as String?,
       options: [for (final o in (m['options'] as List? ?? const [])) '$o'.trim()],
       patterns: {for (final p in (m['patterns'] as List? ?? const [])) '$p'},
+      multiline: m['multiline'] as bool? ?? m['type'] == 'document',
     );
   }
 }
@@ -86,6 +91,17 @@ enum FieldRole {
 
   /// Pick one from a drop-down (or list box).
   combo,
+}
+
+/// How Sotto can reach a field.
+enum FieldAccess {
+  /// It has a working accessibility action (UIA pattern / AX action): the
+  /// preferred, precise path.
+  nativeAx,
+
+  /// No accessible action — often the case for browser content on macOS.
+  /// Only its place on screen is known: click it and type.
+  visualOnly,
 }
 
 class FormOption {
@@ -111,6 +127,7 @@ class FormField {
     this.value = '',
     this.sensitive = false,
     this.patterns = const {},
+    this.multiline = false,
   });
 
   /// Stable across re-reads of the same page (element or group id).
@@ -131,6 +148,19 @@ class FormField {
   /// Password, security-code or payment field: never sent, never filled.
   final bool sensitive;
   final Set<String> patterns;
+  final bool multiline;
+
+  /// Whether an accessibility action can set this field's value.
+  FieldAccess get access {
+    bool has(String p) => patterns.contains(p);
+    final native = switch (role) {
+      FieldRole.text => has('value'),
+      FieldRole.radio => has('select') || has('invoke'),
+      FieldRole.checkboxes || FieldRole.checkbox => has('toggle') || has('invoke'),
+      FieldRole.combo => has('expand') || has('value'),
+    };
+    return native ? FieldAccess.nativeAx : FieldAccess.visualOnly;
+  }
 
   List<String> get selected => [
     for (final o in options)
@@ -285,6 +315,7 @@ class FormSnapshot {
               value: e.value ?? '',
               sensitive: sensitive(e, e.name),
               patterns: e.patterns,
+              multiline: e.multiline,
             ),
           );
         case 'combo':

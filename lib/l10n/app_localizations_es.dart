@@ -2216,7 +2216,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get agentOff => 'El modo agente está desactivado — actívalo en Ajustes → Privacidad';
 
   @override
-  String get agentUnsupported => 'Por ahora el modo agente funciona en Windows.';
+  String get agentUnsupported => 'El modo agente funciona en Windows y macOS.';
 
   @override
   String get agentNeedsAccessibility =>
@@ -2732,4 +2732,7 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get formsNeedsAccessibility =>
       'Sotto necesita el permiso de Accesibilidad para leer y rellenar formularios. Permite Sotto en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad y vuelve a pulsar el atajo.';
+
+  @override
+  String get formsCouldNotFill => 'no se pudo rellenar — rellénalo tú';
 }

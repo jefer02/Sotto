@@ -69,6 +69,13 @@ class MainFlutterWindow: NSPanel {
       self?.handleForms(call, result: result)
     }
 
+    let inputChannel = FlutterMethodChannel(
+      name: "app.sotto/input",
+      binaryMessenger: flutterViewController.engine.binaryMessenger)
+    inputChannel.setMethodCallHandler { call, result in
+      SyntheticInput.handle(call, result: result)
+    }
+
     let screenChannel = FlutterMethodChannel(
       name: "app.sotto/screen",
       binaryMessenger: flutterViewController.engine.binaryMessenger)
@@ -392,6 +399,12 @@ extension MainFlutterWindow {
       return result(FlutterError(code: "own_window", message: nil, details: nil))
     }
     let axApp = AXUIElementCreateApplication(app.processIdentifier)
+    // Chrome, Edge and Electron apps build their web-content AX tree only
+    // when an assistive app asks; these switch it on (others ignore them).
+    // Firefox and some pages still expose little: those fields fall back to
+    // clicking and typing where the screenshot shows them.
+    AXUIElementSetAttributeValue(axApp, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+    AXUIElementSetAttributeValue(axApp, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
     guard let w = MainFlutterWindow.attr(axApp, kAXFocusedWindowAttribute),
       CFGetTypeID(w) == AXUIElementGetTypeID()
     else {
@@ -449,6 +462,7 @@ extension MainFlutterWindow {
           }
           m["enabled"] = (MainFlutterWindow.attr(e, kAXEnabledAttribute) as? Bool) ?? true
           m["password"] = subrole == "AXSecureTextField"
+          m["multiline"] = role == "AXTextArea"
           var patterns: [String] = []
           var settable: DarwinBoolean = false
           if AXUIElementIsAttributeSettable(e, kAXValueAttribute as CFString, &settable) == .success,
@@ -507,4 +521,174 @@ extension MainFlutterWindow {
       result(AXUIElementSetAttributeValue(e, kAXValueAttribute as CFString, label as CFString) == .success)
     }
   }
+}
+
+// MARK: - Synthetic input (CGEvent)
+
+/// Synthetic mouse and keyboard over CGEvent — the macOS half of
+/// `app.sotto/input` (InputService): the click-and-type fallback for
+/// questionnaire fields that browsers don't expose to the AX API, and agent
+/// mode. Needs Accessibility permission (and no App Sandbox).
+///
+/// Coordinates are global display points, top-left origin — what CGEvent
+/// uses; the Dart side converts from physical pixels.
+enum SyntheticInput {
+  static func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    let a = call.arguments as? [String: Any] ?? [:]
+    let point = CGPoint(x: number(a["x"]), y: number(a["y"]))
+    switch call.method {
+    case "permission":
+      result(AXIsProcessTrusted() ? "granted" : "denied")
+    case "requestPermission":
+      let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+      result(AXIsProcessTrustedWithOptions([key: true] as CFDictionary))
+    case "move":
+      post(CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left))
+      result(nil)
+    case "click":
+      click(at: point, right: (a["button"] as? String) == "right", count: a["count"] as? Int ?? 1)
+      result(nil)
+    case "scroll":
+      if a["atPoint"] as? Bool ?? false {
+        post(CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left))
+      }
+      // Wheel units are lines; positive dy scrolls down (content moves up).
+      let dy = Int32(-(a["dy"] as? Int ?? 0))
+      let dx = Int32(-(a["dx"] as? Int ?? 0))
+      post(CGEvent(scrollWheelEvent2Source: source, units: .line, wheelCount: 2, wheel1: dy * 3, wheel2: dx * 3, wheel3: 0))
+      result(nil)
+    case "type":
+      type(a["text"] as? String ?? "")
+      result(nil)
+    case "keys":
+      result(pressKeys((a["keys"] as? [String]) ?? []) ? nil : FlutterError(code: "input_failed", message: "unknown key", details: nil))
+    case "releaseAll":
+      releaseAll()
+      result(nil)
+    case "focused":
+      result(focused())
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private static let source = CGEventSource(stateID: .hidSystemState)
+
+  private static func number(_ v: Any?) -> CGFloat {
+    if let d = v as? Double { return CGFloat(d) }
+    if let i = v as? Int { return CGFloat(i) }
+    return 0
+  }
+
+  private static func post(_ e: CGEvent?) {
+    e?.post(tap: .cghidEventTap)
+  }
+
+  private static func click(at p: CGPoint, right: Bool, count: Int) {
+    let down: CGEventType = right ? .rightMouseDown : .leftMouseDown
+    let up: CGEventType = right ? .rightMouseUp : .leftMouseUp
+    let button: CGMouseButton = right ? .right : .left
+    post(CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: p, mouseButton: button))
+    for n in 1...max(1, min(count, 2)) {
+      for type in [down, up] {
+        let e = CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: p, mouseButton: button)
+        e?.setIntegerValueField(.mouseEventClickState, value: Int64(n))
+        post(e)
+      }
+    }
+  }
+
+  /// One Unicode key event per character — web inputs see real typing, and
+  /// no keyboard layout gets in the way. Line breaks press Return.
+  private static func type(_ text: String) {
+    for ch in text {
+      if ch == "\n" || ch == "\r\n" {
+        tap(36, flags: [])
+        continue
+      }
+      let units = Array(String(ch).utf16)
+      for down in [true, false] {
+        let e = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: down)
+        units.withUnsafeBufferPointer { buf in
+          e?.keyboardSetUnicodeString(stringLength: buf.count, unicodeString: buf.baseAddress)
+        }
+        post(e)
+      }
+    }
+  }
+
+  private static func tap(_ key: CGKeyCode, flags: CGEventFlags) {
+    for down in [true, false] {
+      let e = CGEvent(keyboardEventSource: source, virtualKey: key, keyDown: down)
+      e?.flags = flags
+      post(e)
+    }
+  }
+
+  /// "cmd"+"a", "enter", "escape"… pressed together. On macOS "ctrl" is
+  /// Control and "cmd" / "meta" is Command.
+  private static func pressKeys(_ names: [String]) -> Bool {
+    var flags: CGEventFlags = []
+    var keys: [CGKeyCode] = []
+    for raw in names {
+      let n = raw.lowercased()
+      switch n {
+      case "cmd", "command", "meta", "super", "win": flags.insert(.maskCommand)
+      case "ctrl", "control": flags.insert(.maskControl)
+      case "alt", "option": flags.insert(.maskAlternate)
+      case "shift": flags.insert(.maskShift)
+      default:
+        guard let code = keyCodes[n] else { return false }
+        keys.append(code)
+      }
+    }
+    if keys.isEmpty { return false }
+    for k in keys { tap(k, flags: flags) }
+    return true
+  }
+
+  private static func releaseAll() {
+    for code: CGKeyCode in [55, 54, 56, 60, 58, 61, 59, 62] {  // cmd, shift, option, control (both sides)
+      let e = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: false)
+      e?.flags = []
+      post(e)
+    }
+    let p = CGEvent(source: nil)?.location ?? .zero
+    post(CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: p, mouseButton: .left))
+    post(CGEvent(mouseEventSource: source, mouseType: .rightMouseUp, mouseCursorPosition: p, mouseButton: .right))
+  }
+
+  /// The focused control, for the safety gate: never type into a password.
+  private static func focused() -> [String: Any]? {
+    let system = AXUIElementCreateSystemWide()
+    var value: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &value) == .success,
+      let v = value, CFGetTypeID(v) == AXUIElementGetTypeID()
+    else { return nil }
+    let e = v as! AXUIElement
+    func string(_ name: String) -> String {
+      var s: CFTypeRef?
+      return AXUIElementCopyAttributeValue(e, name as CFString, &s) == .success ? (s as? String ?? "") : ""
+    }
+    return [
+      "isPassword": string(kAXSubroleAttribute) == "AXSecureTextField",
+      "name": string(kAXTitleAttribute).isEmpty ? string(kAXDescriptionAttribute) : string(kAXTitleAttribute),
+      "role": string(kAXRoleAttribute),
+    ]
+  }
+
+  /// ANSI virtual key codes (Carbon's kVK_*).
+  private static let keyCodes: [String: CGKeyCode] = [
+    "a": 0, "s": 1, "d": 2, "f": 3, "h": 4, "g": 5, "z": 6, "x": 7, "c": 8, "v": 9, "b": 11, "q": 12,
+    "w": 13, "e": 14, "r": 15, "y": 16, "t": 17, "1": 18, "2": 19, "3": 20, "4": 21, "6": 22, "5": 23,
+    "=": 24, "9": 25, "7": 26, "-": 27, "8": 28, "0": 29, "]": 30, "o": 31, "u": 32, "[": 33, "i": 34,
+    "p": 35, "l": 37, "j": 38, "'": 39, "k": 40, ";": 41, "\\": 42, ",": 43, "/": 44, "n": 45, "m": 46,
+    ".": 47, "`": 50,
+    "enter": 36, "return": 36, "tab": 48, "space": 49, "backspace": 51, "escape": 53, "esc": 53,
+    "delete": 117, "del": 117, "home": 115, "end": 119, "pageup": 116, "pagedown": 121,
+    "left": 123, "right": 124, "down": 125, "up": 126,
+    "arrowleft": 123, "arrowright": 124, "arrowdown": 125, "arrowup": 126,
+    "f1": 122, "f2": 120, "f3": 99, "f4": 118, "f5": 96, "f6": 97, "f7": 98, "f8": 100, "f9": 101,
+    "f10": 109, "f11": 103, "f12": 111,
+  ]
 }

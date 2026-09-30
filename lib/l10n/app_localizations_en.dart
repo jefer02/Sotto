@@ -2208,7 +2208,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get agentOff => 'Agent mode is off — turn it on in Settings → Privacy';
 
   @override
-  String get agentUnsupported => 'Agent mode works on Windows for now.';
+  String get agentUnsupported => 'Agent mode works on Windows and macOS.';
 
   @override
   String get agentNeedsAccessibility =>
@@ -2722,4 +2722,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get formsNeedsAccessibility =>
       'Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again.';
+
+  @override
+  String get formsCouldNotFill => 'could not fill — please fill it yourself';
 }

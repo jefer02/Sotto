@@ -13,17 +13,17 @@ class InputException implements Exception {
   String toString() => message;
 }
 
-/// Synthetic mouse and keyboard for agent mode, over `app.sotto/input`.
-/// Windows: SendInput + UI Automation. macOS has no native side yet: it
-/// needs CGEvent + the AX API, Accessibility permission and an app outside
-/// the App Sandbox — see the README.
+/// Synthetic mouse and keyboard for agent mode and the questionnaire's
+/// click-and-type fallback, over `app.sotto/input`. Windows: SendInput + UI
+/// Automation. macOS: CGEvent + the AX API (Accessibility permission; the
+/// app runs without the App Sandbox — see the README).
 ///
-/// Coordinates: physical pixels on Windows, points on macOS — the caller
-/// ([NativeAgentExecutor]) converts.
+/// Coordinates: physical pixels on Windows, points on macOS — the callers
+/// ([NativeAgentExecutor], [NativeFormDriver]) convert.
 class InputService {
   static const _channel = MethodChannel('app.sotto/input');
 
-  static bool get supported => Platform.isWindows;
+  static bool get supported => Platform.isWindows || Platform.isMacOS;
 
   Future<void> _call(String method, [Map<String, Object?>? args]) async {
     try {

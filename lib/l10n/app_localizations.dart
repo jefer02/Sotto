@@ -4013,7 +4013,7 @@ abstract class AppLocalizations {
   /// No description provided for @agentUnsupported.
   ///
   /// In en, this message translates to:
-  /// **'Agent mode works on Windows for now.'**
+  /// **'Agent mode works on Windows and macOS.'**
   String get agentUnsupported;
 
   /// No description provided for @agentNeedsAccessibility.
@@ -4897,6 +4897,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again.'**
   String get formsNeedsAccessibility;
+
+  /// No description provided for @formsCouldNotFill.
+  ///
+  /// In en, this message translates to:
+  /// **'could not fill — please fill it yourself'**
+  String get formsCouldNotFill;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

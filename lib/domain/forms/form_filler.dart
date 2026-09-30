@@ -123,10 +123,12 @@ class FieldAnswer {
   final List<String> choices;
   final double confidence;
 
-  /// For "screen" answers: where to click, in screenshot pixels.
+  /// For "screen" answers: where to click, in screenshot pixels (the
+  /// centre of the "box" the model gave, or its "point").
   final Offset? point;
 
-  /// For "screen" answers: "text" (click, then type) or "choice" (click).
+  /// For "screen" answers: text, textarea (click, then type), dropdown
+  /// (open it, then pick the option), radio or checkbox (click it).
   final String kind;
 
   FieldAnswer copyWith({String? answer, List<String>? choices}) => FieldAnswer(
@@ -158,6 +160,17 @@ class FieldAnswer {
           () {
             final ans = a['answer'];
             final pt = a['point'];
+            final box = a['box'];
+            final Offset? point = pt is List && pt.length == 2 && pt[0] is num && pt[1] is num
+                ? Offset((pt[0] as num).toDouble(), (pt[1] as num).toDouble())
+                : box is List && box.length == 4 && box.every((v) => v is num)
+                ? Rect.fromLTWH(
+                    (box[0] as num).toDouble(),
+                    (box[1] as num).toDouble(),
+                    (box[2] as num).toDouble(),
+                    (box[3] as num).toDouble(),
+                  ).center
+                : null;
             return FieldAnswer(
               fieldId: '${a['field_id']}'.trim(),
               question: '${a['question'] ?? ''}'.trim(),
@@ -169,13 +182,53 @@ class FieldAnswer {
               },
               choices: ans is List ? [for (final c in ans) '$c'.trim()] : const [],
               confidence: ((a['confidence'] as num?)?.toDouble() ?? 1).clamp(0, 1).toDouble(),
-              point: pt is List && pt.length == 2 && pt[0] is num && pt[1] is num
-                  ? Offset((pt[0] as num).toDouble(), (pt[1] as num).toDouble())
-                  : null,
-              kind: '${a['kind'] ?? 'text'}',
+              point: point,
+              kind: '${a['kind'] ?? 'text'}'.toLowerCase(),
             );
           }(),
     ];
+  }
+}
+
+/// A Next or Submit button the model saw on the screenshot (pages whose
+/// buttons the accessibility tree doesn't show).
+class NavTarget {
+  const NavTarget(this.label, this.point);
+  final String label;
+
+  /// Screenshot pixels.
+  final Offset point;
+
+  static NavTarget? parse(Object? j) {
+    if (j is! Map) return null;
+    final pt = j['point'];
+    final box = j['box'];
+    final Offset? p = pt is List && pt.length == 2 && pt.every((v) => v is num)
+        ? Offset((pt[0] as num).toDouble(), (pt[1] as num).toDouble())
+        : box is List && box.length == 4 && box.every((v) => v is num)
+        ? Rect.fromLTWH(
+            (box[0] as num).toDouble(),
+            (box[1] as num).toDouble(),
+            (box[2] as num).toDouble(),
+            (box[3] as num).toDouble(),
+          ).center
+        : null;
+    return p == null ? null : NavTarget('${j['label'] ?? ''}'.trim(), p);
+  }
+}
+
+/// The model's whole reply: answers, plus Next / Submit when it sees them.
+class FormReply {
+  const FormReply(this.answers, {this.next, this.submit});
+
+  final List<FieldAnswer> answers;
+  final NavTarget? next;
+  final NavTarget? submit;
+
+  static FormReply parse(String raw) {
+    final answers = FieldAnswer.parseAll(raw);
+    final j = jsonDecode(raw.substring(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
+    return FormReply(answers, next: NavTarget.parse(j['next']), submit: NavTarget.parse(j['submit']));
   }
 }
 
@@ -210,11 +263,22 @@ class ChooseAction extends FillAction {
   final String label;
 }
 
-/// Fallback: click at [point] (physical pixels), then type [text] if any.
+/// Visual fallback: click at [point] (physical pixels), then type [text]
+/// if any, one key event per character. Line breaks are typed only into
+/// [multiline] fields (in a single-line field Enter would submit).
 class ClickTypeAction extends FillAction {
-  const ClickTypeAction(this.point, {this.text});
+  const ClickTypeAction(this.point, {this.text, this.multiline = false});
   final Offset point;
   final String? text;
+  final bool multiline;
+}
+
+/// Visual fallback for a drop-down: click it open at [point], then click
+/// the option labelled [label] where a fresh screenshot shows it.
+class VisualChooseAction extends FillAction {
+  const VisualChooseAction(this.point, this.label);
+  final Offset point;
+  final String label;
 }
 
 enum SkipReason { sensitive, noMatch, noAnswer, unknownField, lowConfidence }
@@ -232,6 +296,13 @@ class FillStep {
   final List<String> expected;
 
   String get question => answer.question.isNotEmpty ? answer.question : (field?.label ?? '');
+
+  /// Filled by clicking and typing rather than an accessibility action.
+  bool get visual => actions.any((a) => a is ClickTypeAction || a is VisualChooseAction);
+
+  /// How the control is reached: its accessibility action, or only where
+  /// it appears on screen.
+  FieldAccess get access => field?.access ?? FieldAccess.visualOnly;
 }
 
 class SkippedAnswer {
@@ -278,7 +349,16 @@ abstract final class FormFiller {
             FillStep(
               field: null,
               answer: a,
-              actions: [ClickTypeAction(p, text: a.kind == 'choice' ? null : a.answer)],
+              expected: [a.answer],
+              actions: [
+                switch (a.kind) {
+                  'text' => ClickTypeAction(p, text: a.answer),
+                  'textarea' => ClickTypeAction(p, text: a.answer, multiline: true),
+                  'dropdown' || 'select' => VisualChooseAction(p, a.answer),
+                  // radio, checkbox, choice: the point is the option itself.
+                  _ => ClickTypeAction(p),
+                },
+              ],
             ),
           );
         }
@@ -321,9 +401,9 @@ abstract final class FormFiller {
           field: f,
           answer: a,
           actions: [
-            f.patterns.contains('value')
+            f.access == FieldAccess.nativeAx
                 ? SetValueAction(id, a.answer)
-                : ClickTypeAction(_center(f.bounds), text: a.answer),
+                : ClickTypeAction(_center(f.bounds), text: a.answer, multiline: f.multiline),
           ],
         );
       case FieldRole.radio:
@@ -380,9 +460,9 @@ abstract final class FormFiller {
             answer: a,
             expected: [a.answer],
             actions: [
-              f.patterns.contains('expand') || f.patterns.contains('value')
+              f.access == FieldAccess.nativeAx
                   ? ChooseAction(id, a.answer)
-                  : ClickTypeAction(_center(f.bounds), text: a.answer),
+                  : VisualChooseAction(_center(f.bounds), a.answer),
             ],
           );
         }
@@ -394,9 +474,7 @@ abstract final class FormFiller {
           answer: a.copyWith(answer: label),
           expected: [label],
           actions: [
-            f.patterns.contains('expand') || f.patterns.contains('value')
-                ? ChooseAction(id, label)
-                : ClickTypeAction(_center(f.bounds), text: label),
+            f.access == FieldAccess.nativeAx ? ChooseAction(id, label) : VisualChooseAction(_center(f.bounds), label),
           ],
         );
     }
@@ -416,10 +494,10 @@ abstract final class FormVerifier {
       final now = after.field(f.key);
       if (now == null) continue;
       final ok = switch (f.role) {
-        FieldRole.text => _sameText(now.value, s.answer.answer),
+        FieldRole.text => sameText(now.value, s.answer.answer),
         FieldRole.combo =>
-          _sameText(now.value, s.expected.firstOrNull ?? s.answer.answer) ||
-              now.selected.any((l) => _sameText(l, s.expected.firstOrNull ?? '')),
+          sameText(now.value, s.expected.firstOrNull ?? s.answer.answer) ||
+              now.selected.any((l) => sameText(l, s.expected.firstOrNull ?? '')),
         FieldRole.radio ||
         FieldRole.checkboxes ||
         FieldRole.checkbox => _sameSet(now.selected, s.expected, whole: f.role != FieldRole.radio),
@@ -429,7 +507,9 @@ abstract final class FormVerifier {
     return out;
   }
 
-  static bool _sameText(String actual, String expected) {
+  /// Whether a field showing [actual] holds [expected] (case, accents and
+  /// reformatting aside).
+  static bool sameText(String actual, String expected) {
     final a = OptionMatcher.fold(actual);
     final e = OptionMatcher.fold(expected);
     // Fields may reformat (phone numbers, trailing spaces) or truncate.

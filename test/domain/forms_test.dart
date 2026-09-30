@@ -302,7 +302,7 @@ void main() {
       settings: const AppSettings(formsInstructions: 'My name is Ana.', formsStyle: FormAnswerStyle.detailed),
       appLanguageName: 'English',
     );
-    expect(answers.single.answer, 'Ana');
+    expect(answers.answers.single.answer, 'Ana');
     expect(llm.images, ['data:image/jpeg;base64,AAAA']);
     expect(llm.profile, DeepSeekTaskProfile.questionnaire);
     expect(llm.profile!.requestFields['thinking'], {'type': 'enabled', 'reasoning_effort': 'low'});

@@ -653,7 +653,7 @@
   "actionAgentStop": "Detener el agente",
   "actionAgentStopSub": "Parada de emergencia — cancela al instante y suelta todas las teclas",
   "agentOff": "El modo agente está desactivado — actívalo en Ajustes → Privacidad",
-  "agentUnsupported": "Por ahora el modo agente funciona en Windows.",
+  "agentUnsupported": "El modo agente funciona en Windows y macOS.",
   "agentNeedsAccessibility": "Sotto necesita el permiso de Accesibilidad para controlar el ratón y el teclado — mira Ajustes → Privacidad.",
   "agentListening": "Describe la tarea",
   "agentStarting": "Mirando la pantalla…",
@@ -800,5 +800,6 @@
   "chatContext": "Mensajes enviados como contexto",
   "chatContextSub": "Los más recientes; los anteriores se recortan.",
   "chatPrivacy": "Los chats se guardan en este equipo durante el periodo de tu historial. Las capturas que adjuntas van a DeepSeek y nunca se guardan.",
-  "formsNeedsAccessibility": "Sotto necesita el permiso de Accesibilidad para leer y rellenar formularios. Permite Sotto en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad y vuelve a pulsar el atajo."
+  "formsNeedsAccessibility": "Sotto necesita el permiso de Accesibilidad para leer y rellenar formularios. Permite Sotto en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad y vuelve a pulsar el atajo.",
+  "formsCouldNotFill": "no se pudo rellenar — rellénalo tú"
 }

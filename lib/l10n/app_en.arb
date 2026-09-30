@@ -1230,7 +1230,7 @@
   "actionAgentStop": "Stop the agent",
   "actionAgentStopSub": "Emergency stop — cancels at once and lets go of every key",
   "agentOff": "Agent mode is off — turn it on in Settings → Privacy",
-  "agentUnsupported": "Agent mode works on Windows for now.",
+  "agentUnsupported": "Agent mode works on Windows and macOS.",
   "agentNeedsAccessibility": "Sotto needs Accessibility permission to control the mouse and keyboard — see Settings → Privacy.",
   "agentListening": "Describe the task",
   "agentStarting": "Looking at the screen…",
@@ -1594,5 +1594,6 @@
   "chatContext": "Messages sent as context",
   "chatContextSub": "The most recent ones; older messages are trimmed.",
   "chatPrivacy": "Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved.",
-  "formsNeedsAccessibility": "Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again."
+  "formsNeedsAccessibility": "Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again.",
+  "formsCouldNotFill": "could not fill — please fill it yourself"
 }
