@@ -60,6 +60,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   Timer? _hoverIntent;
   Timer? _hoverHide;
   Timer? _geometryDebounce;
+  Timer? _saveDebounce;
   DateTime _programmaticUntil = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastWheel = DateTime.fromMillisecondsSinceEpoch(0);
 
@@ -105,6 +106,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     _chromeHide?.cancel();
     unawaited(_pings?.cancel());
     _geometryDebounce?.cancel();
+    _saveDebounce?.cancel();
     _edgeTimer?.cancel();
     super.dispose();
   }
@@ -115,6 +117,14 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
   void _markProgrammatic() => _programmaticUntil = DateTime.now().add(const Duration(milliseconds: 700));
 
+  /// Geometry is saved 500 ms after the last move or resize.
+  static const _saveDelay = Duration(milliseconds: 500);
+
+  void _saveGeometryLater() {
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(_saveDelay, () => unawaited(ref.read(liveControllerProvider.notifier).rememberGeometry()));
+  }
+
   @override
   void onWindowMoved() {
     if (_programmatic) return;
@@ -122,8 +132,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     _geometryDebounce = Timer(const Duration(milliseconds: 160), () async {
       _markProgrammatic();
       await _window.snapAfterDrag();
-      await ref.read(liveControllerProvider.notifier).rememberGeometry();
     });
+    _saveGeometryLater();
   }
 
   @override
@@ -135,8 +145,22 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     _geometryDebounce = Timer(const Duration(milliseconds: 200), () async {
       final b = await _window.bounds();
       _readingHeight = b.height;
-      await ref.read(liveControllerProvider.notifier).rememberGeometry();
     });
+    _saveGeometryLater();
+  }
+
+  // The overlay is never maximised, zoomed or tiled by the OS — only the
+  // presenter's own edge drag makes it big.
+  @override
+  void onWindowMaximize() => unawaited(_undoFill());
+
+  @override
+  void onWindowEnterFullScreen() => unawaited(_undoFill());
+
+  Future<void> _undoFill() async {
+    _saveDebounce?.cancel();
+    _markProgrammatic();
+    await _window.undoFill();
   }
 
   bool get _bottomDocked {
@@ -167,7 +191,9 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     final b = await _window.bounds();
     _widened = open;
     _markProgrammatic();
-    await _window.setOverlayWidth(open ? b.width + _historyWidth : math.max(300.0, b.width - _historyWidth));
+    await _window.setOverlayWidth(
+      open ? b.width + _historyWidth : math.max(OverlayGeometry.minimum.width, b.width - _historyWidth),
+    );
   }
 
   void _onClickThroughChanged(bool on) {
@@ -416,7 +442,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     _ => 0,
   };
 
-  /// Frameless windows on Windows/Linux need their own resize edges.
+  /// Frameless windows on Windows/Linux need their own resize edges (every
+  /// side; the top one is thin so the meta strip still drags the window).
   List<Widget> _resizeEdges() {
     Widget edge(
       ResizeEdge e,
@@ -449,6 +476,9 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
       edge(ResizeEdge.bottom, SystemMouseCursors.resizeUpDown, left: 16, right: 16, bottom: 0, height: t),
       edge(ResizeEdge.bottomRight, SystemMouseCursors.resizeDownRight, right: 0, bottom: 0, width: 14, height: 14),
       edge(ResizeEdge.bottomLeft, SystemMouseCursors.resizeDownLeft, left: 0, bottom: 0, width: 14, height: 14),
+      edge(ResizeEdge.top, SystemMouseCursors.resizeUpDown, left: 16, right: 16, top: 0, height: 3),
+      edge(ResizeEdge.topRight, SystemMouseCursors.resizeUpRight, right: 0, top: 0, width: 10, height: 10),
+      edge(ResizeEdge.topLeft, SystemMouseCursors.resizeUpLeft, left: 0, top: 0, width: 10, height: 10),
     ];
   }
 }

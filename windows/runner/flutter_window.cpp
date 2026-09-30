@@ -180,6 +180,9 @@ void FlutterWindow::ConfigureOverlay(bool enabled, bool exclude_from_capture, bo
     ex |= WS_EX_APPWINDOW;
   }
   SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex);
+  // A maximised window would stay maximised through the frame change below
+  // and ignore the overlay's bounds.
+  if (enabled && IsZoomed(hwnd)) ShowWindow(hwnd, SW_RESTORE);
   SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 
@@ -404,6 +407,14 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   // handler can override it.
   if (overlay_ && !overlay_keyboard_ && message == WM_MOUSEACTIVATE) {
     return MA_NOACTIVATE;
+  }
+  // The overlay is a small floating window: never maximised by a
+  // double-click on its drag area or by the system menu. (Without
+  // WS_MAXIMIZEBOX, set from Dart, Aero Snap won't fill the screen when it
+  // is dragged to the top edge either.) Resizing by its edges still works.
+  if (overlay_) {
+    if (message == WM_NCLBUTTONDBLCLK) return 0;
+    if (message == WM_SYSCOMMAND && (wparam & 0xFFF0) == SC_MAXIMIZE) return 0;
   }
 
   // Give Flutter, including plugins, an opportunity to handle window messages.

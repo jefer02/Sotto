@@ -53,6 +53,9 @@ class MainFlutterWindow: NSPanel {
           radius: CGFloat(args["radius"] as? Double ?? 16),
           textOnly: args["textOnly"] as? Bool ?? false)
         result(nil)
+      case "allowFill":
+        self.allowFillOnce = true
+        result(nil)
       case "keyboard":
         let args = call.arguments as? [String: Any] ?? [:]
         self.setOverlayKeyboard(args["on"] as? Bool ?? false)
@@ -84,6 +87,43 @@ class MainFlutterWindow: NSPanel {
     }
 
     super.awakeFromNib()
+  }
+
+  /// Set by Dart right before it restores an overlay the presenter had
+  /// dragged to fill the screen; consumed by the next frame change.
+  private var allowFillOnce = false
+
+  // The overlay is a small floating window. Zoom (a double-click on its top
+  // edge), full screen and window tiling (macOS 15: dragging a window to the
+  // top of the screen fills it) are refused; only the presenter's own edge
+  // drag — a live resize — may make it that big.
+  override func zoom(_ sender: Any?) {
+    if overlayActive { return }
+    super.zoom(sender)
+  }
+
+  override func toggleFullScreen(_ sender: Any?) {
+    if overlayActive { return }
+    super.toggleFullScreen(sender)
+  }
+
+  private func refusesFrame(_ frame: NSRect) -> Bool {
+    guard overlayActive, !inLiveResize, let area = screen?.visibleFrame else { return false }
+    if allowFillOnce {
+      allowFillOnce = false
+      return false
+    }
+    return frame.width >= area.width - 2 && frame.height >= area.height - 2
+  }
+
+  override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+    if refusesFrame(frameRect) { return }
+    super.setFrame(frameRect, display: flag)
+  }
+
+  override func setFrame(_ frameRect: NSRect, display displayFlag: Bool, animate animateFlag: Bool) {
+    if refusesFrame(frameRect) { return }
+    super.setFrame(frameRect, display: displayFlag, animate: animateFlag)
   }
 
   // In the overlay, never become key: keystrokes keep going to the app the

@@ -862,9 +862,13 @@ class LiveController extends Notifier<LiveState> {
     await _window.moveToNextDisplay(settings);
   }
 
-  /// Remembers the overlay's geometry after the user drags or resizes it.
+  /// Remembers the overlay's geometry after the user drags or resizes it —
+  /// never a frame the OS forced on it (maximised, full screen), which would
+  /// otherwise come back at the start of every session.
   Future<void> rememberGeometry() async {
+    if (!await _window.ownsFrame()) return;
     final b = await _window.bounds();
+    _window.noteFrame(b);
     final display = _window.displayId;
     ref
         .read(settingsProvider.notifier)

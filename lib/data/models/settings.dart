@@ -84,7 +84,7 @@ class AppSettings {
     this.scrollStyle = ScrollStyle.glide,
     this.reduceMotion = false,
     this.blurBehind = true,
-    this.overlaySize = const (560.0, 232.0),
+    this.overlaySize = const (480.0, 120.0),
     this.overlayPositions = const {},
     // Voice & following
     this.microphoneId,
@@ -154,6 +154,9 @@ class AppSettings {
   final bool reduceMotion;
   final bool blurBehind;
   final (double, double) overlaySize;
+
+  /// Bumped when saved overlay geometry can't be trusted any more.
+  static const overlayGeometryVersion = 2;
 
   /// Last overlay position per display id, as (x, y) in logical pixels.
   final Map<String, (double, double)> overlayPositions;
@@ -385,6 +388,7 @@ class AppSettings {
     'scrollStyle': scrollStyle.name,
     'reduceMotion': reduceMotion,
     'blurBehind': blurBehind,
+    'overlayGeometryVersion': overlayGeometryVersion,
     'overlaySize': [overlaySize.$1, overlaySize.$2],
     'overlayPositions': {
       for (final e in overlayPositions.entries) e.key: [e.value.$1, e.value.$2],
@@ -437,7 +441,10 @@ class AppSettings {
     const d = AppSettings();
     T e<T extends Enum>(List<T> values, Object? name, T fallback) => values.asNameMap()[name] ?? fallback;
     double n(Object? v, double fallback) => (v as num?)?.toDouble() ?? fallback;
-    final size = j['overlaySize'] as List?;
+    // Geometry saved before version 2 may hold a maximised overlay's frame
+    // (the full-screen bug): start again from the default strip.
+    final geometryOk = j['overlayGeometryVersion'] == overlayGeometryVersion;
+    final size = geometryOk ? j['overlaySize'] as List? : null;
     return AppSettings(
       appTheme: e(AppThemeMode.values, j['appTheme'], d.appTheme),
       uiLanguage: e(AppLanguage.values, j['uiLanguage'], d.uiLanguage),
@@ -458,7 +465,7 @@ class AppSettings {
       blurBehind: j['blurBehind'] as bool? ?? d.blurBehind,
       overlaySize: size == null ? d.overlaySize : ((size[0] as num).toDouble(), (size[1] as num).toDouble()),
       overlayPositions: {
-        for (final entry in ((j['overlayPositions'] as Map?) ?? const {}).entries)
+        for (final entry in ((geometryOk ? j['overlayPositions'] as Map? : null) ?? const {}).entries)
           entry.key as String: (
             ((entry.value as List)[0] as num).toDouble(),
             ((entry.value as List)[1] as num).toDouble(),
