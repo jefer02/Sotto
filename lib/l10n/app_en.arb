@@ -1603,5 +1603,7 @@
   "overlayTextColorCustom": "Custom",
   "overlayTextColorAutoSub": "Dark text on light slides, light text on dark ones — checked on this computer every 0.8 s, never sent anywhere",
   "overlayTextColorFixedSub": "Fixed; the background isn't checked",
-  "overlayTextColorCustomSub": "Your own text and outline colors"
+  "overlayTextColorCustomSub": "Your own text and outline colors",
+  "maxOverlayHeight": "Max overlay height",
+  "maxOverlayHeightSub": "The overlay grows and shrinks with the lines showing, up to this share of the screen. Drag its edge to set a height for the session."
 }

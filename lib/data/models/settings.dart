@@ -77,6 +77,7 @@ class AppSettings {
     this.overlayTheme = OverlayThemeMode.dark,
     this.overlayStyle = OverlayStyle.textOnly,
     this.overlayTextColor = OverlayTextColor.auto,
+    this.maxOverlayHeight = 0.4,
     this.textColor = 0xFFFFFFFF,
     this.outlineColor,
     this.outlineWidth = 2.0,
@@ -146,6 +147,10 @@ class AppSettings {
   final OverlayStyle overlayStyle;
 
   final OverlayTextColor overlayTextColor;
+
+  /// The overlay's height follows its text up to this fraction of the
+  /// display's height (0.2–0.8).
+  final double maxOverlayHeight;
 
   /// Text-only colors, as ARGB. A null outline contrasts with the text.
   final int textColor;
@@ -258,6 +263,7 @@ class AppSettings {
     OverlayThemeMode? overlayTheme,
     OverlayStyle? overlayStyle,
     OverlayTextColor? overlayTextColor,
+    double? maxOverlayHeight,
     int? textColor,
     int? outlineColor,
     bool autoOutline = false,
@@ -322,6 +328,7 @@ class AppSettings {
     overlayTheme: overlayTheme ?? this.overlayTheme,
     overlayStyle: overlayStyle ?? this.overlayStyle,
     overlayTextColor: overlayTextColor ?? this.overlayTextColor,
+    maxOverlayHeight: maxOverlayHeight ?? this.maxOverlayHeight,
     textColor: textColor ?? this.textColor,
     outlineColor: autoOutline ? null : (outlineColor ?? this.outlineColor),
     outlineWidth: outlineWidth ?? this.outlineWidth,
@@ -386,6 +393,7 @@ class AppSettings {
     'overlayTheme': overlayTheme.name,
     'overlayStyle': overlayStyle.name,
     'overlayTextColor': overlayTextColor.name,
+    'maxOverlayHeight': maxOverlayHeight,
     'textColor': textColor,
     'outlineColor': outlineColor,
     'outlineWidth': outlineWidth,
@@ -469,6 +477,7 @@ class AppSettings {
             ? OverlayTextColor.custom
             : d.overlayTextColor,
       ),
+      maxOverlayHeight: n(j['maxOverlayHeight'], d.maxOverlayHeight).clamp(0.2, 0.8),
       textColor: j['textColor'] as int? ?? d.textColor,
       outlineColor: j['outlineColor'] as int?,
       outlineWidth: n(j['outlineWidth'], d.outlineWidth),

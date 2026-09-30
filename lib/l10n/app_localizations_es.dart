@@ -2760,4 +2760,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get overlayTextColorCustomSub => 'Tus propios colores de texto y contorno';
+
+  @override
+  String get maxOverlayHeight => 'Altura máxima del overlay';
+
+  @override
+  String get maxOverlayHeightSub =>
+      'El overlay crece y encoge con las líneas visibles, hasta esta parte de la pantalla. Arrastra su borde para fijar una altura durante la sesión.';
 }

@@ -809,5 +809,7 @@
   "overlayTextColorCustom": "Personalizado",
   "overlayTextColorAutoSub": "Texto oscuro sobre diapositivas claras y claro sobre oscuras — se comprueba en este equipo cada 0,8 s, nunca se envía",
   "overlayTextColorFixedSub": "Fijo; no se comprueba el fondo",
-  "overlayTextColorCustomSub": "Tus propios colores de texto y contorno"
+  "overlayTextColorCustomSub": "Tus propios colores de texto y contorno",
+  "maxOverlayHeight": "Altura máxima del overlay",
+  "maxOverlayHeightSub": "El overlay crece y encoge con las líneas visibles, hasta esta parte de la pantalla. Arrastra su borde para fijar una altura durante la sesión."
 }

@@ -252,6 +252,18 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
                 onChanged: (v) => n.update((x) => x.copyWith(linesShown: v)),
               ),
             ),
+            SettingRow(
+              title: context.l10n.maxOverlayHeight,
+              subtitle: context.l10n.maxOverlayHeightSub,
+              trailing: SottoSlider(
+                value: s.maxOverlayHeight,
+                min: 0.2,
+                max: 0.8,
+                divisions: 12,
+                label: NumberFormat.percentPattern(context.l10n.localeName).format(s.maxOverlayHeight),
+                onChanged: (v) => n.update((x) => x.copyWith(maxOverlayHeight: v)),
+              ),
+            ),
             if (!textOnly)
               SettingRow(
                 title: context.l10n.opacity,

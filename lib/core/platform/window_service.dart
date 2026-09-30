@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/animation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -383,6 +384,32 @@ class WindowService {
     final frame = Rect.fromLTWH(b.left, top, b.width, h);
     await _host.setBounds(frame, animate: Platform.isMacOS);
     _overlayFrame = frame;
+  }
+
+  int _heightAnimation = 0;
+
+  /// Eases the overlay to [height] over [duration] (ease-out), growing away
+  /// from the docked edge. A newer call cancels one still running. The
+  /// caller clamps [height].
+  Future<void> animateHeight(
+    double height, {
+    bool fromBottom = false,
+    Duration duration = const Duration(milliseconds: 150),
+  }) async {
+    if (!_overlay) return;
+    final id = ++_heightAnimation;
+    final b = await _host.getBounds();
+    if ((height - b.height).abs() < 1) return;
+    const frame = Duration(milliseconds: 16);
+    final steps = duration.inMilliseconds ~/ frame.inMilliseconds;
+    for (var i = 1; i <= (steps < 1 ? 1 : steps); i++) {
+      if (id != _heightAnimation || !_overlay) return;
+      final h = b.height + (height - b.height) * Curves.easeOut.transform(steps < 1 ? 1 : i / steps);
+      final r = Rect.fromLTWH(b.left, fromBottom ? b.bottom - h : b.top, b.width, h);
+      await _host.setBounds(r);
+      _overlayFrame = r;
+      if (i < steps) await Future<void>.delayed(frame);
+    }
   }
 
   Future<void> setOverlayWidth(double width) async {

@@ -18,6 +18,7 @@ import '../../core/platform/window_service.dart';
 import '../../data/models/settings.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
+import '../../domain/overlay/auto_height.dart';
 import '../agent/agent_controller.dart';
 import '../agent/agent_view.dart';
 import '../chat/chat_controller.dart';
@@ -65,6 +66,15 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   DateTime _lastWheel = DateTime.fromMillisecondsSinceEpoch(0);
 
   late double _readingHeight = ref.read(settingsProvider).overlaySize.$2;
+
+  /// The height the presenter chose (saved, or dragged this session): it
+  /// picks the layout and places the eye-line, so neither moves while the
+  /// window's height follows the text.
+  late double _layoutHeight = _readingHeight;
+
+  /// Set once the presenter drags the height: the most auto-height may use
+  /// for the rest of the session.
+  double? _userCap;
   bool _widened = false;
   ResolvedLayout? _layout;
   int _layoutBeat = -1;
@@ -122,7 +132,11 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
   void _saveGeometryLater() {
     _saveDebounce?.cancel();
-    _saveDebounce = Timer(_saveDelay, () => unawaited(ref.read(liveControllerProvider.notifier).rememberGeometry()));
+    // The chosen height, not auto-height's (a resize drag has set it by now).
+    _saveDebounce = Timer(
+      _saveDelay,
+      () => unawaited(ref.read(liveControllerProvider.notifier).rememberGeometry(height: _layoutHeight)),
+    );
   }
 
   @override
@@ -144,7 +158,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     _geometryDebounce?.cancel();
     _geometryDebounce = Timer(const Duration(milliseconds: 200), () async {
       final b = await _window.bounds();
-      _readingHeight = b.height;
+      _readingHeight = _layoutHeight = b.height;
+      _userCap = b.height;
     });
     _saveGeometryLater();
   }
@@ -171,6 +186,32 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   Future<void> _resizeTo(double height) async {
     _markProgrammatic();
     await _window.resizeOverlay(height, fromBottom: _bottomDocked);
+  }
+
+  /// Auto-height: after each advance the window is just tall enough for
+  /// the lines showing (150 ms ease-out), up to the setting's share of the
+  /// display or the height the presenter dragged. Only while reading —
+  /// answers, chat, agent and forms size the window themselves.
+  Future<void> _onFit(double area) async {
+    final live = ref.read(liveControllerProvider);
+    final reading =
+        live.phase == LivePhase.standby || live.phase == LivePhase.reading || live.phase == LivePhase.paused;
+    if (!reading ||
+        ref.read(chatControllerProvider).overlayOpen ||
+        ref.read(agentControllerProvider).active ||
+        ref.read(questionnaireControllerProvider).active) {
+      return;
+    }
+    final screen = await _window.displayArea();
+    final target = AutoHeight.clamp(
+      area + _metaHeight,
+      screenHeight: screen.height,
+      maxFraction: ref.read(settingsProvider).maxOverlayHeight,
+      userCap: _userCap,
+    );
+    _readingHeight = target;
+    _markProgrammatic();
+    await _window.animateHeight(target, fromBottom: _bottomDocked);
   }
 
   /// Answers grow the window away from the camera edge, once, then shrink
@@ -261,7 +302,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
     // Layout switches only between beats, never mid-sentence.
     final readingWidth = s.historyOpen && _widened ? size.width - _historyWidth : size.width;
-    final candidate = resolveLayout(settings.layout, Size(readingWidth, _readingHeight));
+    final candidate = resolveLayout(settings.layout, Size(readingWidth, _layoutHeight));
     if (_layout == null || s.position.beat != _layoutBeat || !s.following) {
       _layout = candidate;
       _layoutBeat = s.position.beat;
@@ -277,7 +318,15 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
       wpm: settings.wordsPerMinute,
     );
 
-    final reading = s.flat == null ? const SizedBox.shrink() : ReadingView(state: s, layout: layout, style: style);
+    final reading = s.flat == null
+        ? const SizedBox.shrink()
+        : ReadingView(
+            state: s,
+            layout: layout,
+            style: style,
+            anchorOffset: (_layoutHeight - _metaHeight) * Layout.overlayAnchor,
+            onFit: (h) => unawaited(_onFit(h)),
+          );
 
     final agentActive = ref.watch(agentControllerProvider.select((a) => a.active));
     final formActive = ref.watch(questionnaireControllerProvider.select((q) => q.active));

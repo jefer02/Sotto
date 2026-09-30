@@ -4951,6 +4951,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your own text and outline colors'**
   String get overlayTextColorCustomSub;
+
+  /// No description provided for @maxOverlayHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Max overlay height'**
+  String get maxOverlayHeight;
+
+  /// No description provided for @maxOverlayHeightSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The overlay grows and shrinks with the lines showing, up to this share of the screen. Drag its edge to set a height for the session.'**
+  String get maxOverlayHeightSub;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
