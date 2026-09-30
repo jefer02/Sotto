@@ -14,6 +14,11 @@ enum OverlayThemeMode { dark, light, matchApp }
 /// Panel: the translucent card.
 enum OverlayStyle { textOnly, panel }
 
+/// Text-only overlay text color: [auto] follows what is behind the overlay
+/// (sampled on-device every 800 ms while live), [light] and [dark] are fixed,
+/// [custom] uses the chosen text and outline colors.
+enum OverlayTextColor { auto, light, dark, custom }
+
 /// Container-query breakpoints (Overlay — responsive sizes board).
 enum OverlayLayout { auto, ticker, compact, standard, column, rail }
 
@@ -71,6 +76,7 @@ class AppSettings {
     this.uiLanguage = AppLanguage.system,
     this.overlayTheme = OverlayThemeMode.dark,
     this.overlayStyle = OverlayStyle.textOnly,
+    this.overlayTextColor = OverlayTextColor.auto,
     this.textColor = 0xFFFFFFFF,
     this.outlineColor,
     this.outlineWidth = 2.0,
@@ -138,6 +144,8 @@ class AppSettings {
   final AppLanguage uiLanguage;
   final OverlayThemeMode overlayTheme;
   final OverlayStyle overlayStyle;
+
+  final OverlayTextColor overlayTextColor;
 
   /// Text-only colors, as ARGB. A null outline contrasts with the text.
   final int textColor;
@@ -249,6 +257,7 @@ class AppSettings {
     AppLanguage? uiLanguage,
     OverlayThemeMode? overlayTheme,
     OverlayStyle? overlayStyle,
+    OverlayTextColor? overlayTextColor,
     int? textColor,
     int? outlineColor,
     bool autoOutline = false,
@@ -312,6 +321,7 @@ class AppSettings {
     uiLanguage: uiLanguage ?? this.uiLanguage,
     overlayTheme: overlayTheme ?? this.overlayTheme,
     overlayStyle: overlayStyle ?? this.overlayStyle,
+    overlayTextColor: overlayTextColor ?? this.overlayTextColor,
     textColor: textColor ?? this.textColor,
     outlineColor: autoOutline ? null : (outlineColor ?? this.outlineColor),
     outlineWidth: outlineWidth ?? this.outlineWidth,
@@ -375,6 +385,7 @@ class AppSettings {
     'uiLanguage': uiLanguage.name,
     'overlayTheme': overlayTheme.name,
     'overlayStyle': overlayStyle.name,
+    'overlayTextColor': overlayTextColor.name,
     'textColor': textColor,
     'outlineColor': outlineColor,
     'outlineWidth': outlineWidth,
@@ -450,6 +461,14 @@ class AppSettings {
       uiLanguage: e(AppLanguage.values, j['uiLanguage'], d.uiLanguage),
       overlayTheme: e(OverlayThemeMode.values, j['overlayTheme'], d.overlayTheme),
       overlayStyle: e(OverlayStyle.values, j['overlayStyle'], d.overlayStyle),
+      // Colors picked before this setting existed stay in use.
+      overlayTextColor: e(
+        OverlayTextColor.values,
+        j['overlayTextColor'],
+        (j['textColor'] ?? d.textColor) != d.textColor || j['outlineColor'] != null
+            ? OverlayTextColor.custom
+            : d.overlayTextColor,
+      ),
       textColor: j['textColor'] as int? ?? d.textColor,
       outlineColor: j['outlineColor'] as int?,
       outlineWidth: n(j['outlineWidth'], d.outlineWidth),

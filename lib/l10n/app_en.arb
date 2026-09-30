@@ -1595,5 +1595,13 @@
   "chatContextSub": "The most recent ones; older messages are trimmed.",
   "chatPrivacy": "Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved.",
   "formsNeedsAccessibility": "Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again.",
-  "formsCouldNotFill": "could not fill — please fill it yourself"
+  "formsCouldNotFill": "could not fill — please fill it yourself",
+  "overlayTextColor": "Overlay text color",
+  "overlayTextColorAuto": "Auto",
+  "overlayTextColorLight": "Always light",
+  "overlayTextColorDark": "Always dark",
+  "overlayTextColorCustom": "Custom",
+  "overlayTextColorAutoSub": "Dark text on light slides, light text on dark ones — checked on this computer every 0.8 s, never sent anywhere",
+  "overlayTextColorFixedSub": "Fixed; the background isn't checked",
+  "overlayTextColorCustomSub": "Your own text and outline colors"
 }

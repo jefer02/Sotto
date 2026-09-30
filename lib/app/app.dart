@@ -15,6 +15,7 @@ import '../l10n/l10n.dart';
 import '../features/agent/agent_controller.dart';
 import '../features/agent/agent_view.dart';
 import '../features/chat/chat_controller.dart';
+import '../features/live/backdrop_tone_controller.dart';
 import '../features/live/live_controller.dart';
 import '../features/library/library_actions.dart';
 import '../features/live/overlay_palette.dart';
@@ -133,7 +134,9 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
         OverlayThemeMode.matchApp =>
           settings.appTheme == AppThemeMode.dark || (settings.appTheme == AppThemeMode.auto && platformDark),
       };
-      final overlay = overlayPaletteFor(settings, dark: overlayDark);
+      // Auto text color: what's behind the overlay, sampled on-device.
+      final backdrop = isLive ? ref.watch(backdropToneProvider) : null;
+      final overlay = overlayPaletteFor(settings, dark: overlayDark, backdrop: backdrop);
       return MaterialApp(
         key: ValueKey(locale.languageCode),
         debugShowCheckedModeBanner: false,
@@ -142,6 +145,9 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         color: const Color(0x00000000),
+        // A backdrop change crossfades the text color over 200 ms.
+        themeAnimationDuration: const Duration(milliseconds: 200),
+        themeAnimationCurve: Curves.easeInOut,
         theme: buildSottoTheme(
           overlayDark ? SottoPalette.stage : SottoPalette.houseLights,
           overlay: overlay,

@@ -2725,4 +2725,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formsCouldNotFill => 'could not fill — please fill it yourself';
+
+  @override
+  String get overlayTextColor => 'Overlay text color';
+
+  @override
+  String get overlayTextColorAuto => 'Auto';
+
+  @override
+  String get overlayTextColorLight => 'Always light';
+
+  @override
+  String get overlayTextColorDark => 'Always dark';
+
+  @override
+  String get overlayTextColorCustom => 'Custom';
+
+  @override
+  String get overlayTextColorAutoSub =>
+      'Dark text on light slides, light text on dark ones — checked on this computer every 0.8 s, never sent anywhere';
+
+  @override
+  String get overlayTextColorFixedSub => 'Fixed; the background isn\'t checked';
+
+  @override
+  String get overlayTextColorCustomSub => 'Your own text and outline colors';
 }

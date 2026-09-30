@@ -218,6 +218,8 @@ extension MainFlutterWindow {
         NSWorkspace.shared.open(url)
       }
       result(nil)
+    case "captureRegion":
+      captureRegion(args, result: result)
     case "capture":
       captureScreen(
         cursor: (args["target"] as? String) == "cursor",
@@ -309,6 +311,92 @@ extension MainFlutterWindow {
       sharingType = previous
       finish(image, method: "cg")
     }
+  }
+
+  /// A few pixels of what is behind the overlay, for the text-contrast
+  /// check. The rect is window_manager's bounds: points, top-left origin —
+  /// the global display coordinates CoreGraphics uses. Sotto's own windows
+  /// are left out; the pixels never leave this function but as raw RGBA.
+  private func captureRegion(_ args: [String: Any], result: @escaping FlutterResult) {
+    guard CGPreflightScreenCaptureAccess() else {
+      result(FlutterError(code: "permission_denied", message: "Screen Recording permission is off", details: nil))
+      return
+    }
+    let rect = CGRect(
+      x: args["left"] as? Double ?? 0, y: args["top"] as? Double ?? 0,
+      width: args["width"] as? Double ?? 0, height: args["height"] as? Double ?? 0)
+    guard rect.width > 0, rect.height > 0 else {
+      result(FlutterError(code: "capture_failed", message: "Empty region", details: nil))
+      return
+    }
+    let maxSide = CGFloat(args["maxSide"] as? Int ?? 48)
+    let k = min(1.0, maxSide / max(rect.width, rect.height))
+    let outW = max(1, Int(rect.width * k))
+    let outH = max(1, Int(rect.height * k))
+
+    var ids = [CGDirectDisplayID](repeating: 0, count: 8)
+    var count: UInt32 = 0
+    CGGetDisplaysWithPoint(CGPoint(x: rect.midX, y: rect.midY), 8, &ids, &count)
+    let displayID = count > 0 ? ids[0] : CGMainDisplayID()
+    let origin = CGDisplayBounds(displayID).origin
+    let local = rect.offsetBy(dx: -origin.x, dy: -origin.y)
+
+    func finish(_ image: CGImage?) {
+      DispatchQueue.main.async {
+        guard let image = image, let pixels = MainFlutterWindow.rgba(image, width: outW, height: outH) else {
+          result(FlutterError(code: "capture_failed", message: "Region capture failed", details: nil))
+          return
+        }
+        result([
+          "pixels": FlutterStandardTypedData(bytes: pixels),
+          "width": outW,
+          "height": outH,
+          "order": "rgba",
+        ])
+      }
+    }
+
+    if #available(macOS 14.0, *) {
+      SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: true) { content, _ in
+        guard let content = content,
+          let display = content.displays.first(where: { $0.displayID == displayID })
+        else {
+          finish(nil)
+          return
+        }
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let own = content.applications.filter { $0.processID == pid }
+        let filter = SCContentFilter(display: display, excludingApplications: own, exceptingWindows: [])
+        let config = SCStreamConfiguration()
+        config.sourceRect = local
+        config.width = outW
+        config.height = outH
+        config.showsCursor = false
+        SCScreenshotManager.captureImage(contentFilter: filter, configuration: config) { image, _ in
+          finish(image)
+        }
+      }
+    } else {
+      let previous = sharingType
+      sharingType = .none
+      let image = CGDisplayCreateImage(displayID, rect: local)
+      sharingType = previous
+      finish(image)
+    }
+  }
+
+  /// [image] scaled to width × height, as RGBA bytes.
+  fileprivate static func rgba(_ image: CGImage, width: Int, height: Int) -> Data? {
+    guard
+      let ctx = CGContext(
+        data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+        space: CGColorSpace(name: CGColorSpace.sRGB)!,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+      let data = ctx.data
+    else { return nil }
+    ctx.interpolationQuality = .medium
+    ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+    return Data(bytes: data, count: width * height * 4)
   }
 
   /// Scales [image] to width × height and encodes a JPEG.

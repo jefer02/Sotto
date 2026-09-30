@@ -7,6 +7,7 @@ import '../../../core/design/tokens.dart';
 import '../../../core/design/typography.dart';
 import '../../../data/models/script.dart';
 import '../../../data/models/settings.dart';
+import '../../../domain/overlay/backdrop_tone.dart';
 import '../../../data/repositories.dart';
 import '../../../domain/following/follow_engine.dart';
 import '../../../domain/following/script_aligner.dart';
@@ -68,7 +69,13 @@ class OverlayPreview extends ConsumerWidget {
           OverlayThemeMode.light => false,
           OverlayThemeMode.matchApp => context.palette.isDark,
         };
-    final overlay = overlayPaletteFor(settings, dark: isDark, opacity: opacity);
+    // "Auto" text color: the preview slide stands in for the live backdrop.
+    final overlay = overlayPaletteFor(
+      settings,
+      dark: isDark,
+      opacity: opacity,
+      backdrop: background == PreviewBackground.lightSlide ? BackdropTone.light : BackdropTone.dark,
+    );
     final size = readingSize ?? settings.readingSize;
 
     final still = LiveState(

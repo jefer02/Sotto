@@ -14,7 +14,13 @@ class SottoTheme extends ThemeExtension<SottoTheme> {
       SottoTheme(palette: palette ?? this.palette, overlay: overlay ?? this.overlay);
 
   @override
-  SottoTheme lerp(SottoTheme? other, double t) => t < 0.5 ? this : (other ?? this);
+  SottoTheme lerp(SottoTheme? other, double t) => other == null
+      ? this
+      : SottoTheme(
+          palette: t < 0.5 ? palette : other.palette,
+          // The overlay's text color crossfades when the backdrop changes.
+          overlay: OverlayPalette.lerp(overlay, other.overlay, t),
+        );
 }
 
 extension SottoThemeContext on BuildContext {

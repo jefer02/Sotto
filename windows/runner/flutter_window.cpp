@@ -3,6 +3,7 @@
 #include <dwmapi.h>
 #include <flutter/standard_method_codec.h>
 
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <vector>
@@ -216,6 +217,10 @@ void FlutterWindow::HandleScreenCall(
     result->Success(flutter::EncodableValue("granted"));
     return;
   }
+  if (method == "captureRegion") {
+    CaptureRegion(call, std::move(result));
+    return;
+  }
   if (method != "capture") {
     result->NotImplemented();
     return;
@@ -389,6 +394,79 @@ void FlutterWindow::HandleFormsCall(
     return;
   }
   result->Success(flutter::EncodableValue(ok));
+}
+
+// A few pixels of what is behind the overlay, for the text-contrast check:
+// GDI StretchBlt (HALFTONE averages the pixels) of the region into a tiny
+// 32-bit DIB, with this window excluded from the capture for the moment.
+// Rect arrives in window_manager's logical pixels.
+void FlutterWindow::CaptureRegion(
+    const flutter::MethodCall<flutter::EncodableValue>& call,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
+  const flutter::EncodableMap empty;
+  const auto& a = args != nullptr ? *args : empty;
+  double dpr = GetDouble(a, "devicePixelRatio");
+  if (dpr <= 0) dpr = 1;
+  const int left = static_cast<int>(GetDouble(a, "left") * dpr);
+  const int top = static_cast<int>(GetDouble(a, "top") * dpr);
+  const int w = static_cast<int>(GetDouble(a, "width") * dpr);
+  const int h = static_cast<int>(GetDouble(a, "height") * dpr);
+  if (w <= 0 || h <= 0) {
+    result->Error("capture_failed", "Empty region");
+    return;
+  }
+  const int max_side = GetInt(a, "maxSide", 48);
+  const double k = (std::min)(1.0, static_cast<double>(max_side) / (std::max)(w, h));
+  const int ow = (std::max)(1, static_cast<int>(w * k));
+  const int oh = (std::max)(1, static_cast<int>(h * k));
+
+  HWND hwnd = GetHandle();
+  DWORD previous = WDA_NONE;
+  GetWindowDisplayAffinity(hwnd, &previous);
+  if (previous != kExcludeFromCapture) SetWindowDisplayAffinity(hwnd, kExcludeFromCapture);
+
+  HDC screen = GetDC(nullptr);
+  HDC mem = CreateCompatibleDC(screen);
+  BITMAPINFO bi{};
+  bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+  bi.bmiHeader.biWidth = ow;
+  bi.bmiHeader.biHeight = -oh;  // top-down
+  bi.bmiHeader.biPlanes = 1;
+  bi.bmiHeader.biBitCount = 32;
+  bi.bmiHeader.biCompression = BI_RGB;
+  void* bits = nullptr;
+  HBITMAP dib = CreateDIBSection(screen, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+  std::vector<uint8_t> pixels;
+  bool ok = false;
+  if (dib != nullptr && bits != nullptr) {
+    HGDIOBJ old = SelectObject(mem, dib);
+    SetStretchBltMode(mem, HALFTONE);
+    SetBrushOrgEx(mem, 0, 0, nullptr);
+    ok = StretchBlt(mem, 0, 0, ow, oh, screen, left, top, w, h, SRCCOPY | CAPTUREBLT) != FALSE;
+    if (ok) {
+      const auto* p = static_cast<const uint8_t*>(bits);
+      pixels.assign(p, p + static_cast<size_t>(ow) * oh * 4);
+      // GDI leaves alpha at 0; every captured pixel is opaque.
+      for (size_t i = 3; i < pixels.size(); i += 4) pixels[i] = 255;
+    }
+    SelectObject(mem, old);
+    DeleteObject(dib);
+  }
+  DeleteDC(mem);
+  ReleaseDC(nullptr, screen);
+  if (previous != kExcludeFromCapture) SetWindowDisplayAffinity(hwnd, previous);
+
+  if (!ok) {
+    result->Error("capture_failed", "Region capture failed");
+    return;
+  }
+  result->Success(flutter::EncodableValue(flutter::EncodableMap{
+      {flutter::EncodableValue("pixels"), flutter::EncodableValue(std::move(pixels))},
+      {flutter::EncodableValue("width"), flutter::EncodableValue(ow)},
+      {flutter::EncodableValue("height"), flutter::EncodableValue(oh)},
+      {flutter::EncodableValue("order"), flutter::EncodableValue(std::string("bgra"))},
+  }));
 }
 
 void FlutterWindow::OnDestroy() {

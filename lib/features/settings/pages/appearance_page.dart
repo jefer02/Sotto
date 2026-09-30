@@ -121,6 +121,27 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
             ),
             if (textOnly) ...[
               SettingRow(
+                title: context.l10n.overlayTextColor,
+                subtitle: switch (s.overlayTextColor) {
+                  OverlayTextColor.auto => context.l10n.overlayTextColorAutoSub,
+                  OverlayTextColor.custom => context.l10n.overlayTextColorCustomSub,
+                  _ => context.l10n.overlayTextColorFixedSub,
+                },
+                trailing: SegmentedControl<OverlayTextColor>(
+                  width: 360,
+                  segments: [
+                    Segment(OverlayTextColor.auto, context.l10n.overlayTextColorAuto),
+                    Segment(OverlayTextColor.light, context.l10n.overlayTextColorLight),
+                    Segment(OverlayTextColor.dark, context.l10n.overlayTextColorDark),
+                    Segment(OverlayTextColor.custom, context.l10n.overlayTextColorCustom),
+                  ],
+                  value: s.overlayTextColor,
+                  onChanged: (v) => n.update((x) => x.copyWith(overlayTextColor: v)),
+                ),
+              ),
+            ],
+            if (textOnly && s.overlayTextColor == OverlayTextColor.custom) ...[
+              SettingRow(
                 title: context.l10n.textColor,
                 trailing: _Swatches(
                   colors: _textColors,
@@ -139,6 +160,8 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
                       n.update((x) => v == null ? x.copyWith(autoOutline: true) : x.copyWith(outlineColor: v)),
                 ),
               ),
+            ],
+            if (textOnly) ...[
               SettingRow(
                 title: context.l10n.outlineWidth,
                 trailing: SottoSlider(

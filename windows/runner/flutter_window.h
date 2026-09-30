@@ -46,6 +46,8 @@ class FlutterWindow : public Win32Window {
   void SetOverlayKeyboard(bool on);
 
   // Screen capture for 'Ask about screen' (services/screen on the Dart side).
+  void CaptureRegion(const flutter::MethodCall<flutter::EncodableValue>& call,
+                     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
   void HandleScreenCall(const flutter::MethodCall<flutter::EncodableValue>& call,
                         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 

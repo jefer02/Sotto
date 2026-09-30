@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/overlay/backdrop_tone.dart';
+
 /// Which display to capture.
 enum CaptureTarget {
   /// The display the overlay sits on — usually the one with the slides.
@@ -63,6 +65,18 @@ class ScreenCapture {
   );
 }
 
+/// Raw pixels of a small screen region, 4 bytes each.
+class RegionPixels {
+  const RegionPixels({required this.pixels, required this.width, required this.height, this.order = PixelOrder.rgba});
+
+  final Uint8List pixels;
+  final int width;
+  final int height;
+  final PixelOrder order;
+
+  double get luma => averageLuma(pixels, width: width, height: height, order: order);
+}
+
 class ScreenCaptureException implements Exception {
   ScreenCaptureException(this.message, {this.permissionDenied = false});
   final String message;
@@ -96,6 +110,36 @@ class ScreenService {
         'quality': 80,
       });
       return ScreenCapture.fromMap(m!);
+    } on PlatformException catch (e) {
+      throw ScreenCaptureException(e.message ?? e.code, permissionDenied: e.code == 'permission_denied');
+    } on MissingPluginException {
+      throw ScreenCaptureException('Screen capture is not available on this platform.');
+    }
+  }
+
+  /// A few raw pixels of the screen inside [rect] — the overlay's own
+  /// frame, in the coordinates `WindowService.bounds()` uses (logical pixels
+  /// on Windows, multiplied back by [devicePixelRatio]; points on macOS).
+  /// Sotto's windows are left out, so this is what is *behind* the overlay.
+  /// Downscaled to at most [maxSide] px: it only feeds on-device pixel math
+  /// (text contrast) and is never encoded, stored or sent anywhere.
+  Future<RegionPixels> captureRegion(Rect rect, {double devicePixelRatio = 1, int maxSide = 48}) async {
+    if (!supported) throw ScreenCaptureException('Screen capture is not available on this platform.');
+    try {
+      final m = await _channel.invokeMethod<Map<Object?, Object?>>('captureRegion', {
+        'left': rect.left,
+        'top': rect.top,
+        'width': rect.width,
+        'height': rect.height,
+        'devicePixelRatio': devicePixelRatio,
+        'maxSide': maxSide,
+      });
+      return RegionPixels(
+        pixels: m!['pixels']! as Uint8List,
+        width: m['width']! as int,
+        height: m['height']! as int,
+        order: m['order'] == 'bgra' ? PixelOrder.bgra : PixelOrder.rgba,
+      );
     } on PlatformException catch (e) {
       throw ScreenCaptureException(e.message ?? e.code, permissionDenied: e.code == 'permission_denied');
     } on MissingPluginException {

@@ -171,6 +171,7 @@ class OverlayPalette {
     this.outline = const Color(0xFF000000),
     this.outlineWidth = 0,
     this.shadowStrength = 0,
+    this.shadowColor = const Color(0xFF000000),
   });
 
   /// "Text only" style: no ground, no card, no edge — legibility comes from
@@ -180,6 +181,7 @@ class OverlayPalette {
     required Color outline,
     required double outlineWidth,
     required double shadowStrength,
+    Color shadowColor = const Color(0xFF000000),
   }) => OverlayPalette(
     ground: const Color(0x00000000),
     ink: ink,
@@ -198,6 +200,7 @@ class OverlayPalette {
     outline: outline,
     outlineWidth: outlineWidth,
     shadowStrength: shadowStrength,
+    shadowColor: shadowColor,
   );
 
   final Color ground;
@@ -221,6 +224,10 @@ class OverlayPalette {
 
   /// 0..1: how strong the soft drop shadow under text-only glyphs is.
   final double shadowStrength;
+
+  /// Black under light-on-dark… and dark-on-light text; a soft white glow
+  /// when the backdrop is dark and the text light ("Overlay text color").
+  final Color shadowColor;
 
   Color inkAt(double alpha) => ink.withValues(alpha: alpha);
 
@@ -250,7 +257,7 @@ class OverlayPalette {
     if (shadowStrength > 0) {
       out.add(
         Shadow(
-          color: Color.fromRGBO(0, 0, 0, 0.9 * shadowStrength * a),
+          color: shadowColor.withValues(alpha: shadowColor.a * 0.9 * shadowStrength * a),
           offset: const Offset(0, 1.5),
           blurRadius: (small ? 2 : 3) + (small ? 5 : 9) * shadowStrength,
         ),
@@ -294,6 +301,33 @@ class OverlayPalette {
     readDone: 0.36,
   );
 
+  /// Crossfade between two palettes (the text color following the slide).
+  static OverlayPalette lerp(OverlayPalette a, OverlayPalette b, double t) {
+    if (t <= 0) return a;
+    if (t >= 1) return b;
+    Color c(Color x, Color y) => Color.lerp(x, y, t)!;
+    double d(double x, double y) => x + (y - x) * t;
+    return OverlayPalette(
+      ground: c(a.ground, b.ground),
+      ink: c(a.ink, b.ink),
+      edge: c(a.edge, b.edge),
+      shadow: BoxShadow.lerp(a.shadow, b.shadow, t)!,
+      innerHighlight: c(a.innerHighlight, b.innerHighlight),
+      cue: c(a.cue, b.cue),
+      capture: c(a.capture, b.capture),
+      confirmed: c(a.confirmed, b.confirmed),
+      readNow: d(a.readNow, b.readNow),
+      readNext: d(a.readNext, b.readNext),
+      readLater: d(a.readLater, b.readLater),
+      readDone: d(a.readDone, b.readDone),
+      textOnly: t < 0.5 ? a.textOnly : b.textOnly,
+      outline: c(a.outline, b.outline),
+      outlineWidth: d(a.outlineWidth, b.outlineWidth),
+      shadowStrength: d(a.shadowStrength, b.shadowStrength),
+      shadowColor: c(a.shadowColor, b.shadowColor),
+    );
+  }
+
   OverlayPalette withGroundOpacity(double opacity) => OverlayPalette(
     ground: ground.withValues(alpha: opacity),
     ink: ink,
@@ -311,6 +345,7 @@ class OverlayPalette {
     outline: outline,
     outlineWidth: outlineWidth,
     shadowStrength: shadowStrength,
+    shadowColor: shadowColor,
   );
 }
 

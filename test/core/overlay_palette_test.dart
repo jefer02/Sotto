@@ -15,7 +15,10 @@ void main() {
   });
 
   test('auto outline contrasts with the text color', () {
-    final o = overlayPaletteFor(const AppSettings(textColor: 0xFF111111), dark: true);
+    final o = overlayPaletteFor(
+      const AppSettings(textColor: 0xFF111111, overlayTextColor: OverlayTextColor.custom),
+      dark: true,
+    );
     expect(o.outline, const Color(0xFFFFFFFF));
   });
 

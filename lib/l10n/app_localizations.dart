@@ -4903,6 +4903,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'could not fill — please fill it yourself'**
   String get formsCouldNotFill;
+
+  /// No description provided for @overlayTextColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay text color'**
+  String get overlayTextColor;
+
+  /// No description provided for @overlayTextColorAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get overlayTextColorAuto;
+
+  /// No description provided for @overlayTextColorLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Always light'**
+  String get overlayTextColorLight;
+
+  /// No description provided for @overlayTextColorDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Always dark'**
+  String get overlayTextColorDark;
+
+  /// No description provided for @overlayTextColorCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get overlayTextColorCustom;
+
+  /// No description provided for @overlayTextColorAutoSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark text on light slides, light text on dark ones — checked on this computer every 0.8 s, never sent anywhere'**
+  String get overlayTextColorAutoSub;
+
+  /// No description provided for @overlayTextColorFixedSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed; the background isn\'t checked'**
+  String get overlayTextColorFixedSub;
+
+  /// No description provided for @overlayTextColorCustomSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own text and outline colors'**
+  String get overlayTextColorCustomSub;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
