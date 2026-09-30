@@ -206,8 +206,11 @@ class _IconToggle extends StatelessWidget {
 /// "Stop" that only stops after a one-second hold ([HoldToConfirm]), with
 /// the countdown drawn as a ring filling round the button.
 class HoldToStopButton extends StatefulWidget {
-  const HoldToStopButton({super.key, required this.onConfirmed});
+  const HoldToStopButton({super.key, required this.onConfirmed, this.color});
   final VoidCallback onConfirmed;
+
+  /// Defaults to the overlay's alert color.
+  final Color? color;
 
   @override
   State<HoldToStopButton> createState() => _HoldToStopButtonState();
@@ -258,8 +261,8 @@ class _HoldToStopButtonState extends State<HoldToStopButton> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    final o = context.overlayPalette;
     final l = context.l10n;
+    final color = widget.color ?? context.overlayPalette.capture;
     return Tooltip(
       message: l.autofillHoldToStop,
       child: Listener(
@@ -267,19 +270,19 @@ class _HoldToStopButtonState extends State<HoldToStopButton> with SingleTickerPr
         onPointerUp: (_) => _up(),
         onPointerCancel: (_) => _up(),
         child: CustomPaint(
-          foregroundPainter: _RingPainter(_progress, o.capture),
+          foregroundPainter: _RingPainter(_progress, color),
           child: Container(
             height: 26,
             padding: const EdgeInsets.symmetric(horizontal: 9),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: o.capture.withValues(alpha: 0.12 + 0.3 * _progress),
+              color: color.withValues(alpha: 0.12 + 0.3 * _progress),
               borderRadius: BorderRadius.circular(7),
-              border: Border.all(color: o.capture.withValues(alpha: 0.6)),
+              border: Border.all(color: color.withValues(alpha: 0.6)),
             ),
             child: Text(
               _progress > 0 ? '${(1 - _progress).toStringAsFixed(1)} s' : l.autofillStop,
-              style: TypeScale.micro.copyWith(color: o.capture, fontWeight: FontWeight.w700, shadows: const []),
+              style: TypeScale.micro.copyWith(color: color, fontWeight: FontWeight.w700, shadows: const []),
             ),
           ),
         ),

@@ -103,11 +103,11 @@ class AutoFillController extends Notifier<AutoFillState> {
   @override
   AutoFillState build() {
     ref.onDispose(() => _timer?.cancel());
-    ref.listen(
-      settingsProvider.select((s) => s.formsEnabled && s.formsAutoFill),
-      (_, on) => on ? _enable() : unawaited(_disable()),
-      fireImmediately: true,
-    );
+    final enabled = settingsProvider.select((s) => s.formsEnabled && s.formsAutoFill);
+    ref.listen(enabled, (_, on) => on ? _enable() : unawaited(_disable()));
+    // On at launch: start watching once the state exists (not from inside
+    // build, where it doesn't yet).
+    if (ref.read(enabled)) scheduleMicrotask(_enable);
     return const AutoFillState();
   }
 
@@ -182,6 +182,11 @@ class AutoFillController extends Notifier<AutoFillState> {
   Future<void> fillNow({bool fromMainWindow = false}) async {
     if (_watcher.status == AutoFillStatus.filling || state.countdown > 0) return;
     final live = ref.read(liveControllerProvider).isLive;
+    // The button on the Forms page is an explicit ask: it turns questionnaire
+    // filling on (chord + F still needs the setting).
+    if (fromMainWindow && !ref.read(settingsProvider).formsEnabled) {
+      ref.read(settingsProvider.notifier).update((s) => s.copyWith(formsEnabled: true));
+    }
     if (fromMainWindow && !live) {
       await _showOverlay();
       for (var s = 3; s > 0; s--) {

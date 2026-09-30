@@ -180,6 +180,17 @@ class SessionRepository {
   Future<void> save(SessionRecord r) => _store.sessions.put(r.id, r.toJson());
 
   Future<void> delete(String id) => _store.sessions.delete(id);
+
+  /// "Clear fill history": questionnaire records go; sessions that were
+  /// only a questionnaire go with them, live sessions keep the rest.
+  Future<void> clearFormRuns() async {
+    for (final raw in _store.sessions.values.toList()) {
+      final r = SessionRecord.fromJson(raw);
+      if (r.formRuns.isEmpty) continue;
+      final onlyForms = r.agentRuns.isEmpty && r.wordsSpoken == 0 && r.sectionSeconds.isEmpty;
+      await (onlyForms ? delete(r.id) : save(r.withoutFormRuns()));
+    }
+  }
 }
 
 final sessionRepositoryProvider = Provider<SessionRepository>(

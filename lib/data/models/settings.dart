@@ -138,6 +138,7 @@ class AppSettings {
     this.formsInstructions = '',
     this.chatAutoSend = false,
     this.showChat = false,
+    this.showFormsNav = true,
     this.chatAutoClose = 60,
     this.chatContextMessages = 20,
     this.historyRetentionDays = 30,
@@ -257,6 +258,9 @@ class AppSettings {
   /// opt-in.
   final bool showChat;
 
+  /// The Forms entry in the sidebar.
+  final bool showFormsNav;
+
   /// The overlay chat closes after this many seconds without activity
   /// (0: never).
   final int chatAutoClose;
@@ -340,6 +344,7 @@ class AppSettings {
     String? formsInstructions,
     bool? chatAutoSend,
     bool? showChat,
+    bool? showFormsNav,
     int? chatAutoClose,
     int? chatContextMessages,
     int? historyRetentionDays,
@@ -407,6 +412,7 @@ class AppSettings {
     formsInstructions: formsInstructions ?? this.formsInstructions,
     chatAutoSend: chatAutoSend ?? this.chatAutoSend,
     showChat: showChat ?? this.showChat,
+    showFormsNav: showFormsNav ?? this.showFormsNav,
     chatAutoClose: chatAutoClose ?? this.chatAutoClose,
     chatContextMessages: chatContextMessages ?? this.chatContextMessages,
     historyRetentionDays: historyRetentionDays ?? this.historyRetentionDays,
@@ -479,6 +485,7 @@ class AppSettings {
     'formsInstructions': formsInstructions,
     'chatAutoSend': chatAutoSend,
     'showChat': showChat,
+    'showFormsNav': showFormsNav,
     'chatAutoClose': chatAutoClose,
     'chatContextMessages': chatContextMessages,
     'historyRetentionDays': historyRetentionDays,
@@ -582,6 +589,7 @@ class AppSettings {
       formsInstructions: j['formsInstructions'] as String? ?? d.formsInstructions,
       chatAutoSend: j['chatAutoSend'] as bool? ?? d.chatAutoSend,
       showChat: j['showChat'] as bool? ?? d.showChat,
+      showFormsNav: j['showFormsNav'] as bool? ?? d.showFormsNav,
       chatAutoClose: j['chatAutoClose'] as int? ?? d.chatAutoClose,
       chatContextMessages: j['chatContextMessages'] as int? ?? d.chatContextMessages,
       historyRetentionDays: j['historyRetentionDays'] as int? ?? d.historyRetentionDays,

@@ -91,8 +91,44 @@ class GeneralPage extends ConsumerWidget {
                   onChanged: (v) => n.update((x) => x.copyWith(chatAutoClose: v)),
                 ),
               ),
+            SettingRow(
+              title: context.l10n.showFormsNav,
+              subtitle: context.l10n.showFormsNavSub,
+              trailing: SottoToggle(
+                value: s.showFormsNav,
+                onChanged: (v) => n.update((x) => x.copyWith(showFormsNav: v)),
+              ),
+            ),
           ],
         ),
+        if (s.showChat)
+          SettingsGroup(
+            title: context.l10n.chatGroup,
+            children: [
+              SettingRow(
+                title: context.l10n.chatAutoSend,
+                subtitle: context.l10n.chatAutoSendSub,
+                trailing: SottoToggle(
+                  value: s.chatAutoSend,
+                  onChanged: (v) => n.update((x) => x.copyWith(chatAutoSend: v)),
+                ),
+              ),
+              SettingRow(
+                title: context.l10n.chatContext,
+                subtitle: context.l10n.chatContextSub,
+                trailing: SegmentedControl<int>(
+                  width: 170,
+                  segments: [
+                    for (final v in const [10, 20, 40]) Segment(v, '$v'),
+                  ],
+                  value: s.chatContextMessages,
+                  onChanged: (v) => n.update((x) => x.copyWith(chatContextMessages: v)),
+                ),
+              ),
+              SettingRow(title: context.l10n.chatPrivacy),
+            ],
+          ),
+
         SettingsGroup(
           title: context.l10n.pace,
           children: [

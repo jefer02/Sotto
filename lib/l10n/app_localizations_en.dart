@@ -2609,7 +2609,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String formsSubmitNote(String keys) {
-    return 'Sotto never submits on its own: at the end it waits for Enter. Password and payment fields are never filled; $keys stops at once.';
+    return 'Sotto never submits on its own: auto-fill stops before Submit, and a fill you start waits for Enter. $keys stops at once.';
   }
 
   @override
@@ -2868,4 +2868,102 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatAutoCloseNever => 'Never';
+
+  @override
+  String get navForms => 'Forms';
+
+  @override
+  String get setForms => 'Forms';
+
+  @override
+  String get formsDescription =>
+      'Filling forms, quizzes and exams on screen: automatically as they appear, or when you ask.';
+
+  @override
+  String get showFormsNav => 'Show Forms in sidebar';
+
+  @override
+  String get showFormsNavSub => 'The page with auto-fill, its status and recent fills';
+
+  @override
+  String get formsStatusOff => 'Off';
+
+  @override
+  String get formsStatusWatching => 'Watching';
+
+  @override
+  String formsStatusFilling(int done, int total) {
+    return 'Filling… $done/$total';
+  }
+
+  @override
+  String get formsStatusOffSub => 'Turn on auto-fill above, or fill what\'s on screen once.';
+
+  @override
+  String get formsStatusWatchingSub => 'Switch to a form, quiz or exam: Sotto fills it and stops before Submit.';
+
+  @override
+  String get formsStatusPausedSub => 'Nothing is watched or filled until you resume.';
+
+  @override
+  String get formsFillNow => 'Fill what\'s on screen now';
+
+  @override
+  String formsFillNowSub(String keys) {
+    return 'Then switch to the form within 3 seconds — same as $keys.';
+  }
+
+  @override
+  String get formsRecent => 'Recent fills';
+
+  @override
+  String get formsRecentEmpty => 'Nothing filled yet.';
+
+  @override
+  String get formsHistoryOff => 'History is off (Privacy → Don\'t keep): fills aren\'t kept.';
+
+  @override
+  String formsFieldsFilled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fields filled',
+      one: '1 field filled',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get formsOutcomeCompleted => 'Completed';
+
+  @override
+  String get formsOutcomeStopped => 'Stopped';
+
+  @override
+  String get formsOutcomeError => 'Error';
+
+  @override
+  String get formsClearHistory => 'Clear fill history';
+
+  @override
+  String get formsClearHistorySub => 'Deletes every questionnaire record; live sessions keep the rest.';
+
+  @override
+  String get formsHistoryCleared => 'Fill history cleared.';
+
+  @override
+  String get formsPrivacyNote =>
+      'Each fill sends a screenshot of the window in front, and its form fields, to DeepSeek. Screenshots are never saved. Password and payment fields are never read or filled.';
+
+  @override
+  String get formsOpenSettings => 'Forms settings';
+
+  @override
+  String get formsAutofillGroup => 'Auto-fill';
+
+  @override
+  String get formsAnswersGroup => 'Answers';
+
+  @override
+  String get formsHistoryGroup => 'History';
 }

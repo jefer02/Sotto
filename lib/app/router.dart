@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/design/tokens.dart';
 import '../features/chat/chat_screen.dart';
+import '../features/forms/forms_screen.dart';
 import '../features/editor/editor_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/library/library_shell.dart';
@@ -55,6 +56,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/chat',
             pageBuilder: (c, s) => const NoTransitionPage(child: ChatScreen()),
+          ),
+          GoRoute(
+            path: '/forms',
+            pageBuilder: (c, s) => const NoTransitionPage(child: FormsScreen()),
           ),
         ],
       ),

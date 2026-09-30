@@ -138,6 +138,27 @@ class FormRunRecord {
 /// One live run or rehearsal, stored for the Sessions list, pace
 /// calibration and the "Last rehearsal 18:24 · +0:24" line. Agent tasks run
 /// outside a live session get a record of their own, with only [agentRuns].
+/// One questionnaire fill for the Forms page: the run and when it was.
+class FormFill {
+  const FormFill(this.run, this.at, {required this.sessionId});
+  final FormRunRecord run;
+  final DateTime at;
+  final String sessionId;
+
+  /// completed (Submit reached or pressed), stopped, or error.
+  String get outcome => switch (run.status) {
+    'submitted' || 'ready' => 'completed',
+    'stopped' => 'stopped',
+    _ => 'error',
+  };
+
+  /// Newest first, across every session.
+  static List<FormFill> recent(List<SessionRecord> sessions) => [
+    for (final s in sessions)
+      for (final r in s.formRuns) FormFill(r, r.at ?? s.startedAt, sessionId: s.id),
+  ]..sort((a, b) => b.at.compareTo(a.at));
+}
+
 class SessionRecord {
   const SessionRecord({
     required this.id,
@@ -172,6 +193,21 @@ class SessionRecord {
 
   /// Questionnaires filled during the session, every field logged.
   final List<FormRunRecord> formRuns;
+
+  /// The same record without its questionnaires ("Clear fill history").
+  SessionRecord withoutFormRuns() => SessionRecord(
+    id: id,
+    scriptId: scriptId,
+    scriptTitle: scriptTitle,
+    startedAt: startedAt,
+    endedAt: endedAt,
+    rehearsal: rehearsal,
+    sectionSeconds: sectionSeconds,
+    wordsSpoken: wordsSpoken,
+    questionCount: questionCount,
+    plannedSeconds: plannedSeconds,
+    agentRuns: agentRuns,
+  );
 
   /// A session that was only an agent task or a questionnaire (no live run).
   bool get agentOnly => (agentRuns.isNotEmpty || formRuns.isNotEmpty) && wordsSpoken == 0 && sectionSeconds.isEmpty;

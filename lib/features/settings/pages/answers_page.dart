@@ -1,5 +1,3 @@
-import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,9 +17,6 @@ import '../../../core/widgets/interactive.dart';
 import '../../../data/models/settings.dart';
 import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
-import '../../forms/autofill_controller.dart';
-import '../../../services/screen/form_access.dart';
-import '../../../services/screen/screen_service.dart';
 import '../../../services/tts/tts_service.dart';
 import '../settings_screen.dart';
 
@@ -172,33 +167,6 @@ class AnswersPage extends ConsumerWidget {
             ),
           ],
         ),
-        const _QuestionnairesGroup(),
-        SettingsGroup(
-          title: context.l10n.chatGroup,
-          children: [
-            SettingRow(
-              title: context.l10n.chatAutoSend,
-              subtitle: context.l10n.chatAutoSendSub,
-              trailing: SottoToggle(
-                value: s.chatAutoSend,
-                onChanged: (v) => n.update((x) => x.copyWith(chatAutoSend: v)),
-              ),
-            ),
-            SettingRow(
-              title: context.l10n.chatContext,
-              subtitle: context.l10n.chatContextSub,
-              trailing: SegmentedControl<int>(
-                width: 170,
-                segments: [
-                  for (final v in const [10, 20, 40]) Segment(v, '$v'),
-                ],
-                value: s.chatContextMessages,
-                onChanged: (v) => n.update((x) => x.copyWith(chatContextMessages: v)),
-              ),
-            ),
-            SettingRow(title: context.l10n.chatPrivacy),
-          ],
-        ),
         SettingsGroup(
           title: context.l10n.delivery,
           children: [
@@ -276,162 +244,6 @@ class _Leaves extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Settings → Answers → Questionnaires on screen (chord + F).
-class _QuestionnairesGroup extends ConsumerStatefulWidget {
-  const _QuestionnairesGroup();
-
-  @override
-  ConsumerState<_QuestionnairesGroup> createState() => _QuestionnairesGroupState();
-}
-
-class _QuestionnairesGroupState extends ConsumerState<_QuestionnairesGroup> {
-  /// macOS: Accessibility (read and fill forms) and Screen Recording.
-  bool? _trusted;
-  ScreenPermission? _screen;
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_check());
-  }
-
-  Future<void> _check() async {
-    final trusted = await ref.read(formAccessProvider).hasPermission();
-    final screen = await ref.read(screenServiceProvider).permission();
-    if (!mounted) return;
-    setState(() {
-      _trusted = trusted;
-      _screen = screen;
-    });
-  }
-
-  /// Turning it on asks macOS for both permissions (each prompt appears
-  /// once; after that, only System Settings can grant them).
-  Future<void> _toggle(bool on) async {
-    ref.read(settingsProvider.notifier).update((x) => x.copyWith(formsEnabled: on));
-    if (!on || !Platform.isMacOS) return;
-    if (_trusted == false) await ref.read(formAccessProvider).requestPermission();
-    if (_screen == ScreenPermission.denied) await ref.read(screenServiceProvider).requestPermission();
-    await _check();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    final l = context.l10n;
-    final s = ref.watch(settingsProvider);
-    final n = ref.read(settingsProvider.notifier);
-    final keys = PlatformKeys.describe(s.shortcutFor(LiveAction.fillForm));
-    final stop = PlatformKeys.describe(s.shortcutFor(LiveAction.agentStop));
-    return SettingsGroup(
-      title: l.formsGroup,
-      children: [
-        SettingRow(
-          title: l.formsEnable,
-          subtitle: l.formsEnableSub(keys),
-          trailing: SottoToggle(value: s.formsEnabled, onChanged: (v) => unawaited(_toggle(v))),
-        ),
-        if (s.formsEnabled && Platform.isMacOS && _trusted == false)
-          SettingRow(
-            title: l.accessibilityMissing,
-            subtitle: l.accessibilityMissingSub,
-            leading: SottoIcon(SottoIcons.alert, size: 14, color: p.cueText),
-            trailing: SottoButton(
-              label: l.openSystemSettings,
-              size: ButtonSize.small,
-              onPressed: () => unawaited(ref.read(screenServiceProvider).openPrivacySettings('accessibility')),
-            ),
-          ),
-        if (s.formsEnabled && Platform.isMacOS && _screen == ScreenPermission.denied)
-          SettingRow(
-            title: l.screenPermissionMissing,
-            subtitle: l.screenPermissionMissingSub,
-            leading: SottoIcon(SottoIcons.alert, size: 14, color: p.cueText),
-            trailing: SottoButton(
-              label: l.openSystemSettings,
-              size: ButtonSize.small,
-              onPressed: () => unawaited(ref.read(screenServiceProvider).openPrivacySettings('screen')),
-            ),
-          ),
-        if (s.formsEnabled) ...[
-          SettingRow(
-            title: l.autofillToggle,
-            subtitle: l.autofillToggleSub,
-            trailing: SottoToggle(
-              value: s.formsAutoFill,
-              onChanged: (v) => ref.read(autoFillControllerProvider.notifier).setEnabled(v),
-            ),
-          ),
-          SettingRow(
-            title: l.formsScrollTitle,
-            subtitle: l.formsScrollSub,
-            trailing: SottoToggle(
-              value: s.formsScroll,
-              onChanged: (v) => n.update((x) => x.copyWith(formsScroll: v)),
-            ),
-          ),
-          SettingRow(
-            title: l.formsMode,
-            trailing: SottoSelect<FormFillMode>(
-              width: 230,
-              value: s.formsMode,
-              options: [
-                SelectOption(FormFillMode.fillAutomatically, l.formsModeAuto),
-                SelectOption(FormFillMode.showFirst, l.formsModeFirst),
-              ],
-              onChanged: (v) => n.update((x) => x.copyWith(formsMode: v)),
-            ),
-          ),
-          SettingRow(
-            title: l.formsLanguage,
-            trailing: SottoSelect<FormAnswerLanguage>(
-              width: 230,
-              value: s.formsLanguage,
-              options: [
-                SelectOption(FormAnswerLanguage.sameAsForm, l.formsLangSame),
-                SelectOption(FormAnswerLanguage.appLanguage, l.formsLangApp),
-              ],
-              onChanged: (v) => n.update((x) => x.copyWith(formsLanguage: v)),
-            ),
-          ),
-          SettingRow(
-            title: l.formsStyle,
-            trailing: SegmentedControl<FormAnswerStyle>(
-              width: 190,
-              segments: [
-                Segment(FormAnswerStyle.short, l.formsStyleShort),
-                Segment(FormAnswerStyle.detailed, l.formsStyleDetailed),
-              ],
-              value: s.formsStyle,
-              onChanged: (v) => n.update((x) => x.copyWith(formsStyle: v)),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l.formsInstructions, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
-                const SizedBox(height: 2),
-                Text(l.formsInstructionsSub, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
-                const SizedBox(height: 8),
-                SottoTextField(
-                  initialValue: s.formsInstructions,
-                  placeholder: l.formsInstructionsHint,
-                  maxLines: 4,
-                  minLines: 2,
-                  onChanged: (v) => n.update((x) => x.copyWith(formsInstructions: v)),
-                ),
-              ],
-            ),
-          ),
-        ],
-        SettingRow(title: l.formsPrivacy, subtitle: l.formsSubmitNote(stop)),
-      ],
     );
   }
 }

@@ -2618,7 +2618,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String formsSubmitNote(String keys) {
-    return 'Sotto nunca envía por su cuenta: al final espera a que pulses Intro. Los campos de contraseña y de pago nunca se rellenan; $keys lo detiene al instante.';
+    return 'Sotto nunca envía por su cuenta: el autorrelleno se detiene antes de Enviar, y un rellenado que inicies espera a que pulses Intro. $keys lo detiene al instante.';
   }
 
   @override
@@ -2878,4 +2878,105 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatAutoCloseNever => 'Nunca';
+
+  @override
+  String get navForms => 'Formularios';
+
+  @override
+  String get setForms => 'Formularios';
+
+  @override
+  String get formsDescription =>
+      'Rellenar formularios, cuestionarios y exámenes en pantalla: automáticamente al aparecer, o cuando lo pidas.';
+
+  @override
+  String get showFormsNav => 'Mostrar Formularios en la barra lateral';
+
+  @override
+  String get showFormsNavSub => 'La página con el autorrelleno, su estado y lo rellenado';
+
+  @override
+  String get formsStatusOff => 'Desactivado';
+
+  @override
+  String get formsStatusWatching => 'Vigilando';
+
+  @override
+  String formsStatusFilling(int done, int total) {
+    return 'Rellenando… $done/$total';
+  }
+
+  @override
+  String get formsStatusOffSub => 'Activa el autorrelleno arriba, o rellena una vez lo que hay en pantalla.';
+
+  @override
+  String get formsStatusWatchingSub =>
+      'Cambia a un formulario, cuestionario o examen: Sotto lo rellena y se detiene antes de Enviar.';
+
+  @override
+  String get formsStatusPausedSub => 'No se vigila ni se rellena nada hasta que reanudes.';
+
+  @override
+  String get formsFillNow => 'Rellenar lo que hay en pantalla';
+
+  @override
+  String formsFillNowSub(String keys) {
+    return 'Después cambia al formulario en 3 segundos — igual que $keys.';
+  }
+
+  @override
+  String get formsRecent => 'Rellenados recientes';
+
+  @override
+  String get formsRecentEmpty => 'Aún no se ha rellenado nada.';
+
+  @override
+  String get formsHistoryOff =>
+      'El historial está desactivado (Privacidad → No guardar): no se guardan los rellenados.';
+
+  @override
+  String formsFieldsFilled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count campos rellenados',
+      one: '1 campo rellenado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get formsOutcomeCompleted => 'Completado';
+
+  @override
+  String get formsOutcomeStopped => 'Detenido';
+
+  @override
+  String get formsOutcomeError => 'Error';
+
+  @override
+  String get formsClearHistory => 'Borrar historial de rellenado';
+
+  @override
+  String get formsClearHistorySub =>
+      'Borra todos los registros de cuestionarios; las sesiones en vivo conservan lo demás.';
+
+  @override
+  String get formsHistoryCleared => 'Historial de rellenado borrado.';
+
+  @override
+  String get formsPrivacyNote =>
+      'Cada rellenado envía a DeepSeek una captura de la ventana activa y sus campos. Las capturas nunca se guardan. Los campos de contraseña y de pago nunca se leen ni se rellenan.';
+
+  @override
+  String get formsOpenSettings => 'Ajustes de formularios';
+
+  @override
+  String get formsAutofillGroup => 'Autorrelleno';
+
+  @override
+  String get formsAnswersGroup => 'Respuestas';
+
+  @override
+  String get formsHistoryGroup => 'Historial';
 }

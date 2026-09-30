@@ -119,6 +119,7 @@ class _Sidebar extends ConsumerWidget {
     final collections = ref.watch(collectionsProvider).value ?? const <Collection>[];
     final active = scripts.where((s) => !s.archived).toList();
     final showChat = ref.watch(settingsProvider.select((s) => s.showChat));
+    final showForms = ref.watch(settingsProvider.select((s) => s.showFormsNav));
 
     void go(String path) => context.go(path);
     final toggle = SottoIconButton(
@@ -198,6 +199,17 @@ class _Sidebar extends ConsumerWidget {
                   selected: location == '/chat',
                   collapsed: collapsed,
                   onTap: () => go('/chat'),
+                ),
+                const SizedBox(height: 2),
+              ],
+              // Settings → General → Show Forms in sidebar (on by default).
+              if (showForms) ...[
+                NavItem(
+                  label: context.l10n.navForms,
+                  icon: SottoIcons.form,
+                  selected: location == '/forms',
+                  collapsed: collapsed,
+                  onTap: () => go('/forms'),
                 ),
                 const SizedBox(height: 2),
               ],

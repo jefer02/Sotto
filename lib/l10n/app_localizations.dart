@@ -4697,7 +4697,7 @@ abstract class AppLocalizations {
   /// No description provided for @formsSubmitNote.
   ///
   /// In en, this message translates to:
-  /// **'Sotto never submits on its own: at the end it waits for Enter. Password and payment fields are never filled; {keys} stops at once.'**
+  /// **'Sotto never submits on its own: auto-fill stops before Submit, and a fill you start waits for Enter. {keys} stops at once.'**
   String formsSubmitNote(String keys);
 
   /// No description provided for @historyOff.
@@ -5173,6 +5173,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Never'**
   String get chatAutoCloseNever;
+
+  /// No description provided for @navForms.
+  ///
+  /// In en, this message translates to:
+  /// **'Forms'**
+  String get navForms;
+
+  /// No description provided for @setForms.
+  ///
+  /// In en, this message translates to:
+  /// **'Forms'**
+  String get setForms;
+
+  /// No description provided for @formsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling forms, quizzes and exams on screen: automatically as they appear, or when you ask.'**
+  String get formsDescription;
+
+  /// No description provided for @showFormsNav.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Forms in sidebar'**
+  String get showFormsNav;
+
+  /// No description provided for @showFormsNavSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The page with auto-fill, its status and recent fills'**
+  String get showFormsNavSub;
+
+  /// No description provided for @formsStatusOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get formsStatusOff;
+
+  /// No description provided for @formsStatusWatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Watching'**
+  String get formsStatusWatching;
+
+  /// No description provided for @formsStatusFilling.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling… {done}/{total}'**
+  String formsStatusFilling(int done, int total);
+
+  /// No description provided for @formsStatusOffSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on auto-fill above, or fill what\'s on screen once.'**
+  String get formsStatusOffSub;
+
+  /// No description provided for @formsStatusWatchingSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to a form, quiz or exam: Sotto fills it and stops before Submit.'**
+  String get formsStatusWatchingSub;
+
+  /// No description provided for @formsStatusPausedSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is watched or filled until you resume.'**
+  String get formsStatusPausedSub;
+
+  /// No description provided for @formsFillNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill what\'s on screen now'**
+  String get formsFillNow;
+
+  /// No description provided for @formsFillNowSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Then switch to the form within 3 seconds — same as {keys}.'**
+  String formsFillNowSub(String keys);
+
+  /// No description provided for @formsRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent fills'**
+  String get formsRecent;
+
+  /// No description provided for @formsRecentEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing filled yet.'**
+  String get formsRecentEmpty;
+
+  /// No description provided for @formsHistoryOff.
+  ///
+  /// In en, this message translates to:
+  /// **'History is off (Privacy → Don\'t keep): fills aren\'t kept.'**
+  String get formsHistoryOff;
+
+  /// No description provided for @formsFieldsFilled.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 field filled} other{{count} fields filled}}'**
+  String formsFieldsFilled(int count);
+
+  /// No description provided for @formsOutcomeCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get formsOutcomeCompleted;
+
+  /// No description provided for @formsOutcomeStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get formsOutcomeStopped;
+
+  /// No description provided for @formsOutcomeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get formsOutcomeError;
+
+  /// No description provided for @formsClearHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear fill history'**
+  String get formsClearHistory;
+
+  /// No description provided for @formsClearHistorySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletes every questionnaire record; live sessions keep the rest.'**
+  String get formsClearHistorySub;
+
+  /// No description provided for @formsHistoryCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill history cleared.'**
+  String get formsHistoryCleared;
+
+  /// No description provided for @formsPrivacyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Each fill sends a screenshot of the window in front, and its form fields, to DeepSeek. Screenshots are never saved. Password and payment fields are never read or filled.'**
+  String get formsPrivacyNote;
+
+  /// No description provided for @formsOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Forms settings'**
+  String get formsOpenSettings;
+
+  /// No description provided for @formsAutofillGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-fill'**
+  String get formsAutofillGroup;
+
+  /// No description provided for @formsAnswersGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers'**
+  String get formsAnswersGroup;
+
+  /// No description provided for @formsHistoryGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get formsHistoryGroup;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

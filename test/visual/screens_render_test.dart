@@ -130,13 +130,14 @@ void main() {
       'archive': '/archive',
       'sessions': '/sessions',
       'chat': '/chat',
+      'forms': '/forms',
       'editor-write': '/script/$id',
       'editor-prep': '/script/$id?tab=prep',
       'editor-rehearsals': '/script/$id?tab=rehearsals',
       'editor-blank': '/script/${blank.id}',
       'editor-blank-prep': '/script/${blank.id}?tab=prep',
       'collection-empty': '/collections/${emptyCollection.id}',
-      for (final p in ['shortcuts', 'appearance', 'voice', 'answers', 'general', 'integrations', 'privacy'])
+      for (final p in ['shortcuts', 'appearance', 'voice', 'answers', 'forms', 'general', 'integrations', 'privacy'])
         'settings-$p': '/settings/$p',
       for (final r in extra) r.replaceAll(RegExp('[^a-z0-9]+'), '-'): r,
     };

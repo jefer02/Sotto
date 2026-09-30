@@ -16,6 +16,7 @@ import '../../core/widgets/window_chrome.dart';
 import '../library/library_shell.dart' show TitleBarDragSpacer;
 import 'pages/answers_page.dart';
 import 'pages/appearance_page.dart';
+import 'pages/forms_page.dart';
 import 'pages/general_pages.dart';
 import 'pages/shortcuts_page.dart';
 import 'pages/voice_page.dart';
@@ -33,11 +34,15 @@ enum SettingsPage {
   voice(SottoIcons.wave, 'microphone language engine model sensitivity pace wpm micrófono idioma motor modelo ritmo'),
   answers(
     SottoIcons.ask,
-    'grounding sources length tone silence read aloud chat questionnaire form fill fuentes tono silencio respuestas cuestionario formulario rellenar',
+    'grounding sources length tone silence read aloud capture voice fuentes tono silencio respuestas captura voz',
+  ),
+  forms(
+    SottoIcons.form,
+    'forms questionnaire quiz exam auto-fill fill scroll instructions history formularios cuestionario examen autorrelleno rellenar historial',
   ),
   general(
     SottoIcons.sliders,
-    'pace storage reset version language ritmo almacenamiento versión idioma español english',
+    'pace storage reset version language chat sidebar ritmo almacenamiento versión idioma español english barra lateral',
   ),
   integrations(SottoIcons.plug, 'api key deepseek model vision clave modelo integraciones'),
   privacy(SottoIcons.shield, 'history retention delete capture keys historial borrar captura claves privacidad');
@@ -53,6 +58,7 @@ enum SettingsPage {
       appearance => l.setAppearance,
       voice => l.setVoice,
       answers => l.setAnswers,
+      forms => l.setForms,
       general => l.setGeneral,
       integrations => l.setIntegrations,
       privacy => l.setPrivacy,
@@ -157,6 +163,7 @@ class SettingsScreen extends ConsumerWidget {
                     SettingsPage.appearance => const AppearancePage(),
                     SettingsPage.voice => const VoicePage(),
                     SettingsPage.answers => const AnswersPage(),
+                    SettingsPage.forms => const FormsSettingsPage(),
                     SettingsPage.general => const GeneralPage(),
                     SettingsPage.integrations => const IntegrationsPage(),
                     SettingsPage.privacy => const PrivacyPage(),

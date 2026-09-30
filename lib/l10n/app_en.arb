@@ -1526,7 +1526,7 @@
   "formsInstructionsSub": "Optional context for the answers — your name, role, preferences.",
   "formsInstructionsHint": "e.g. My name is Ana Ruiz, product manager at Acme. Prefer concise answers.",
   "formsPrivacy": "Screenshots of the questionnaire are sent to DeepSeek and never saved. Nothing is stored unless history is on: then each filled answer is logged in Sessions.",
-  "formsSubmitNote": "Sotto never submits on its own: at the end it waits for Enter. Password and payment fields are never filled; {keys} stops at once.",
+  "formsSubmitNote": "Sotto never submits on its own: auto-fill stops before Submit, and a fill you start waits for Enter. {keys} stops at once.",
   "@formsSubmitNote": {
     "placeholders": {
       "keys": {
@@ -1660,5 +1660,57 @@
   "showChatSub": "Adds Chat to the sidebar and turns on its shortcuts (open chat, push to talk). Off by default: it stays out of the way.",
   "chatAutoClose": "Close the chat panel after",
   "chatAutoCloseSub": "In the overlay, after this long with no activity — never while a reply is arriving",
-  "chatAutoCloseNever": "Never"
+  "chatAutoCloseNever": "Never",
+  "navForms": "Forms",
+  "setForms": "Forms",
+  "formsDescription": "Filling forms, quizzes and exams on screen: automatically as they appear, or when you ask.",
+  "showFormsNav": "Show Forms in sidebar",
+  "showFormsNavSub": "The page with auto-fill, its status and recent fills",
+  "formsStatusOff": "Off",
+  "formsStatusWatching": "Watching",
+  "formsStatusFilling": "Filling… {done}/{total}",
+  "@formsStatusFilling": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "formsStatusOffSub": "Turn on auto-fill above, or fill what's on screen once.",
+  "formsStatusWatchingSub": "Switch to a form, quiz or exam: Sotto fills it and stops before Submit.",
+  "formsStatusPausedSub": "Nothing is watched or filled until you resume.",
+  "formsFillNow": "Fill what's on screen now",
+  "formsFillNowSub": "Then switch to the form within 3 seconds — same as {keys}.",
+  "@formsFillNowSub": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "formsRecent": "Recent fills",
+  "formsRecentEmpty": "Nothing filled yet.",
+  "formsHistoryOff": "History is off (Privacy → Don't keep): fills aren't kept.",
+  "formsFieldsFilled": "{count, plural, =1{1 field filled} other{{count} fields filled}}",
+  "@formsFieldsFilled": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "formsOutcomeCompleted": "Completed",
+  "formsOutcomeStopped": "Stopped",
+  "formsOutcomeError": "Error",
+  "formsClearHistory": "Clear fill history",
+  "formsClearHistorySub": "Deletes every questionnaire record; live sessions keep the rest.",
+  "formsHistoryCleared": "Fill history cleared.",
+  "formsPrivacyNote": "Each fill sends a screenshot of the window in front, and its form fields, to DeepSeek. Screenshots are never saved. Password and payment fields are never read or filled.",
+  "formsOpenSettings": "Forms settings",
+  "formsAutofillGroup": "Auto-fill",
+  "formsAnswersGroup": "Answers",
+  "formsHistoryGroup": "History"
 }
