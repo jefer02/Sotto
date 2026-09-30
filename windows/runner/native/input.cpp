@@ -4,6 +4,7 @@
 #include <oleauto.h>
 #include <uiautomation.h>
 
+#include <algorithm>
 #include <cstring>
 #include <cwchar>
 #include <string>
@@ -83,7 +84,26 @@ bool IsModifier(WORD vk) { return vk == VK_CONTROL || vk == VK_MENU || vk == VK_
 
 }  // namespace
 
-bool SottoMouseMove(int x, int y) { return SetCursorPos(x, y) != FALSE; }
+bool SottoMouseMove(int x, int y) {
+  if (!SetCursorPos(x, y)) return false;
+  const int vx = GetSystemMetrics(SM_XVIRTUALSCREEN);
+  const int vy = GetSystemMetrics(SM_YVIRTUALSCREEN);
+  const int vw = (std::max)(2, GetSystemMetrics(SM_CXVIRTUALSCREEN));
+  const int vh = (std::max)(2, GetSystemMetrics(SM_CYVIRTUALSCREEN));
+  INPUT in = Mouse(MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK);
+  in.mi.dx = static_cast<LONG>((static_cast<long long>(x - vx) * 65535) / (vw - 1));
+  in.mi.dy = static_cast<LONG>((static_cast<long long>(y - vy) * 65535) / (vh - 1));
+  std::vector<INPUT> inputs{in};
+  Send(inputs);
+  return true;
+}
+
+bool SottoMouseButton(int x, int y, bool down) {
+  if (!SetCursorPos(x, y)) return false;
+  std::vector<INPUT> inputs{Mouse(down ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP)};
+  Send(inputs);
+  return true;
+}
 
 bool SottoMouseClick(int x, int y, int button, int count) {
   if (!SetCursorPos(x, y)) return false;

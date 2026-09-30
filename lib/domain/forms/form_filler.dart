@@ -3,6 +3,9 @@ import 'dart:math' as math;
 import 'dart:ui' show Offset, Rect;
 
 import 'form_model.dart';
+import 'question_types.dart';
+
+export 'question_types.dart';
 
 // ─────────────────────────── Option matching ───────────────────────────
 
@@ -112,6 +115,10 @@ class FieldAnswer {
     this.confidence = 1,
     this.point,
     this.kind = 'text',
+    this.type,
+    this.letter,
+    this.reasoning = '',
+    this.drags = const [],
   });
 
   /// "f3", or "screen" for a question the accessibility tree didn't have.
@@ -131,22 +138,41 @@ class FieldAnswer {
   /// (open it, then pick the option), radio or checkbox (click it).
   final String kind;
 
-  FieldAnswer copyWith({String? answer, List<String>? choices}) => FieldAnswer(
+  /// The question's type as the model saw it ([QuestionType.wire]).
+  final String? type;
+
+  /// A/B/C/D answers: the option's letter (the text is in [answer]).
+  final String? letter;
+
+  /// One line on why — the overlay log shows it.
+  final String reasoning;
+
+  /// Matching and ordering: each drag, from → to, in screenshot pixels.
+  final List<(Offset, Offset)> drags;
+
+  FieldAnswer copyWith({String? answer, List<String>? choices, String? kind}) => FieldAnswer(
     fieldId: fieldId,
     question: question,
     answer: answer ?? this.answer,
     choices: choices ?? this.choices,
     confidence: confidence,
     point: point,
-    kind: kind,
+    kind: kind ?? this.kind,
+    type: type,
+    letter: letter,
+    reasoning: reasoning,
+    drags: drags,
   );
 
   /// What the overlay shows.
   String get display => choices.isNotEmpty ? choices.join(', ') : answer;
 
-  /// `{"answers":[{"field_id":"f1","question":"…","answer":"…" | [...],
-  /// "confidence":0.9, "point":[x,y], "kind":"text"}]}`. Tolerant of fences
-  /// and prose; throws [FormatException] when there is no answers list.
+  /// `{"answers":[{"field_id":"f1","question_text":"…","question_type":"…",
+  /// "answer":"…" | [...], "answer_letter":"B", "confidence":0.9,
+  /// "reasoning_summary":"…", "box":[x,y,w,h], "kind":"text",
+  /// "drags":[{"from":[x,y,w,h],"to":[x,y,w,h]}]}]}` ("question" is read
+  /// too). Tolerant of fences and prose; throws [FormatException] when
+  /// there is no answers list.
   static List<FieldAnswer> parseAll(String raw) {
     final from = raw.indexOf('{');
     final to = raw.lastIndexOf('}');
@@ -171,9 +197,11 @@ class FieldAnswer {
                     (box[3] as num).toDouble(),
                   ).center
                 : null;
+            final letter = '${a['answer_letter'] ?? ''}'.trim();
+            final type = a['question_type'];
             return FieldAnswer(
               fieldId: '${a['field_id']}'.trim(),
-              question: '${a['question'] ?? ''}'.trim(),
+              question: '${a['question_text'] ?? a['question'] ?? ''}'.trim(),
               answer: switch (ans) {
                 final String s => s.trim(),
                 final bool b => b ? 'yes' : 'no',
@@ -183,10 +211,26 @@ class FieldAnswer {
               choices: ans is List ? [for (final c in ans) '$c'.trim()] : const [],
               confidence: ((a['confidence'] as num?)?.toDouble() ?? 1).clamp(0, 1).toDouble(),
               point: point,
-              kind: '${a['kind'] ?? 'text'}'.toLowerCase(),
+              kind: '${a['kind'] ?? type ?? 'text'}'.toLowerCase(),
+              type: type is String ? type.trim().toLowerCase() : null,
+              letter: RegExp(r'^[A-Za-z]$').hasMatch(letter) ? letter.toUpperCase() : null,
+              reasoning: '${a['reasoning_summary'] ?? a['reasoning'] ?? ''}'.trim(),
+              drags: [
+                for (final d in (a['drags'] as List? ?? const []).whereType<Map<Object?, Object?>>())
+                  if ((_center(d['from']), _center(d['to'])) case (final Offset from, final Offset to)) (from, to),
+              ],
             );
           }(),
     ];
+  }
+
+  /// A `[x,y]` point or the centre of an `[x,y,w,h]` box.
+  static Offset? _center(Object? v) {
+    if (v is! List || !v.every((e) => e is num)) return null;
+    final n = [for (final e in v) (e as num).toDouble()];
+    if (n.length == 2) return Offset(n[0], n[1]);
+    if (n.length == 4) return Rect.fromLTWH(n[0], n[1], n[2], n[3]).center;
+    return null;
   }
 }
 
@@ -219,16 +263,25 @@ class NavTarget {
 
 /// The model's whole reply: answers, plus Next / Submit when it sees them.
 class FormReply {
-  const FormReply(this.answers, {this.next, this.submit});
+  const FormReply(this.answers, {this.next, this.submit, this.questionnaire = true});
 
   final List<FieldAnswer> answers;
   final NavTarget? next;
   final NavTarget? submit;
 
+  /// False when the screen shows no questions at all (auto-fill looked at a
+  /// page that isn't a form): nothing to do, nothing to show.
+  final bool questionnaire;
+
   static FormReply parse(String raw) {
     final answers = FieldAnswer.parseAll(raw);
     final j = jsonDecode(raw.substring(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
-    return FormReply(answers, next: NavTarget.parse(j['next']), submit: NavTarget.parse(j['submit']));
+    return FormReply(
+      answers,
+      next: NavTarget.parse(j['next']),
+      submit: NavTarget.parse(j['submit']),
+      questionnaire: j['questionnaire'] != false,
+    );
   }
 }
 
@@ -281,6 +334,14 @@ class VisualChooseAction extends FillAction {
   final String label;
 }
 
+/// Matching and ordering: press at [from], move to [to], release (physical
+/// pixels).
+class DragAction extends FillAction {
+  const DragAction(this.from, this.to);
+  final Offset from;
+  final Offset to;
+}
+
 enum SkipReason { sensitive, noMatch, noAnswer, unknownField, lowConfidence }
 
 /// One question to fill: the field, the answer and the actions.
@@ -298,7 +359,16 @@ class FillStep {
   String get question => answer.question.isNotEmpty ? answer.question : (field?.label ?? '');
 
   /// Filled by clicking and typing rather than an accessibility action.
-  bool get visual => actions.any((a) => a is ClickTypeAction || a is VisualChooseAction);
+  bool get visual => actions.any((a) => a is ClickTypeAction || a is VisualChooseAction || a is DragAction);
+
+  /// Nothing to fill — a read-only question: the answer is only shown.
+  bool get showOnly => actions.isEmpty && answer.kind == 'read_only';
+
+  /// The question's type: what the model said, else what the field is.
+  QuestionType get type =>
+      QuestionTypes.parse(answer.type) ??
+      (field != null ? QuestionTypes.classify(field!) : QuestionTypes.parse(answer.kind)) ??
+      QuestionType.text;
 
   /// How the control is reached: its accessibility action, or only where
   /// it appears on screen.
@@ -341,6 +411,32 @@ abstract final class FormFiller {
     final used = <String>{};
     for (final a in answers) {
       if (a.fieldId == 'screen') {
+        final type = QuestionTypes.parse(a.type) ?? QuestionTypes.parse(a.kind);
+        // A question with nothing to fill: show the answer, touch nothing.
+        if (type == QuestionType.readOnly) {
+          if (a.display.isNotEmpty) {
+            steps.add(
+              FillStep(
+                field: null,
+                answer: a.copyWith(kind: 'read_only'),
+                actions: const [],
+              ),
+            );
+          }
+          continue;
+        }
+        if (type == QuestionType.matching || type == QuestionType.ordering) {
+          final drags = <FillAction>[
+            for (final (from, to) in a.drags)
+              if ((toScreen?.call(from), toScreen?.call(to)) case (final Offset f, final Offset t)) DragAction(f, t),
+          ];
+          if (drags.isEmpty) {
+            skipped.add(SkippedAnswer(a.question, SkipReason.unknownField, answer: a));
+          } else {
+            steps.add(FillStep(field: null, answer: a, actions: drags));
+          }
+          continue;
+        }
         final p = a.point == null ? null : toScreen?.call(a.point!);
         if (p == null || a.display.isEmpty) {
           skipped.add(SkippedAnswer(a.question, SkipReason.unknownField, answer: a));
@@ -352,10 +448,11 @@ abstract final class FormFiller {
               expected: [a.answer],
               actions: [
                 switch (a.kind) {
-                  'text' => ClickTypeAction(p, text: a.answer),
-                  'textarea' => ClickTypeAction(p, text: a.answer, multiline: true),
+                  'text' || 'short_text' => ClickTypeAction(p, text: a.answer),
+                  'textarea' || 'long_text' => ClickTypeAction(p, text: a.answer, multiline: true),
                   'dropdown' || 'select' => VisualChooseAction(p, a.answer),
-                  // radio, checkbox, choice: the point is the option itself.
+                  // radio, checkbox, choice, true/false, scale, image: the
+                  // point is the option itself — one click.
                   _ => ClickTypeAction(p),
                 },
               ],
@@ -407,7 +504,7 @@ abstract final class FormFiller {
           ],
         );
       case FieldRole.radio:
-        final i = OptionMatcher.match([for (final o in f.options) o.label], a.answer);
+        final i = ChoiceMatcher.match([for (final o in f.options) o.label], answer: a.answer, letter: a.letter);
         if (i == null) return null;
         final o = f.options[i];
         final canSelect = f.patterns.contains('select') || f.patterns.contains('invoke');
@@ -466,7 +563,7 @@ abstract final class FormFiller {
             ],
           );
         }
-        final i = OptionMatcher.match([for (final o in f.options) o.label], a.answer);
+        final i = ChoiceMatcher.match([for (final o in f.options) o.label], answer: a.answer, letter: a.letter);
         if (i == null) return null;
         final label = f.options[i].label;
         return FillStep(

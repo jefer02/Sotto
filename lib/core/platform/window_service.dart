@@ -281,7 +281,9 @@ class WindowService {
     if (await _host.isMaximized()) await _host.unmaximize();
   }
 
-  Future<void> enterOverlay(AppSettings s) async {
+  /// [height]: a panel (questionnaire, agent, auto-fill) that needs at
+  /// least this much room; the reading overlay takes its saved size.
+  Future<void> enterOverlay(AppSettings s, {double? height}) async {
     if (!supported || _overlay) return;
     _overlay = true;
     _mainFullScreen = await _host.isFullScreen();
@@ -292,7 +294,13 @@ class WindowService {
     final displays = await _displays();
     final display = OverlayGeometry.displayFor(s, displays, current: await _currentDisplay(displays));
     _displayId = display.id;
-    final frame = OverlayGeometry.frame(s, display);
+    var frame = OverlayGeometry.frame(s, display);
+    if (height != null && frame.height < height) {
+      frame = OverlayGeometry.clampInto(
+        Rect.fromLTWH(frame.left, frame.top, frame.width, height.clamp(frame.height, display.visible.height)),
+        display.visible,
+      );
+    }
 
     await _host.setOverlayChrome(
       true,

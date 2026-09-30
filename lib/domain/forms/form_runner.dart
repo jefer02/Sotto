@@ -4,6 +4,7 @@ import 'dart:ui' show Offset;
 import '../agent/agent_action.dart';
 import '../agent/coordinates.dart';
 import '../agent/safety.dart';
+import 'autofill_watcher.dart' show ScrollLoop;
 import 'form_filler.dart';
 import 'form_model.dart';
 
@@ -33,7 +34,17 @@ enum FormPhase {
   finished,
 }
 
-enum ItemStatus { pending, filling, filled, failed, skipped, blocked }
+enum ItemStatus {
+  pending,
+  filling,
+  filled,
+  failed,
+  skipped,
+  blocked,
+
+  /// A read-only question: its answer is shown, nothing is filled.
+  shown,
+}
 
 /// A screenshot (JPEG data URL) and how its pixels map to the screen.
 class ScreenFrame {
@@ -66,6 +77,14 @@ abstract interface class FormDriver {
   Future<void> typeKeys(String text, Duration interval);
   Future<void> pressKey(String key);
   Future<void> scroll(Offset physical, int notches);
+
+  /// Press at [from], move to [to] in small steps, release — matching and
+  /// ordering questions.
+  Future<void> drag(Offset from, Offset to);
+
+  /// Whether the page can scroll further down (UIA ScrollPattern, the AX
+  /// scroll bar); null when it can't be told.
+  Future<bool?> canScrollDown();
   Future<FocusInfo?> focused();
   Future<void> pause(Duration d);
 }
@@ -144,18 +163,33 @@ class FillTiming {
 
 /// What happened to one question, for the session record.
 class FilledField {
-  const FilledField(this.question, this.answer, this.status, {this.note = '', this.visual = false});
+  FilledField(
+    this.question,
+    this.answer,
+    this.status, {
+    this.note = '',
+    this.visual = false,
+    this.type = QuestionType.text,
+    this.reasoning = '',
+    DateTime? at,
+  }) : at = at ?? DateTime.now();
   final String question;
   final String answer;
   final ItemStatus status;
   final String note;
   final bool visual;
+  final QuestionType type;
+
+  /// The model's one-line why.
+  final String reasoning;
+  final DateTime at;
 }
 
 class FormRunResult {
   const FormRunResult(this.outcome, this.pages, this.fields);
 
-  /// submitted, ready, stopped.
+  /// submitted, ready (Submit is the presenter's), stopped, or none (auto-
+  /// fill looked and found no questions).
   final String outcome;
   final int pages;
   final List<FilledField> fields;
@@ -169,6 +203,8 @@ class FormRunner {
     required this.texts,
     this.showFirst = false,
     this.maxPages = 10,
+    this.auto = false,
+    this.scrollForMore = true,
     this.timing = const FillTiming(),
     math.Random? random,
   }) : _random = random ?? math.Random();
@@ -179,6 +215,13 @@ class FormRunner {
   final FormRunTexts texts;
   final bool showFirst;
   final int maxPages;
+
+  /// An auto-fill cycle: nobody asked, so it stops at Submit without asking
+  /// either ("Done — review and submit yourself").
+  final bool auto;
+
+  /// Scroll down to look for more questions (up to 10 times a page).
+  final bool scrollForMore;
   final FillTiming timing;
   final math.Random _random;
 
@@ -191,7 +234,9 @@ class FormRunner {
     final screenAsked = <String>{};
     var page = 1;
     var askedThisPage = false;
-    var scrolled = false;
+    final scrolls = ScrollLoop(enabled: scrollForMore && driver.canInput, limit: maxPages);
+    var newSinceScroll = true;
+    var sawQuestions = false;
     NavTarget? seenNext;
     NavTarget? seenSubmit;
     CoordinateMapper? mapper;
@@ -213,6 +258,9 @@ class FormRunner {
         final ids = FormFiller.idsFor(pending);
         host.phase(FormPhase.thinking, page: page);
         final reply = await vision.answer(frame, ids);
+        if (reply.questionnaire || ids.isNotEmpty || reply.answers.isNotEmpty) sawQuestions = true;
+        // Auto-fill looked at a page with no questions: leave it be.
+        if (auto && !sawQuestions && page == 1 && scrolls.scrolls == 0) return FormRunResult('none', page, _log);
         seenNext = reply.next ?? seenNext;
         seenSubmit = reply.submit ?? seenSubmit;
         // A question read off the screenshot is answered once per page,
@@ -225,6 +273,7 @@ class FormRunner {
         Offset? toScreen(Offset p) => frame.mapper.toScreen(p.dx, p.dy);
         var plan = FormFiller.plan(ids, answers, toScreen: toScreen);
         if (plan.steps.isEmpty && plan.skipped.isEmpty) continue;
+        newSinceScroll = true;
         host.planned(plan);
         if (showFirst) {
           host.phase(FormPhase.review, page: page);
@@ -236,9 +285,15 @@ class FormRunner {
         continue;
       }
 
-      // Everything on this page is answered: move on.
-      final next = _nav(snap.next, seenNext, mapper);
-      final submit = _nav(snap.submit, seenSubmit, mapper);
+      // Everything on this page is answered: move on. A "Next" that would
+      // confirm, pay, send or delete is treated as Submit — never pressed
+      // without the presenter.
+      var next = _nav(snap.next, seenNext, mapper);
+      var submit = _nav(snap.submit, seenSubmit, mapper);
+      if (next != null && SafetyGate.isForbiddenButton(next.label)) {
+        submit ??= next;
+        next = null;
+      }
       if (next != null) {
         if (page >= maxPages) return FormRunResult('ready', page, _log);
         if (showFirst) {
@@ -250,12 +305,14 @@ class FormRunner {
         await _press(next);
         page++;
         askedThisPage = false;
-        scrolled = false;
+        scrolls.reset();
+        newSinceScroll = true;
         seenNext = null;
         seenSubmit = null;
         await driver.pause(timing.pageLoad);
         continue;
       }
+      if (submit != null && auto) return FormRunResult('ready', page, _log);
       if (submit != null) {
         host.phase(FormPhase.confirmSubmit, page: page, label: submit.label);
         if (!await host.confirm(FormPhase.confirmSubmit, label: submit.label)) {
@@ -264,15 +321,20 @@ class FormRunner {
         await _press(submit);
         return FormRunResult('submitted', page, _log);
       }
-      if (!scrolled && driver.canInput) {
-        // More questions below the fold? Look once more after scrolling.
+      // More questions below the fold? Scroll one viewport and look again —
+      // until a scroll turns up nothing new or the page ends.
+      if (scrolls.shouldScroll(
+        newFieldsSinceLastScroll: newSinceScroll,
+        atSubmit: false,
+        canScrollMore: await driver.canScrollDown(),
+      )) {
         await driver.scroll(frame.mapper.screen.center, 5);
-        scrolled = true;
+        newSinceScroll = false;
         askedThisPage = false;
         await driver.pause(timing.afterScroll);
         continue;
       }
-      return FormRunResult('ready', page, _log);
+      return FormRunResult(sawQuestions || !auto ? 'ready' : 'none', page, _log);
     }
     return FormRunResult(_stop ? 'stopped' : 'ready', page, _log);
   }
@@ -292,10 +354,20 @@ class FormRunner {
   // ─────────────────────────── Filling ───────────────────────────
 
   Future<void> _fillAndVerify(FillPlan plan) async {
-    final steps = plan.steps;
     final status = <FillStep, (ItemStatus, String)>{};
+    // Read-only questions: shown in the overlay, nothing to fill or check.
+    for (var i = 0; i < plan.steps.length; i++) {
+      if (!plan.steps[i].showOnly) continue;
+      status[plan.steps[i]] = (ItemStatus.shown, '');
+      host.progress(i, ItemStatus.shown);
+    }
+    final steps = [
+      for (final s in plan.steps)
+        if (!s.showOnly) s,
+    ];
+    int indexOf(FillStep s) => plan.steps.indexOf(s);
     for (var i = 0; i < steps.length && !_stop; i++) {
-      status[steps[i]] = await _fillOne(i, steps[i], timing.keyInterval);
+      status[steps[i]] = await _fillOne(indexOf(steps[i]), steps[i], timing.keyInterval);
     }
 
     if (!_stop && steps.isNotEmpty) {
@@ -306,7 +378,7 @@ class FormRunner {
         // Once more, typing at half speed: some web inputs drop fast keys.
         for (final s in wrong) {
           if (_stop) break;
-          status[s] = await _fillOne(steps.indexOf(s), s, timing.slowKeyInterval);
+          status[s] = await _fillOne(indexOf(s), s, timing.slowKeyInterval);
         }
         await driver.pause(timing.settle);
         wrong = await _unverified(wrong, status);
@@ -314,7 +386,7 @@ class FormRunner {
       for (final s in steps) {
         final (st, note) = status[s] ?? (ItemStatus.failed, '');
         if (st == ItemStatus.blocked) continue;
-        final i = steps.indexOf(s);
+        final i = indexOf(s);
         if (wrong.contains(s)) {
           status[s] = (ItemStatus.failed, texts.couldNotFill());
           host.progress(i, ItemStatus.failed, note: texts.couldNotFill());
@@ -325,9 +397,19 @@ class FormRunner {
       }
     }
 
-    for (final s in steps) {
+    for (final s in plan.steps) {
       final (st, note) = status[s] ?? (ItemStatus.failed, texts.couldNotFill());
-      _log.add(FilledField(s.question, s.answer.display, st, note: note, visual: s.visual));
+      _log.add(
+        FilledField(
+          s.question,
+          s.answer.display,
+          st,
+          note: note,
+          visual: s.visual,
+          type: s.type,
+          reasoning: s.answer.reasoning,
+        ),
+      );
     }
     for (final s in plan.skipped) {
       _log.add(
@@ -336,6 +418,10 @@ class FormRunner {
           s.answer?.display ?? '',
           s.reason == SkipReason.sensitive ? ItemStatus.blocked : ItemStatus.skipped,
           note: texts.skipped(s.reason),
+          type: s.field != null
+              ? QuestionTypes.classify(s.field!)
+              : (QuestionTypes.parse(s.answer?.type) ?? QuestionType.text),
+          reasoning: s.answer?.reasoning ?? '',
         ),
       );
     }
@@ -359,7 +445,7 @@ class FormRunner {
     // Answers read off the screenshot can only be checked on a screenshot.
     final screenSteps = [
       for (final s in candidates)
-        if (s.field == null && s.answer.point != null && !wrong.contains(s)) s,
+        if (s.field == null && s.answer.point != null && s.answer.drags.isEmpty && !wrong.contains(s)) s,
     ];
     if (screenSteps.isNotEmpty) {
       final frame = await driver.capture();
@@ -433,6 +519,11 @@ class FormRunner {
         return _clickType(point, text, multiline: multiline, interval: keyInterval);
       case VisualChooseAction(:final point, :final label):
         return (await _visualChoose(point, label, keyInterval), null);
+      case DragAction(:final from, :final to):
+        if (!driver.canInput) return (false, null);
+        await driver.drag(from, to);
+        await driver.pause(timing.afterClick);
+        return (true, null);
     }
   }
 

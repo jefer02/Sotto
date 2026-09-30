@@ -26,6 +26,7 @@ import '../../services/tts/tts_service.dart';
 import '../../l10n/l10n.dart';
 import '../agent/agent_controller.dart';
 import '../chat/chat_controller.dart';
+import '../forms/autofill_controller.dart';
 import '../questionnaire/questionnaire_controller.dart';
 import 'live_state.dart';
 
@@ -297,10 +298,7 @@ class LiveController extends Notifier<LiveState> {
     LiveAction.agentStop: (onDown: emergencyStop, onUp: null),
     LiveAction.openChat: (onDown: ref.read(chatControllerProvider.notifier).toggleOverlay, onUp: null),
     LiveAction.pushToTalk: (onDown: _talkDown, onUp: _talkUp),
-    LiveAction.fillForm: (
-      onDown: () => unawaited(ref.read(questionnaireControllerProvider.notifier).start()),
-      onUp: null,
-    ),
+    LiveAction.fillForm: (onDown: () => unawaited(ref.read(autoFillControllerProvider.notifier).fillNow()), onUp: null),
     LiveAction.sendToChat: (onDown: sendDown, onUp: sendUp),
     LiveAction.readAloud: (onDown: readAloud, onUp: null),
     LiveAction.dismiss: (onDown: dismiss, onUp: null),
@@ -514,6 +512,7 @@ class LiveController extends Notifier<LiveState> {
   void emergencyStop() {
     ref.read(agentControllerProvider.notifier).stop();
     ref.read(questionnaireControllerProvider.notifier).stop();
+    ref.read(autoFillControllerProvider.notifier).emergencyStop();
   }
 
   /// One on-demand screenshot, with the overlay's capture indicator on.

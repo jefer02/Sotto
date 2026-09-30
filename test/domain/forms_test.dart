@@ -314,6 +314,10 @@ void main() {
     // Boxes are in screenshot pixels (half the physical size here).
     final fields = jsonDecode(llm.user!.split('Fields:\n').last) as List;
     expect((fields.first as Map)['box'], [50, 50, 150, 12]);
-    expect((fields[1] as Map)['options'], ['Nunca', 'A veces', 'A diario']);
+    // Options carry their letter and, where known, their box.
+    final options = ((fields[1] as Map)['options'] as List).cast<Map<String, Object?>>();
+    expect([for (final o in options) o['label']], ['Nunca', 'A veces', 'A diario']);
+    expect([for (final o in options) o['letter']], ['A', 'B', 'C']);
+    expect((fields[1] as Map)['question_type'], 'multiple_choice');
   });
 }

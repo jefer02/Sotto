@@ -484,6 +484,63 @@ bool SottoFormFocus(const char* id) {
   }
 }
 
+bool SottoForegroundInfo(char** json) {
+  *json = nullptr;
+  HWND fg = GetForegroundWindow();
+  if (fg == nullptr) return false;
+  DWORD pid = 0;
+  GetWindowThreadProcessId(fg, &pid);
+  wchar_t title[512] = {};
+  const int title_len = GetWindowTextW(fg, title, 512);
+  std::string app;
+  if (HANDLE proc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid)) {
+    wchar_t path[MAX_PATH] = {};
+    DWORD size = MAX_PATH;
+    if (QueryFullProcessImageNameW(proc, 0, path, &size)) {
+      std::wstring file(path, size);
+      const size_t slash = file.find_last_of(L"\\/");
+      if (slash != std::wstring::npos) file = file.substr(slash + 1);
+      if (file.size() > 4 && Lower(file.substr(file.size() - 4)) == L".exe") file.resize(file.size() - 4);
+      app = Utf8(file.c_str(), static_cast<int>(file.size()));
+    }
+    CloseHandle(proc);
+  }
+  std::string out = "{\"id\":\"" + std::to_string(reinterpret_cast<uintptr_t>(fg)) + "\",\"title\":";
+  JsonString(out, Utf8(title, title_len));
+  out += ",\"app\":";
+  JsonString(out, app);
+  out += pid == GetCurrentProcessId() ? ",\"own\":true}" : ",\"own\":false}";
+  *json = _strdup(out.c_str());
+  return *json != nullptr;
+}
+
+int SottoFormCanScrollDown() {
+  try {
+    HWND fg = GetForegroundWindow();
+    DWORD pid = 0;
+    GetWindowThreadProcessId(fg, &pid);
+    if (fg == nullptr || pid == GetCurrentProcessId()) return -1;
+    auto& automation = Automation();
+    com_ptr<IUIAutomationElement> root;
+    winrt::check_hresult(automation->ElementFromHandle(fg, root.put()));
+    VARIANT v;
+    VariantInit(&v);
+    v.vt = VT_BOOL;
+    v.boolVal = VARIANT_TRUE;
+    com_ptr<IUIAutomationCondition> scrollable;
+    winrt::check_hresult(
+        automation->CreatePropertyCondition(UIA_ScrollVerticallyScrollablePropertyId, v, scrollable.put()));
+    com_ptr<IUIAutomationElement> found;
+    if (FAILED(root->FindFirst(TreeScope_Subtree, scrollable.get(), found.put())) || !found) return -1;
+    auto scroll = Pattern<IUIAutomationScrollPattern>(found.get(), UIA_ScrollPatternId);
+    double percent = -1;
+    if (!scroll || FAILED(scroll->get_CurrentVerticalScrollPercent(&percent)) || percent < 0) return -1;
+    return percent < 99.5 ? 1 : 0;
+  } catch (...) {
+    return -1;
+  }
+}
+
 bool SottoFormScrollIntoView(const char* id) {
   try {
     auto e = Find(id);

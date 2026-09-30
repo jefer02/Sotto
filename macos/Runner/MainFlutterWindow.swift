@@ -485,9 +485,63 @@ extension MainFlutterWindow {
     case "scrollIntoView":
       guard let e = element else { return result(false) }
       result(AXUIElementPerformAction(e, "AXScrollToVisible" as CFString) == .success)
+    case "foreground":
+      result(MainFlutterWindow.foregroundInfo())
+    case "canScrollDown":
+      result(MainFlutterWindow.canScrollDown())
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  /// The app in front and its focused window's title, as JSON — what the
+  /// auto-fill watcher polls. "own" is Sotto itself.
+  fileprivate static func foregroundInfo() -> String {
+    guard let app = NSWorkspace.shared.frontmostApplication else { return "{}" }
+    var title = ""
+    var windowId = "\(app.processIdentifier)"
+    if AXIsProcessTrusted() {
+      let axApp = AXUIElementCreateApplication(app.processIdentifier)
+      if let w = attr(axApp, kAXFocusedWindowAttribute), CFGetTypeID(w) == AXUIElementGetTypeID() {
+        let window = w as! AXUIElement
+        title = string(window, kAXTitleAttribute) ?? ""
+        windowId += ":\(CFHash(window))"
+      }
+    }
+    let info: [String: Any] = [
+      "id": windowId,
+      "title": title,
+      "app": app.localizedName ?? app.bundleIdentifier ?? "",
+      "own": app.processIdentifier == ProcessInfo.processInfo.processIdentifier,
+    ]
+    guard let data = try? JSONSerialization.data(withJSONObject: info),
+      let json = String(data: data, encoding: .utf8)
+    else { return "{}" }
+    return json
+  }
+
+  /// Whether the front window's page can scroll further down: its first
+  /// scroll area's vertical scroll bar value (0…1). Nil when unknown.
+  fileprivate static func canScrollDown() -> Any? {
+    guard AXIsProcessTrusted(), let app = NSWorkspace.shared.frontmostApplication,
+      app.processIdentifier != ProcessInfo.processInfo.processIdentifier
+    else { return nil }
+    let axApp = AXUIElementCreateApplication(app.processIdentifier)
+    guard let w = attr(axApp, kAXFocusedWindowAttribute), CFGetTypeID(w) == AXUIElementGetTypeID() else { return nil }
+    var queue: [(AXUIElement, Int)] = [(w as! AXUIElement, 0)]
+    var visited = 0
+    while !queue.isEmpty && visited < 400 {
+      let (e, depth) = queue.removeFirst()
+      visited += 1
+      if string(e, kAXRoleAttribute) == "AXScrollArea",
+        let bar = attr(e, kAXVerticalScrollBarAttribute), CFGetTypeID(bar) == AXUIElementGetTypeID(),
+        let value = attr(bar as! AXUIElement, kAXValueAttribute) as? NSNumber
+      {
+        return value.doubleValue < 0.995
+      }
+      if depth < 12 { queue.append(contentsOf: children(e).map { ($0, depth + 1) }) }
+    }
+    return nil
   }
 
   fileprivate static func attr(_ e: AXUIElement, _ name: String) -> CFTypeRef? {
@@ -671,7 +725,14 @@ enum SyntheticInput {
       let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
       result(AXIsProcessTrustedWithOptions([key: true] as CFDictionary))
     case "move":
-      post(CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left))
+      // While the button is held (a drag) the page must see drag events.
+      post(CGEvent(mouseEventSource: source, mouseType: leftDown ? .leftMouseDragged : .mouseMoved,
+                   mouseCursorPosition: point, mouseButton: .left))
+      result(nil)
+    case "mouseButton":
+      leftDown = a["down"] as? Bool ?? false
+      post(CGEvent(mouseEventSource: source, mouseType: leftDown ? .leftMouseDown : .leftMouseUp,
+                   mouseCursorPosition: point, mouseButton: .left))
       result(nil)
     case "click":
       click(at: point, right: (a["button"] as? String) == "right", count: a["count"] as? Int ?? 1)
@@ -701,6 +762,9 @@ enum SyntheticInput {
   }
 
   private static let source = CGEventSource(stateID: .hidSystemState)
+
+  /// A drag is in progress (matching / ordering questions).
+  private static var leftDown = false
 
   private static func number(_ v: Any?) -> CGFloat {
     if let d = v as? Double { return CGFloat(d) }
@@ -776,6 +840,7 @@ enum SyntheticInput {
   }
 
   private static func releaseAll() {
+    leftDown = false
     for code: CGKeyCode in [55, 54, 56, 60, 58, 61, 59, 62] {  // cmd, shift, option, control (both sides)
       let e = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: false)
       e?.flags = []

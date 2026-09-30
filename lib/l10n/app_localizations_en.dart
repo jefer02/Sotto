@@ -2757,4 +2757,99 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get maxOverlayHeightSub =>
       'The overlay grows and shrinks with the lines showing, up to this share of the screen. Drag its edge to set a height for the session.';
+
+  @override
+  String get autofillOn => 'Auto-fill ON';
+
+  @override
+  String get autofillPaused => 'Paused';
+
+  @override
+  String get autofillPause => 'Pause';
+
+  @override
+  String get autofillResume => 'Resume';
+
+  @override
+  String get autofillStop => 'Stop';
+
+  @override
+  String get autofillHoldToStop => 'Hold 1 s to stop';
+
+  @override
+  String get autofillStopNow => 'Stop now';
+
+  @override
+  String autofillFilling(int done, int total, String question) {
+    return 'Filling… $done/$total — $question';
+  }
+
+  @override
+  String get autofillDone => 'Done — review and submit yourself';
+
+  @override
+  String get autofillOpenSotto => 'Open Sotto';
+
+  @override
+  String get autofillLog => 'Log';
+
+  @override
+  String get autofillLogEmpty => 'Answers will appear here, with why each was chosen.';
+
+  @override
+  String autofillCountdown(int seconds) {
+    return 'Switch to the form… $seconds';
+  }
+
+  @override
+  String get autofillWatching => 'Watching for questionnaires';
+
+  @override
+  String get autofillIndicator => 'Sotto is filling';
+
+  @override
+  String get autofillToggle => 'Auto-fill forms and quizzes';
+
+  @override
+  String get autofillToggleSub =>
+      'Watches the window in front and fills every form, quiz or exam that appears. Screenshots go to DeepSeek. Never presses Submit.';
+
+  @override
+  String get formsScrollTitle => 'Scroll to find more questions';
+
+  @override
+  String get formsScrollSub => 'Scrolls down, up to 10 times a page, while new questions keep appearing';
+
+  @override
+  String get qtText => 'Text';
+
+  @override
+  String get qtLongText => 'Long text';
+
+  @override
+  String get qtMultipleChoice => 'Multiple choice';
+
+  @override
+  String get qtTrueFalse => 'True / False';
+
+  @override
+  String get qtCheckboxes => 'Checkboxes';
+
+  @override
+  String get qtDropdown => 'Dropdown';
+
+  @override
+  String get qtScale => 'Scale';
+
+  @override
+  String get qtMatching => 'Matching';
+
+  @override
+  String get qtOrdering => 'Ordering';
+
+  @override
+  String get qtImageChoice => 'Image choice';
+
+  @override
+  String get qtReadOnly => 'Read only — answer shown';
 }

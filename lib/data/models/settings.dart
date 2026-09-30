@@ -130,6 +130,8 @@ class AppSettings {
     this.agentEnabled = false,
     this.agentAutonomy = AgentAutonomy.confirmEach,
     this.formsEnabled = false,
+    this.formsAutoFill = false,
+    this.formsScroll = true,
     this.formsMode = FormFillMode.fillAutomatically,
     this.formsLanguage = FormAnswerLanguage.sameAsForm,
     this.formsStyle = FormAnswerStyle.short,
@@ -232,6 +234,13 @@ class AppSettings {
   /// Opt-in: answer questionnaires on screen with the model's own knowledge
   /// (not the script) and fill them in. Off by default.
   final bool formsEnabled;
+
+  /// Auto-fill: watch the screen and fill every questionnaire that appears
+  /// (off by default; only while Questionnaires on screen is on).
+  final bool formsAutoFill;
+
+  /// Scroll down to find more questions (up to 10 times a page).
+  final bool formsScroll;
   final FormFillMode formsMode;
   final FormAnswerLanguage formsLanguage;
   final FormAnswerStyle formsStyle;
@@ -313,6 +322,8 @@ class AppSettings {
     bool? agentEnabled,
     AgentAutonomy? agentAutonomy,
     bool? formsEnabled,
+    bool? formsAutoFill,
+    bool? formsScroll,
     FormFillMode? formsMode,
     FormAnswerLanguage? formsLanguage,
     FormAnswerStyle? formsStyle,
@@ -376,6 +387,8 @@ class AppSettings {
     agentEnabled: agentEnabled ?? this.agentEnabled,
     agentAutonomy: agentAutonomy ?? this.agentAutonomy,
     formsEnabled: formsEnabled ?? this.formsEnabled,
+    formsAutoFill: formsAutoFill ?? this.formsAutoFill,
+    formsScroll: formsScroll ?? this.formsScroll,
     formsMode: formsMode ?? this.formsMode,
     formsLanguage: formsLanguage ?? this.formsLanguage,
     formsStyle: formsStyle ?? this.formsStyle,
@@ -444,6 +457,8 @@ class AppSettings {
     'agentEnabled': agentEnabled,
     'agentAutonomy': agentAutonomy.name,
     'formsEnabled': formsEnabled,
+    'formsAutoFill': formsAutoFill,
+    'formsScroll': formsScroll,
     'formsMode': formsMode.name,
     'formsLanguage': formsLanguage.name,
     'formsStyle': formsStyle.name,
@@ -543,6 +558,8 @@ class AppSettings {
       agentEnabled: j['agentEnabled'] as bool? ?? d.agentEnabled,
       agentAutonomy: e(AgentAutonomy.values, j['agentAutonomy'], d.agentAutonomy),
       formsEnabled: j['formsEnabled'] as bool? ?? d.formsEnabled,
+      formsAutoFill: j['formsAutoFill'] as bool? ?? d.formsAutoFill,
+      formsScroll: j['formsScroll'] as bool? ?? d.formsScroll,
       formsMode: e(FormFillMode.values, j['formsMode'], d.formsMode),
       formsLanguage: e(FormAnswerLanguage.values, j['formsLanguage'], d.formsLanguage),
       formsStyle: e(FormAnswerStyle.values, j['formsStyle'], d.formsStyle),

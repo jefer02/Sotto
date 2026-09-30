@@ -64,7 +64,7 @@ abstract final class SafetyGate {
 
   static final _payment = RegExp(
     r'card ?number|credit|debit|\bcvv\b|\bcvc\b|\bcsc\b|security code|expir|\biban\b|\bswift\b|routing|account number|'
-    r'tarjeta|caducidad|vencimiento|c[oó]digo de seguridad|n[uú]mero de cuenta|titular',
+    r'billing|tarjeta|caducidad|vencimiento|c[oó]digo de seguridad|n[uú]mero de cuenta|titular|facturaci[oó]n',
     caseSensitive: false,
   );
 
@@ -75,6 +75,16 @@ abstract final class SafetyGate {
     r'transferir|publicar|publica|firmar|reservar|donar|suscrib|vaciar)\b',
     caseSensitive: false,
   );
+
+  static final _forbiddenButton = RegExp(
+    r'\b(submit|send|pay|buy|purchase|checkout|confirm|delete|remove|'
+    r'enviar|env[ií]a|pagar|paga|comprar|compra|confirmar|confirma|eliminar|elimina|borrar|borra)\b',
+    caseSensitive: false,
+  );
+
+  /// A button form filling never presses on its own: Submit, Send, Pay,
+  /// Buy, Confirm, Delete (and their Spanish).
+  static bool isForbiddenButton(String label) => _forbiddenButton.hasMatch(label);
 
   /// A password, PIN or one-time-code field, by its label.
   static bool isSecretLabel(String label) => _secret.hasMatch(label);

@@ -285,6 +285,8 @@ void FlutterWindow::HandleInputCall(
     return;
   } else if (method == "move") {
     ok = SottoMouseMove(x, y);
+  } else if (method == "mouseButton") {
+    ok = SottoMouseButton(x, y, GetBool(a, "down"));
   } else if (method == "click") {
     ok = SottoMouseClick(x, y, GetString(a, "button") == "right" ? 1 : 0, GetInt(a, "count", 1));
   } else if (method == "scroll") {
@@ -359,6 +361,22 @@ void FlutterWindow::HandleFormsCall(
   const auto& a = args != nullptr ? *args : empty;
   if (method == "permission") {
     result->Success(flutter::EncodableValue("granted"));  // UI Automation needs none
+    return;
+  }
+  if (method == "foreground") {
+    char* json = nullptr;
+    if (!SottoForegroundInfo(&json)) {
+      result->Error("no_window", "No window in front");
+      return;
+    }
+    std::string out(json);
+    SottoFormFree(json);
+    result->Success(flutter::EncodableValue(out));
+    return;
+  }
+  if (method == "canScrollDown") {
+    const int r = SottoFormCanScrollDown();
+    result->Success(r < 0 ? flutter::EncodableValue() : flutter::EncodableValue(r == 1));
     return;
   }
   if (method == "read") {

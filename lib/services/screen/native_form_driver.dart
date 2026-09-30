@@ -6,6 +6,7 @@ import '../../domain/agent/safety.dart';
 import '../../domain/forms/form_model.dart';
 import '../../domain/forms/form_runner.dart';
 import '../agent/input_service.dart';
+import 'cdp_dom.dart';
 import 'form_access.dart';
 import 'screen_service.dart';
 
@@ -14,13 +15,21 @@ import 'screen_service.dart';
 /// and synthetic input for visual-only fields — SendInput on Windows,
 /// CGEvent on macOS. Points arrive in physical pixels; macOS input takes
 /// points, so they are divided by the captured display's scale.
+///
+/// Windows + Chrome / Edge: when UI Automation shows fewer than two fields,
+/// the page's DOM is read through the DevTools protocol ([CdpDom]) if the
+/// browser allows it; those fields (`cdp:…` ids) are filled through it too.
 class NativeFormDriver implements FormDriver {
-  NativeFormDriver({required this.screen, required this.forms, required this.input});
+  NativeFormDriver({required this.screen, required this.forms, required this.input, this.cdp});
 
   final ScreenService screen;
   final FormAccessService forms;
   final InputService input;
+  final CdpDom? cdp;
   CoordinateMapper? _mapper;
+  CdpPage? _page;
+
+  static bool _isCdp(String id) => id.startsWith('cdp:');
 
   Offset _native(Offset physical) => Platform.isMacOS && _mapper != null ? _mapper!.toLogical(physical) : physical;
 
@@ -41,28 +50,53 @@ class NativeFormDriver implements FormDriver {
   /// and a missing permission stop the run.
   @override
   Future<FormSnapshot> read() async {
+    FormSnapshot tree;
     try {
-      return await forms.snapshot();
+      tree = await forms.snapshot();
     } on FormAccessException catch (e) {
       if (e.code == 'own_window' || e.code == 'permission_denied') rethrow;
-      return const FormSnapshot(fields: []);
+      tree = const FormSnapshot(fields: []);
     }
+    if (tree.fields.length >= 2 || cdp == null || !Platform.isWindows) return tree;
+    final dom = await _readDom();
+    return dom != null && dom.fields.length > tree.fields.length ? dom : tree;
+  }
+
+  Future<FormSnapshot?> _readDom() async {
+    if (_page == null) {
+      final w = await forms.foreground();
+      if (w == null || w.own || !w.isChromium) return null;
+      _page = await cdp!.attach(w.pageName);
+    }
+    final elements = await _page?.readFields() ?? const <UiElement>[];
+    return elements.isEmpty ? null : FormSnapshot.fromElements(elements);
+  }
+
+  /// Lets go of the DevTools connection, if one was opened.
+  Future<void> close() async {
+    await _page?.close();
+    _page = null;
   }
 
   @override
-  Future<bool> setValue(String elementId, String text) => forms.setValue(elementId, text);
+  Future<bool> setValue(String elementId, String text) =>
+      _isCdp(elementId) ? _page?.setValue(elementId, text) ?? Future.value(false) : forms.setValue(elementId, text);
 
   @override
-  Future<bool> select(String elementId) => forms.select(elementId);
+  Future<bool> select(String elementId) =>
+      _isCdp(elementId) ? _page?.select(elementId) ?? Future.value(false) : forms.select(elementId);
 
   @override
-  Future<bool> toggle(String elementId, bool on) => forms.toggle(elementId, on);
+  Future<bool> toggle(String elementId, bool on) =>
+      _isCdp(elementId) ? _page?.toggle(elementId, on) ?? Future.value(false) : forms.toggle(elementId, on);
 
   @override
-  Future<bool> choose(String elementId, String label) => forms.choose(elementId, label);
+  Future<bool> choose(String elementId, String label) =>
+      _isCdp(elementId) ? _page?.choose(elementId, label) ?? Future.value(false) : forms.choose(elementId, label);
 
   @override
-  Future<bool> invoke(String elementId) => forms.invoke(elementId);
+  Future<bool> invoke(String elementId) =>
+      _isCdp(elementId) ? _page?.invoke(elementId) ?? Future.value(false) : forms.invoke(elementId);
 
   @override
   bool get canInput => InputService.supported;
@@ -94,6 +128,15 @@ class NativeFormDriver implements FormDriver {
     final p = _native(physical);
     return input.scroll(0, notches, x: p.dx, y: p.dy);
   }
+
+  @override
+  Future<void> drag(Offset from, Offset to) {
+    final a = _native(from), b = _native(to);
+    return input.drag(a.dx, a.dy, b.dx, b.dy);
+  }
+
+  @override
+  Future<bool?> canScrollDown() => forms.canScrollDown();
 
   @override
   Future<FocusInfo?> focused() => input.focused();

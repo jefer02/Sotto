@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:ui' show Offset;
+import 'dart:ui' show Offset, Rect;
 
 import '../../data/models/settings.dart';
 import '../../domain/agent/coordinates.dart';
@@ -22,43 +22,65 @@ class QuestionnaireService {
   final LlmClient client;
 
   static const system = '''
-You fill in a questionnaire or form that is on the user's screen, answering from your own general knowledge and the user's instructions. You get a screenshot and the list of form fields the accessibility tree found (with their boxes in screenshot pixels). The list may be empty: many browsers don't expose their pages, and then the screenshot is all there is.
+You answer the questionnaire, quiz, exam or form on the user's screen, from your own general knowledge and the user's instructions. You get a screenshot and the list of form fields the accessibility tree (or the page's DOM) found, with their boxes in screenshot pixels. The list may be empty: many pages don't expose their controls, and then the screenshot is all there is.
 
 Return only JSON, exactly this shape:
-{"answers":[{"field_id":"f1","question":"the question as shown","answer":"…","confidence":0.9}],"next":{"label":"Next","box":[x,y,w,h]},"submit":{"label":"Submit","box":[x,y,w,h]}}
+{"questionnaire":true,"answers":[{"field_id":"f1","question_text":"the question as shown","question_type":"multiple_choice","answer":"…","answer_letter":"B","confidence":0.9,"reasoning_summary":"one short line on why"}],"next":{"label":"Next","box":[x,y,w,h]},"submit":{"label":"Submit","box":[x,y,w,h]}}
+
+question_type is one of: text, long_text, multiple_choice, true_false, checkboxes, dropdown, scale, matching, ordering, image_choice, read_only.
 
 Rules:
-- One entry per field you can answer; leave out fields you should not or cannot answer.
-- radio and combo: "answer" is exactly one of that field's options, copied verbatim.
-- checkboxes: "answer" is a list of the option labels to check (it may be empty).
-- checkbox (a single one): "answer" is "yes" or "no".
-- text: "answer" is the text to type.
-- Every question on the screenshot that is NOT in the field list: add {"field_id":"screen","question":"…","kind":…,"answer":"…","box":[x,y,w,h]} in screenshot pixels, where kind is:
+- One entry per question you can answer; leave out the ones you should not or cannot answer.
+- reasoning_summary: at most 15 words, in the answer language — the user reads it to see why.
+- multiple_choice / dropdown / radio fields: "answer" is the chosen option's full text, copied verbatim; "answer_letter" is its letter (A, B, C…) when the options are lettered or in a list — give both.
+- true_false: "answer" is "True" or "False" (or the option's text as shown, e.g. "Verdadero"); answer_letter A for the first option, B for the second.
+- checkboxes (select all that apply): "answer" is a list of the option labels to check (it may be empty).
+- a single checkbox field: "answer" is "yes" or "no".
+- text / long_text: "answer" is the text to type.
+- Every question on the screenshot that is NOT in the field list: add {"field_id":"screen", "question_text":…, "question_type":…, "kind":…, "answer":…, "answer_letter":…, "confidence":…, "reasoning_summary":…, "box":[x,y,w,h]} in screenshot pixels, where kind and box are:
   - "text" (one-line input) or "textarea" (multi-line): box = the input itself; answer = the text to type.
   - "dropdown": box = the closed drop-down; answer = the option label exactly as it will appear in the list.
-  - "radio": box = the one option to choose (its circle and label); answer = that option's label.
+  - "radio": for multiple_choice, true_false, scale (1–5, 1–10, stars, Likert) and image_choice — box = exactly the one option to click (its circle / letter / star / image and label); answer = that option's text.
   - "checkbox": one entry per box to tick that is not ticked yet; box = that checkbox and its label; answer = its label.
+  - matching (drag A onto B): kind "drag", "answer" lists the pairs in words, and "drags":[{"from":[x,y,w,h],"to":[x,y,w,h]},…] — one per item to drag, from the item to its match.
+  - ordering / ranking: kind "drag", "answer" lists the right order, and "drags" moves the items into it, one drag per move, top position first; each "to" is the slot the item goes to, as the list looks after the previous moves.
+  - read_only: the question is only text (a PDF, a read-only page) with nothing to fill — kind "read_only", no box; "answer" is the answer to show the user.
 - Skip questions already answered on the screenshot.
 - "next" / "submit": the button that goes to the next page, and the one that sends the form, if you see them (omit otherwise). Never click them yourself.
-- Never answer passwords, security codes, payment or bank details, or ID numbers. Personal details (name, email, phone, address…) only when the user's instructions give them; otherwise leave the field out.
+- No questions on screen at all (not a form, quiz or questionnaire): {"questionnaire":false,"answers":[]}.
+- Never answer passwords, security codes, payment or billing details, or ID numbers. Personal details (name, email, phone, address…) only when the user's instructions give them; otherwise leave the field out.
 - confidence is 0–1: how sure you are the answer is right.
 - JSON only: no prose, no markdown.''';
 
-  /// The field list as the model sees it.
-  static String fieldsJson(Map<String, FormField> ids, CoordinateMapper mapper) => jsonEncode([
-    for (final MapEntry(key: id, value: f) in ids.entries)
-      {
-        'field_id': id,
-        'type': f.role.name,
-        'label': f.label,
-        if (f.options.isNotEmpty && f.role != FieldRole.checkbox) 'options': [for (final o in f.options) o.label],
-        if (f.value.isNotEmpty) 'current': f.value,
-        'box': () {
-          final r = mapper.toImage(f.bounds);
-          return [r.left.round(), r.top.round(), r.width.round(), r.height.round()];
-        }(),
-      },
-  ]);
+  /// The field list as the model sees it: its type, label, options (with
+  /// their letters and boxes) and what it holds now.
+  static String fieldsJson(Map<String, FormField> ids, CoordinateMapper mapper) {
+    List<int> box(Rect r) {
+      final b = mapper.toImage(r);
+      return [b.left.round(), b.top.round(), b.width.round(), b.height.round()];
+    }
+
+    return jsonEncode([
+      for (final MapEntry(key: id, value: f) in ids.entries)
+        {
+          'field_id': id,
+          'type': f.role.name,
+          'question_type': QuestionTypes.classify(f).wire,
+          'label': f.label,
+          if (f.options.isNotEmpty && f.role != FieldRole.checkbox)
+            'options': [
+              for (var i = 0; i < f.options.length; i++)
+                {
+                  if (i < 26) 'letter': String.fromCharCode(65 + i),
+                  'label': f.options[i].label,
+                  if (!f.options[i].bounds.isEmpty) 'box': box(f.options[i].bounds),
+                },
+            ],
+          if (f.value.isNotEmpty) 'current': f.value,
+          'box': box(f.bounds),
+        },
+    ]);
+  }
 
   static String user({
     required Map<String, FormField> ids,

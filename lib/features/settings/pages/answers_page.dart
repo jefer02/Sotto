@@ -19,6 +19,7 @@ import '../../../core/widgets/interactive.dart';
 import '../../../data/models/settings.dart';
 import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
+import '../../forms/autofill_controller.dart';
 import '../../../services/screen/form_access.dart';
 import '../../../services/screen/screen_service.dart';
 import '../../../services/tts/tts_service.dart';
@@ -357,6 +358,22 @@ class _QuestionnairesGroupState extends ConsumerState<_QuestionnairesGroup> {
             ),
           ),
         if (s.formsEnabled) ...[
+          SettingRow(
+            title: l.autofillToggle,
+            subtitle: l.autofillToggleSub,
+            trailing: SottoToggle(
+              value: s.formsAutoFill,
+              onChanged: (v) => ref.read(autoFillControllerProvider.notifier).setEnabled(v),
+            ),
+          ),
+          SettingRow(
+            title: l.formsScrollTitle,
+            subtitle: l.formsScrollSub,
+            trailing: SottoToggle(
+              value: s.formsScroll,
+              onChanged: (v) => n.update((x) => x.copyWith(formsScroll: v)),
+            ),
+          ),
           SettingRow(
             title: l.formsMode,
             trailing: SottoSelect<FormFillMode>(

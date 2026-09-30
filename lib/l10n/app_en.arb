@@ -1605,5 +1605,55 @@
   "overlayTextColorFixedSub": "Fixed; the background isn't checked",
   "overlayTextColorCustomSub": "Your own text and outline colors",
   "maxOverlayHeight": "Max overlay height",
-  "maxOverlayHeightSub": "The overlay grows and shrinks with the lines showing, up to this share of the screen. Drag its edge to set a height for the session."
+  "maxOverlayHeightSub": "The overlay grows and shrinks with the lines showing, up to this share of the screen. Drag its edge to set a height for the session.",
+  "autofillOn": "Auto-fill ON",
+  "autofillPaused": "Paused",
+  "autofillPause": "Pause",
+  "autofillResume": "Resume",
+  "autofillStop": "Stop",
+  "autofillHoldToStop": "Hold 1 s to stop",
+  "autofillStopNow": "Stop now",
+  "autofillFilling": "Filling… {done}/{total} — {question}",
+  "@autofillFilling": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "question": {
+        "type": "String"
+      }
+    }
+  },
+  "autofillDone": "Done — review and submit yourself",
+  "autofillOpenSotto": "Open Sotto",
+  "autofillLog": "Log",
+  "autofillLogEmpty": "Answers will appear here, with why each was chosen.",
+  "autofillCountdown": "Switch to the form… {seconds}",
+  "@autofillCountdown": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "autofillWatching": "Watching for questionnaires",
+  "autofillIndicator": "Sotto is filling",
+  "autofillToggle": "Auto-fill forms and quizzes",
+  "autofillToggleSub": "Watches the window in front and fills every form, quiz or exam that appears. Screenshots go to DeepSeek. Never presses Submit.",
+  "formsScrollTitle": "Scroll to find more questions",
+  "formsScrollSub": "Scrolls down, up to 10 times a page, while new questions keep appearing",
+  "qtText": "Text",
+  "qtLongText": "Long text",
+  "qtMultipleChoice": "Multiple choice",
+  "qtTrueFalse": "True / False",
+  "qtCheckboxes": "Checkboxes",
+  "qtDropdown": "Dropdown",
+  "qtScale": "Scale",
+  "qtMatching": "Matching",
+  "qtOrdering": "Ordering",
+  "qtImageChoice": "Image choice",
+  "qtReadOnly": "Read only — answer shown"
 }

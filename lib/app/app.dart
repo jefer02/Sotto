@@ -15,6 +15,8 @@ import '../l10n/l10n.dart';
 import '../features/agent/agent_controller.dart';
 import '../features/agent/agent_view.dart';
 import '../features/chat/chat_controller.dart';
+import '../features/forms/autofill_controller.dart';
+import '../features/forms/autofill_view.dart';
 import '../features/live/backdrop_tone_controller.dart';
 import '../features/live/live_controller.dart';
 import '../features/library/library_actions.dart';
@@ -79,9 +81,12 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
         _openPreflightFromHotkey,
         extra: {
           LiveAction.fillForm: (
-            onDown: () => unawaited(ref.read(questionnaireControllerProvider.notifier).start()),
+            onDown: () => unawaited(ref.read(autoFillControllerProvider.notifier).fillNow()),
             onUp: null,
           ),
+          // Chord + Esc, outside a session too: whatever Sotto is doing on
+          // screen stops at once, and auto-fill rests.
+          LiveAction.agentStop: (onDown: _emergencyStop, onUp: null),
           LiveAction.openChat: (onDown: () => unawaited(_openChat()), onUp: null),
           LiveAction.pushToTalk: (
             onDown: () =>
@@ -90,6 +95,11 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
           ),
         },
       );
+
+  void _emergencyStop() {
+    ref.read(agentControllerProvider.notifier).stop();
+    ref.read(autoFillControllerProvider.notifier).emergencyStop();
+  }
 
   /// Chord + C outside a session: the Chat page, in front.
   Future<void> _openChat() async {
@@ -115,6 +125,8 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
     // An agent task started from the main window turns it into an overlay too.
     final agentOverlay = ref.watch(agentControllerProvider.select((a) => a.active && a.standalone));
     final formOverlay = ref.watch(questionnaireControllerProvider.select((q) => q.active && q.standalone));
+    // Auto-fill (or "Fill what's on screen now") outside a session.
+    final autoFillOverlay = ref.watch(autoFillControllerProvider.select((a) => a.overlay));
     final locale = appLocale(settings.uiLanguage);
     // Controllers and services read strings without a BuildContext.
     L10n.current = lookupAppLocalizations(locale);
@@ -126,7 +138,7 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       AppThemeMode.auto => ThemeMode.system,
     };
 
-    if (isLive || agentOverlay || formOverlay) {
+    if (isLive || agentOverlay || formOverlay || autoFillOverlay) {
       final platformDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
       final overlayDark = switch (settings.overlayTheme) {
         OverlayThemeMode.dark => true,
@@ -154,6 +166,8 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
         ).copyWith(scaffoldBackgroundColor: const Color(0x00000000), canvasColor: const Color(0x00000000)),
         home: isLive
             ? const OverlayScreen()
+            : autoFillOverlay
+            ? const AutoFillOverlayScreen()
             : (formOverlay ? const QuestionnaireOverlayScreen() : const AgentOverlayScreen()),
       );
     }

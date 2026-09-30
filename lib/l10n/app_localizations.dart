@@ -4963,6 +4963,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The overlay grows and shrinks with the lines showing, up to this share of the screen. Drag its edge to set a height for the session.'**
   String get maxOverlayHeightSub;
+
+  /// No description provided for @autofillOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-fill ON'**
+  String get autofillOn;
+
+  /// No description provided for @autofillPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get autofillPaused;
+
+  /// No description provided for @autofillPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get autofillPause;
+
+  /// No description provided for @autofillResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get autofillResume;
+
+  /// No description provided for @autofillStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get autofillStop;
+
+  /// No description provided for @autofillHoldToStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold 1 s to stop'**
+  String get autofillHoldToStop;
+
+  /// No description provided for @autofillStopNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop now'**
+  String get autofillStopNow;
+
+  /// No description provided for @autofillFilling.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling… {done}/{total} — {question}'**
+  String autofillFilling(int done, int total, String question);
+
+  /// No description provided for @autofillDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done — review and submit yourself'**
+  String get autofillDone;
+
+  /// No description provided for @autofillOpenSotto.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Sotto'**
+  String get autofillOpenSotto;
+
+  /// No description provided for @autofillLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Log'**
+  String get autofillLog;
+
+  /// No description provided for @autofillLogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers will appear here, with why each was chosen.'**
+  String get autofillLogEmpty;
+
+  /// No description provided for @autofillCountdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to the form… {seconds}'**
+  String autofillCountdown(int seconds);
+
+  /// No description provided for @autofillWatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Watching for questionnaires'**
+  String get autofillWatching;
+
+  /// No description provided for @autofillIndicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto is filling'**
+  String get autofillIndicator;
+
+  /// No description provided for @autofillToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-fill forms and quizzes'**
+  String get autofillToggle;
+
+  /// No description provided for @autofillToggleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Watches the window in front and fills every form, quiz or exam that appears. Screenshots go to DeepSeek. Never presses Submit.'**
+  String get autofillToggleSub;
+
+  /// No description provided for @formsScrollTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll to find more questions'**
+  String get formsScrollTitle;
+
+  /// No description provided for @formsScrollSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrolls down, up to 10 times a page, while new questions keep appearing'**
+  String get formsScrollSub;
+
+  /// No description provided for @qtText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get qtText;
+
+  /// No description provided for @qtLongText.
+  ///
+  /// In en, this message translates to:
+  /// **'Long text'**
+  String get qtLongText;
+
+  /// No description provided for @qtMultipleChoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple choice'**
+  String get qtMultipleChoice;
+
+  /// No description provided for @qtTrueFalse.
+  ///
+  /// In en, this message translates to:
+  /// **'True / False'**
+  String get qtTrueFalse;
+
+  /// No description provided for @qtCheckboxes.
+  ///
+  /// In en, this message translates to:
+  /// **'Checkboxes'**
+  String get qtCheckboxes;
+
+  /// No description provided for @qtDropdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Dropdown'**
+  String get qtDropdown;
+
+  /// No description provided for @qtScale.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale'**
+  String get qtScale;
+
+  /// No description provided for @qtMatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching'**
+  String get qtMatching;
+
+  /// No description provided for @qtOrdering.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordering'**
+  String get qtOrdering;
+
+  /// No description provided for @qtImageChoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Image choice'**
+  String get qtImageChoice;
+
+  /// No description provided for @qtReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Read only — answer shown'**
+  String get qtReadOnly;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

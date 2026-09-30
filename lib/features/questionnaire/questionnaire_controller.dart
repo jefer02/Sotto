@@ -19,6 +19,7 @@ import '../../l10n/l10n.dart';
 import '../../services/agent/input_service.dart';
 import '../../services/ai/llm_client.dart';
 import '../../services/ai/questionnaire_service.dart';
+import '../../services/screen/cdp_dom.dart';
 import '../../services/screen/form_access.dart';
 import '../../services/screen/native_form_driver.dart';
 import '../../services/screen/screen_service.dart';
@@ -35,12 +36,19 @@ class FormItem {
     this.note = '',
     this.editable = true,
     this.visual = false,
+    this.type = QuestionType.text,
+    this.reasoning = '',
   });
 
   final String question;
   final String answer;
   final ItemStatus status;
   final String note;
+
+  final QuestionType type;
+
+  /// The model's one-line why — the auto-fill log shows it.
+  final String reasoning;
 
   /// Text and choice answers can be edited in review; skipped ones can't.
   final bool editable;
@@ -55,6 +63,8 @@ class FormItem {
     note: note ?? this.note,
     editable: editable,
     visual: visual,
+    type: type,
+    reasoning: reasoning,
   );
 }
 
@@ -68,6 +78,7 @@ class QuestionnaireState {
     this.standalone = false,
     this.submitLabel,
     this.outcome,
+    this.auto = false,
   });
 
   final FormPhase phase;
@@ -84,6 +95,10 @@ class QuestionnaireState {
 
   /// submitted, ready, stopped, failed — when finished.
   final String? outcome;
+
+  /// Started by auto-fill: it stops at Submit on its own ("Done — review
+  /// and submit yourself").
+  final bool auto;
 
   bool get active => phase != FormPhase.idle;
 
@@ -116,6 +131,7 @@ class QuestionnaireState {
     standalone: standalone,
     submitLabel: submitLabel ?? this.submitLabel,
     outcome: outcome ?? this.outcome,
+    auto: auto,
   );
 }
 
@@ -168,18 +184,27 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
     return null;
   }
 
-  Future<void> start() async {
-    if (state.active && state.phase != FormPhase.finished) return;
+  /// The panel's height when the window becomes an overlay for it.
+  static const panelHeight = 380.0;
+
+  /// One fill: chord + F, "Fill what's on screen now", or an auto-fill
+  /// cycle ([auto]: it stops at Submit without asking). [managed]: the
+  /// auto-fill controller owns the overlay and the stop key. [app] names
+  /// the window for the record. Returns the outcome: submitted, ready,
+  /// stopped, failed, none (no questions found) or busy.
+  Future<String> start({bool auto = false, bool managed = false, String app = ''}) async {
+    if (state.active && state.phase != FormPhase.finished) return 'busy';
     final live = ref.read(liveControllerProvider).isLive;
     final settings = _settings;
+    final startedAt = DateTime.now();
     final problem = await preflight();
-    state = QuestionnaireState(phase: FormPhase.reading, standalone: !live);
-    if (!live) await _window.enterOverlay(settings);
+    state = QuestionnaireState(phase: FormPhase.reading, standalone: !live && !managed, auto: auto);
+    if (!live && !managed) await _window.enterOverlay(settings, height: panelHeight);
     if (problem != null) {
       state = state.copyWith(phase: FormPhase.finished, error: problem, outcome: 'failed');
-      return;
+      return 'failed';
     }
-    if (!live) {
+    if (!live && !managed) {
       // In a live session the live shortcut set already carries the stop.
       await _hotkeys.registerExtra(
         'formStop',
@@ -191,12 +216,14 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
     _edits.clear();
 
     final client = (await LlmClient.forSettings(settings, ref.read(secretStoreProvider)))!;
+    final driver = NativeFormDriver(
+      screen: ref.read(screenServiceProvider),
+      forms: ref.read(formAccessProvider),
+      input: ref.read(inputServiceProvider),
+      cdp: CdpDom(),
+    );
     final runner = FormRunner(
-      driver: NativeFormDriver(
-        screen: ref.read(screenServiceProvider),
-        forms: ref.read(formAccessProvider),
-        input: ref.read(inputServiceProvider),
-      ),
+      driver: driver,
       vision: DeepSeekFormVision(
         QuestionnaireService(client),
         settings: settings,
@@ -206,6 +233,8 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
       texts: this,
       showFirst: settings.formsMode == FormFillMode.showFirst,
       maxPages: maxPages,
+      auto: auto,
+      scrollForMore: settings.formsScroll,
     );
     var result = const FormRunResult('failed', 1, []);
     try {
@@ -220,14 +249,23 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
       state = state.copyWith(error: L10n.current.formsBadReply);
     } finally {
       client.close();
+      await driver.close();
       await _clearKeys();
     }
-    final outcome = _cancelled ? 'stopped' : result.outcome;
+    final outcome = _cancelled ? 'stopped' : (state.error != null ? 'failed' : result.outcome);
+    // Auto-fill looked and found no questions: nothing to show or keep.
+    if (outcome == 'none') {
+      state = const QuestionnaireState();
+      return outcome;
+    }
     state = state.copyWith(phase: FormPhase.finished, clearCurrent: true, outcome: outcome, page: result.pages);
     await _record(
       FormRunRecord(
         status: outcome,
         pages: result.pages,
+        app: app,
+        at: startedAt,
+        auto: auto,
         fields: [
           for (final f in result.fields)
             FormFieldRecord(
@@ -237,13 +275,18 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
                 ItemStatus.filled => 'filled',
                 ItemStatus.blocked => 'blocked',
                 ItemStatus.skipped => 'skipped',
+                ItemStatus.shown => 'shown',
                 _ => 'failed',
               },
               note: f.note,
+              type: f.type.wire,
+              at: f.at,
+              reasoning: f.reasoning,
             ),
         ],
       ),
     );
+    return outcome;
   }
 
   // ─────────────────────────── FormRunHost ───────────────────────────
@@ -266,6 +309,9 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
             question: plan.steps[i].question,
             answer: _edits[i] ?? plan.steps[i].answer.display,
             visual: plan.steps[i].visual,
+            type: plan.steps[i].type,
+            reasoning: plan.steps[i].answer.reasoning,
+            editable: !plan.steps[i].showOnly,
           ),
         for (final s in plan.skipped)
           FormItem(
@@ -274,6 +320,7 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
             status: s.reason == SkipReason.sensitive ? ItemStatus.blocked : ItemStatus.skipped,
             note: skipped(s.reason),
             editable: false,
+            reasoning: s.answer?.reasoning ?? '',
           ),
       ],
     );

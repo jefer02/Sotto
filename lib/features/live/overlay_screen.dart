@@ -23,6 +23,8 @@ import '../agent/agent_controller.dart';
 import '../agent/agent_view.dart';
 import '../chat/chat_controller.dart';
 import '../chat/chat_panel.dart';
+import '../forms/autofill_controller.dart';
+import '../forms/autofill_view.dart';
 import '../questionnaire/questionnaire_controller.dart';
 import '../questionnaire/questionnaire_view.dart';
 import 'live_controller.dart';
@@ -48,6 +50,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   static const _metaHeight = Layout.overlayMeta;
   static const _actionsHeight = 50.0;
   static const _chatHeight = 440.0;
+  static const _panelHeight = QuestionnaireController.panelHeight;
 
   bool _controlsVisible = false;
 
@@ -293,6 +296,14 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     ref.listen(chatControllerProvider.select((c) => c.overlayOpen), (_, open) {
       unawaited(_resizeTo(open ? math.max(_readingHeight, _chatHeight) : _readingHeight));
     });
+    // So do a questionnaire's list and an agent task's steps.
+    void panel(bool? was, bool open) {
+      if (was == open) return;
+      unawaited(_resizeTo(open ? math.max(_readingHeight, _panelHeight) : _readingHeight));
+    }
+
+    ref.listen(questionnaireControllerProvider.select((q) => q.active), panel);
+    ref.listen(agentControllerProvider.select((a) => a.active), panel);
 
     final s = ref.watch(liveControllerProvider);
     final settings = ref.watch(settingsProvider);
@@ -330,6 +341,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
     final agentActive = ref.watch(agentControllerProvider.select((a) => a.active));
     final formActive = ref.watch(questionnaireControllerProvider.select((q) => q.active));
+    final autoFillOn = ref.watch(autoFillControllerProvider.select((a) => a.on || a.countdown > 0));
     final chatOpen = ref.watch(chatControllerProvider.select((c) => c.overlayOpen));
     final Widget content = formActive
         ? const QuestionnaireView()
@@ -383,6 +395,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
                     ),
                   ),
                   if (layout == ResolvedLayout.ticker && s.flat != null) fading(_TickerProgress(state: s)),
+                  // Auto-fill's status bar stays while it's on.
+                  if (autoFillOn) const Padding(padding: EdgeInsets.fromLTRB(10, 2, 10, 6), child: AutoFillBar()),
                   Expanded(
                     child: Listener(
                       onPointerSignal: _onWheel,

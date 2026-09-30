@@ -7,7 +7,11 @@
 // virtual-desktop space (the runner is per-monitor DPI aware v2).
 // Plain-C boundary, like screen_capture.h.
 
+// Moves the pointer and sends a real move event, so a drag in progress
+// (button held) is seen by the page.
 bool SottoMouseMove(int x, int y);
+// Left button down or up at (x, y) — drags for matching / ordering.
+bool SottoMouseButton(int x, int y, bool down);
 // button: 0 = left, 1 = right. count: 1 or 2.
 bool SottoMouseClick(int x, int y, int button, int count);
 // Wheel notches; positive dy scrolls down, positive dx scrolls right.

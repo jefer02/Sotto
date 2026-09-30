@@ -2767,4 +2767,99 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get maxOverlayHeightSub =>
       'El overlay crece y encoge con las líneas visibles, hasta esta parte de la pantalla. Arrastra su borde para fijar una altura durante la sesión.';
+
+  @override
+  String get autofillOn => 'Autorrelleno activado';
+
+  @override
+  String get autofillPaused => 'En pausa';
+
+  @override
+  String get autofillPause => 'Pausar';
+
+  @override
+  String get autofillResume => 'Reanudar';
+
+  @override
+  String get autofillStop => 'Detener';
+
+  @override
+  String get autofillHoldToStop => 'Mantén 1 s para detener';
+
+  @override
+  String get autofillStopNow => 'Parar ya';
+
+  @override
+  String autofillFilling(int done, int total, String question) {
+    return 'Rellenando… $done/$total — $question';
+  }
+
+  @override
+  String get autofillDone => 'Listo — revísalo y envíalo tú';
+
+  @override
+  String get autofillOpenSotto => 'Abrir Sotto';
+
+  @override
+  String get autofillLog => 'Registro';
+
+  @override
+  String get autofillLogEmpty => 'Aquí aparecerán las respuestas, con el porqué de cada una.';
+
+  @override
+  String autofillCountdown(int seconds) {
+    return 'Cambia al formulario… $seconds';
+  }
+
+  @override
+  String get autofillWatching => 'Buscando cuestionarios';
+
+  @override
+  String get autofillIndicator => 'Sotto está rellenando';
+
+  @override
+  String get autofillToggle => 'Rellenar formularios y cuestionarios automáticamente';
+
+  @override
+  String get autofillToggleSub =>
+      'Vigila la ventana activa y rellena cada formulario, cuestionario o examen que aparezca. Las capturas van a DeepSeek. Nunca pulsa Enviar.';
+
+  @override
+  String get formsScrollTitle => 'Desplazar para buscar más preguntas';
+
+  @override
+  String get formsScrollSub => 'Baja por la página, hasta 10 veces, mientras sigan apareciendo preguntas';
+
+  @override
+  String get qtText => 'Texto';
+
+  @override
+  String get qtLongText => 'Texto largo';
+
+  @override
+  String get qtMultipleChoice => 'Opción múltiple';
+
+  @override
+  String get qtTrueFalse => 'Verdadero / Falso';
+
+  @override
+  String get qtCheckboxes => 'Casillas';
+
+  @override
+  String get qtDropdown => 'Desplegable';
+
+  @override
+  String get qtScale => 'Escala';
+
+  @override
+  String get qtMatching => 'Relacionar';
+
+  @override
+  String get qtOrdering => 'Ordenar';
+
+  @override
+  String get qtImageChoice => 'Elegir imagen';
+
+  @override
+  String get qtReadOnly => 'Solo lectura — respuesta mostrada';
 }

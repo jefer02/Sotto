@@ -19,7 +19,15 @@ import 'package:sotto/domain/forms/form_runner.dart';
 enum Kind { text, textarea, select, radio, checkbox, button, password }
 
 class Control {
-  Control(this.kind, this.question, this.rect, {this.options = const [], this.flaky = false, this.locked = false});
+  Control(
+    this.kind,
+    this.question,
+    this.rect, {
+    this.options = const [],
+    this.flaky = false,
+    this.locked = false,
+    this.below = 0,
+  });
 
   final Kind kind;
 
@@ -35,6 +43,9 @@ class Control {
 
   /// Ignores typing entirely.
   final bool locked;
+
+  /// Shows only after this many scrolls (further down the page).
+  final int below;
 
   String value = '';
   final checked = <String>{};
@@ -66,7 +77,11 @@ class FakeBrowser implements FormDriver {
   var reads = 0;
   var captures = 0;
 
-  List<Control> get controls => pages[page];
+  var scrolls = 0;
+  List<Control> get controls => [
+    for (final c in pages[page])
+      if (c.below <= scrolls) c,
+  ];
   Control byQuestion(String q, {int? onPage}) => pages[onPage ?? page].firstWhere((c) => c.question == q);
 
   @override
@@ -126,8 +141,9 @@ class FakeBrowser implements FormDriver {
             c.checked.contains(o) ? c.checked.remove(o) : c.checked.add(o);
           }
         case Kind.button:
-          if (c.question == 'Next') {
+          if (FormSnapshot.isNextLabel(c.question)) {
             page++;
+            scrolls = 0;
           } else {
             submitted = true;
           }
@@ -174,7 +190,15 @@ class FakeBrowser implements FormDriver {
   }
 
   @override
-  Future<void> scroll(Offset physical, int notches) async {}
+  Future<void> scroll(Offset physical, int notches) async => scrolls++;
+
+  final drags = <(Offset, Offset)>[];
+
+  @override
+  Future<void> drag(Offset from, Offset to) async => drags.add((from, to));
+
+  @override
+  Future<bool?> canScrollDown() async => null;
 
   @override
   Future<FocusInfo?> focused() async => FocusInfo(isPassword: focus?.kind == Kind.password);
@@ -215,7 +239,7 @@ class FakeVision implements FormVision {
       switch (c.kind) {
         case Kind.button:
           final nav = NavTarget(c.question, FakeBrowser.image(c.rect.center));
-          c.question == 'Next' ? next = nav : submit = nav;
+          FormSnapshot.isNextLabel(c.question) ? next = nav : submit = nav;
         case Kind.radio when a != null && c.value != a:
           final i = c.options.indexOf(a);
           out.add(_screen(c.question, a, 'radio', c.optionRect(i)));
@@ -371,11 +395,20 @@ const _answers = {
   bool canLocate = true,
   bool confirmSubmit = true,
   int? stopAfterSteps,
+  bool auto = false,
+  int maxPages = 10,
 }) {
   final browser = FakeBrowser(pages ?? _twoPageForm());
   final vision = FakeVision(browser, answers, canLocate: canLocate);
   final host = FakeHost(confirmSubmit: confirmSubmit, stopAfterSteps: stopAfterSteps)..browser = browser;
-  final runner = FormRunner(driver: browser, vision: vision, host: host, texts: _Texts());
+  final runner = FormRunner(
+    driver: browser,
+    vision: vision,
+    host: host,
+    texts: _Texts(),
+    auto: auto,
+    maxPages: maxPages,
+  );
   return (browser: browser, vision: vision, host: host, runner: runner);
 }
 
@@ -525,4 +558,117 @@ void main() {
     expect(plan.steps[2].actions.single, isA<SetValueAction>());
     expect([for (final s in plan.steps) s.visual], [true, true, false]);
   });
+
+  // ───────────────────────── Auto-fill (Phase 13) ─────────────────────────
+
+  test('an auto-fill cycle fills every page and stops at Submit without asking', () async {
+    final s = _setup(auto: true);
+    final result = await s.runner.run();
+    expect(result.outcome, 'ready');
+    expect(result.pages, 2);
+    expect(s.browser.submitted, isFalse, reason: 'Submit is never pressed automatically');
+    expect(s.host.confirmed, isEmpty, reason: 'nobody is asked: it just stops');
+    expect(s.browser.byQuestion('How often do you use it?', onPage: 1).value, 'Daily');
+  });
+
+  test('a "Next" that would pay is treated as Submit: never pressed on its own', () async {
+    List<List<Control>> pages() => [
+      [
+        Control(Kind.text, 'Full name', _row(200)),
+        Control(Kind.button, 'Continue and pay', Rect.fromLTWH(-2400, 1300, 200, 70)),
+      ],
+    ];
+    final auto = _setup(pages: pages(), auto: true);
+    expect((await auto.runner.run()).outcome, 'ready');
+    expect(auto.browser.page, 0);
+    expect(auto.browser.submitted, isFalse);
+
+    final manual = _setup(pages: pages(), confirmSubmit: false);
+    await manual.runner.run();
+    expect(manual.host.confirmed, [FormPhase.confirmSubmit], reason: 'it waits for Enter like Submit');
+    expect(manual.browser.page, 0);
+  });
+
+  test('scrolls to find more questions until a scroll turns up nothing new', () async {
+    final s = _setup(
+      pages: [
+        [
+          Control(Kind.text, 'Full name', _row(200)),
+          Control(Kind.text, 'Nickname', _row(300), below: 1),
+          Control(Kind.text, 'Member number', _row(400), below: 2),
+        ],
+      ],
+      answers: const {'Full name': 'Ana', 'Nickname': 'Anita', 'Member number': 'M-7'},
+    );
+    await s.runner.run();
+    final b = s.browser;
+    expect([for (final c in b.pages[0]) c.value], ['Ana', 'Anita', 'M-7']);
+    expect(b.scrolls, 3, reason: 'two scrolls found questions, the third found none and stopped');
+  });
+
+  test('the scroll loop respects the limit', () async {
+    final s = _setup(
+      pages: [
+        [for (var i = 0; i < 15; i++) Control(Kind.text, 'Q$i', _row(100.0 + i * 80), below: i)],
+      ],
+      answers: {for (var i = 0; i < 15; i++) 'Q$i': 'a$i'},
+      maxPages: 4,
+    );
+    await s.runner.run();
+    expect(s.browser.scrolls, 4);
+    expect([for (final c in s.browser.pages[0]) c.value].where((v) => v.isNotEmpty).length, 5);
+  });
+
+  test('read-only questions are shown, matching drags, and "no questions" leaves the page be', () async {
+    final browser = FakeBrowser([[]]);
+    final host = FakeHost()..browser = browser;
+    final reply = FormReply.parse(
+      '{"questionnaire":true,"answers":['
+      '{"field_id":"screen","question_text":"2 + 2?","question_type":"read_only","kind":"read_only","answer":"4",'
+      '"reasoning_summary":"basic arithmetic"},'
+      '{"field_id":"screen","question_text":"Match capitals","question_type":"matching","kind":"drag",'
+      '"answer":"Spain → Madrid","drags":[{"from":[100,100,40,20],"to":[400,100,40,20]}]}]}',
+    );
+    final runner = FormRunner(
+      driver: browser,
+      vision: _Scripted([reply]),
+      host: host,
+      texts: _Texts(),
+      auto: true,
+      scrollForMore: false,
+    );
+    final result = await runner.run();
+    final shown = result.fields.firstWhere((f) => f.question == '2 + 2?');
+    expect(shown.status, ItemStatus.shown);
+    expect(shown.type, QuestionType.readOnly);
+    expect(shown.reasoning, 'basic arithmetic');
+    expect(browser.clicks, isEmpty, reason: 'a read-only question is never clicked');
+    expect(browser.drags.single, (FakeBrowser.mapper.toScreen(120, 110)!, FakeBrowser.mapper.toScreen(420, 110)!));
+
+    final none = FormRunner(
+      driver: FakeBrowser([[]]),
+      vision: _Scripted([const FormReply([], questionnaire: false)]),
+      host: FakeHost(),
+      texts: _Texts(),
+      auto: true,
+    );
+    expect((await none.run()).outcome, 'none');
+  });
+}
+
+/// Replies in order, then nothing.
+class _Scripted implements FormVision {
+  _Scripted(this.replies);
+  final List<FormReply> replies;
+  var _i = 0;
+
+  @override
+  Future<FormReply> answer(ScreenFrame frame, Map<String, FormField> ids) async =>
+      _i < replies.length ? replies[_i++] : const FormReply([]);
+
+  @override
+  Future<Offset?> locateOption(ScreenFrame frame, String label) async => null;
+
+  @override
+  Future<Map<int, String>> readValues(ScreenFrame frame, List<VisualCheck> checks) async => const {};
 }

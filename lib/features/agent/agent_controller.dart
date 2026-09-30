@@ -121,13 +121,13 @@ class AgentController extends Notifier<AgentState> {
     final problem = await preflight();
     if (problem != null) {
       state = AgentState(phase: AgentPhase.finished, task: task, error: problem, standalone: !live);
-      if (!live) await _window.enterOverlay(_settings);
+      if (!live) await _window.enterOverlay(_settings, height: 380);
       return;
     }
     final settings = _settings;
     state = AgentState(phase: AgentPhase.starting, task: task, standalone: !live);
     if (!live) {
-      await _window.enterOverlay(settings);
+      await _window.enterOverlay(settings, height: 380);
       // In a live session the live shortcut set already carries the stop.
       await _hotkeys.registerExtra(
         'agentStop',

@@ -43,6 +43,27 @@ class InputService {
   Future<void> scroll(int dx, int dy, {double? x, double? y}) =>
       _call('scroll', {'dx': dx, 'dy': dy, 'x': x ?? 0, 'y': y ?? 0, 'atPoint': x != null && y != null});
 
+  /// Left button down (true) or up at (x, y).
+  Future<void> mouseButton(double x, double y, {required bool down}) =>
+      _call('mouseButton', {'x': x, 'y': y, 'down': down});
+
+  /// Press at (x1, y1), move to (x2, y2) in [steps] small moves ~16 ms
+  /// apart — web pages only start a drag once the pointer travels — and
+  /// release there.
+  Future<void> drag(double x1, double y1, double x2, double y2, {int steps = 14}) async {
+    await mouseButton(x1, y1, down: true);
+    try {
+      for (var i = 1; i <= steps; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 16));
+        final t = i / steps;
+        await move(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t);
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+    } finally {
+      await mouseButton(x2, y2, down: false);
+    }
+  }
+
   Future<void> type(String text) => _call('type', {'text': text});
 
   Future<void> keys(List<String> keys) => _call('keys', {'keys': keys});

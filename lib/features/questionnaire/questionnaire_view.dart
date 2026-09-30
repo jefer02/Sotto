@@ -230,6 +230,8 @@ class _ItemRowState extends State<_ItemRow> {
       ItemStatus.skipped => (SottoIcons.close, o.inkAt(0.4)),
       ItemStatus.filling => (SottoIcons.cursor, AgentView.controlColor),
       ItemStatus.pending => (SottoIcons.form, o.inkAt(0.4)),
+      // A read-only question: the answer is there to read.
+      ItemStatus.shown => (SottoIcons.eye, o.cue),
     };
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/forms/autofill_watcher.dart';
 import '../../domain/forms/form_model.dart';
 
 class FormAccessException implements Exception {
@@ -59,6 +60,26 @@ class FormAccessService {
   Future<bool> focus(String id) async => await _call<bool>('focus', {'id': id}) ?? false;
 
   Future<bool> scrollIntoView(String id) async => await _call<bool>('scrollIntoView', {'id': id}) ?? false;
+
+  /// The window in front — what the auto-fill watcher polls every 1.5 s.
+  Future<ForegroundWindow?> foreground() async {
+    try {
+      final json = await _call<String>('foreground');
+      final m = jsonDecode(json ?? '{}');
+      return m is Map<Object?, Object?> && m['id'] != null ? ForegroundWindow.fromMap(m) : null;
+    } on FormAccessException {
+      return null;
+    }
+  }
+
+  /// Whether the front page can scroll further down; null when unknown.
+  Future<bool?> canScrollDown() async {
+    try {
+      return await _call<bool>('canScrollDown');
+    } on FormAccessException {
+      return null;
+    }
+  }
 
   /// macOS: Accessibility permission. Windows: always granted.
   Future<bool> hasPermission() async {

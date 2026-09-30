@@ -45,43 +45,93 @@ class AgentRunRecord {
 
 /// One question Sotto answered on a questionnaire, and what happened.
 class FormFieldRecord {
-  const FormFieldRecord({required this.question, required this.answer, required this.status, this.note = ''});
+  const FormFieldRecord({
+    required this.question,
+    required this.answer,
+    required this.status,
+    this.note = '',
+    this.type = '',
+    this.at,
+    this.reasoning = '',
+  });
   final String question;
   final String answer;
 
-  /// filled, failed, skipped or blocked.
+  /// filled, failed, skipped, blocked or shown (a read-only question).
   final String status;
   final String note;
 
-  Map<String, Object?> toJson() => {'q': question, 'a': answer, 'status': status, 'note': note};
+  /// The question type (multiple_choice, text…).
+  final String type;
+
+  /// When it was filled.
+  final DateTime? at;
+
+  /// The model's one-line why.
+  final String reasoning;
+
+  Map<String, Object?> toJson() => {
+    'q': question,
+    'a': answer,
+    'status': status,
+    'note': note,
+    if (type.isNotEmpty) 'type': type,
+    if (at != null) 'at': at!.toIso8601String(),
+    if (reasoning.isNotEmpty) 'why': reasoning,
+  };
 
   factory FormFieldRecord.fromJson(Map<dynamic, dynamic> j) => FormFieldRecord(
     question: j['q'] as String? ?? '',
     answer: j['a'] as String? ?? '',
     status: j['status'] as String? ?? '',
     note: j['note'] as String? ?? '',
+    type: j['type'] as String? ?? '',
+    at: DateTime.tryParse(j['at'] as String? ?? ''),
+    reasoning: j['why'] as String? ?? '',
   );
 }
 
 /// One questionnaire filled on screen.
 class FormRunRecord {
-  const FormRunRecord({required this.status, this.pages = 1, this.fields = const []});
+  const FormRunRecord({
+    required this.status,
+    this.pages = 1,
+    this.fields = const [],
+    this.app = '',
+    this.at,
+    this.auto = false,
+  });
 
   /// submitted, ready (waiting for the presenter to submit), stopped or failed.
   final String status;
   final int pages;
   final List<FormFieldRecord> fields;
 
+  /// The app or website it was in ("Google Forms – Quiz", "Acrobat").
+  final String app;
+  final DateTime? at;
+
+  /// Started by auto-fill rather than chord + F / "Fill what's on screen".
+  final bool auto;
+
+  int get filledCount => fields.where((f) => f.status == 'filled').length;
+
   Map<String, Object?> toJson() => {
     'status': status,
     'pages': pages,
     'fields': [for (final f in fields) f.toJson()],
+    if (app.isNotEmpty) 'app': app,
+    if (at != null) 'at': at!.toIso8601String(),
+    if (auto) 'auto': true,
   };
 
   factory FormRunRecord.fromJson(Map<dynamic, dynamic> j) => FormRunRecord(
     status: j['status'] as String? ?? '',
     pages: j['pages'] as int? ?? 1,
     fields: [for (final f in (j['fields'] as List? ?? const [])) FormFieldRecord.fromJson(f as Map)],
+    app: j['app'] as String? ?? '',
+    at: DateTime.tryParse(j['at'] as String? ?? ''),
+    auto: j['auto'] as bool? ?? false,
   );
 }
 
