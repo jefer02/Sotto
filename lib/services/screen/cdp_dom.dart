@@ -8,7 +8,7 @@ import '../../domain/forms/form_model.dart';
 
 /// A Chromium page's form controls through the Chrome DevTools Protocol —
 /// for pages whose UI Automation tree shows fewer than two fields (custom
-/// quiz widgets, lettered options drawn as plain elements).
+/// widgets, lettered options drawn as plain elements).
 ///
 /// Only reachable when the browser runs with `--remote-debugging-port`
 /// (default 9222, see the README). Localhost only; nothing leaves the

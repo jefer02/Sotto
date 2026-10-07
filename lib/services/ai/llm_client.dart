@@ -45,6 +45,17 @@ class LlmException implements Exception {
   }
 }
 
+/// DeepSeek sent nothing for [DeepSeekClient.timeout]: "DeepSeek did not
+/// respond — check your connection". A [TimeoutException] too, so code
+/// that knows nothing of DeepSeek (the form runner) can end its cycle on it.
+class LlmTimeout extends LlmException implements TimeoutException {
+  LlmTimeout({this.duration = DeepSeekClient.defaultTimeout})
+    : super(L10n.current.llmTimeout(_provider), retryable: true);
+
+  @override
+  final Duration duration;
+}
+
 /// Raised when the model declines to answer (finish_reason "content_filter").
 class LlmRefusal extends LlmException {
   LlmRefusal() : super(L10n.current.llmRefusal);
@@ -153,11 +164,25 @@ Stream<(String?, String)> _sse(Stream<List<int>> bytes) async* {
   if (data.isNotEmpty) yield (event, data.toString());
 }
 
-Future<http.StreamedResponse> _send(http.Client client, http.BaseRequest req) async {
+/// Every DeepSeek call gives up after [timeout] without a byte: waiting for
+/// the headers, and between two pieces of the body (a reply may stream for
+/// longer, as long as it keeps coming). The request is abandoned
+/// ([LlmTimeout]) and the caller's cycle ends there.
+Future<http.StreamedResponse> _send(http.Client client, http.BaseRequest req, Duration timeout) async {
   try {
-    return await client.send(req).timeout(const Duration(seconds: 30));
+    final res = await client.send(req).timeout(timeout);
+    return http.StreamedResponse(
+      _idleTimeout(res.stream, timeout),
+      res.statusCode,
+      contentLength: res.contentLength,
+      request: res.request,
+      headers: res.headers,
+      isRedirect: res.isRedirect,
+      persistentConnection: res.persistentConnection,
+      reasonPhrase: res.reasonPhrase,
+    );
   } on TimeoutException {
-    throw LlmException(L10n.current.llmTimeout(_provider), retryable: true);
+    throw LlmTimeout(duration: timeout);
   } on SocketException {
     throw LlmException(L10n.current.llmOffline(_provider), retryable: true);
   } on http.ClientException catch (e) {
@@ -165,13 +190,32 @@ Future<http.StreamedResponse> _send(http.Client client, http.BaseRequest req) as
   }
 }
 
+/// [bytes], failing with [LlmTimeout] when nothing arrives for [timeout];
+/// the subscription is cancelled, which closes the connection.
+Stream<List<int>> _idleTimeout(Stream<List<int>> bytes, Duration timeout) => bytes.timeout(
+  timeout,
+  onTimeout: (sink) {
+    sink.addError(LlmTimeout(duration: timeout));
+    sink.close();
+  },
+);
+
 /// DeepSeek's OpenAI-format API. Thinking models also stream
 /// `reasoning_content`; it is never shown and never breaks parsing.
 class DeepSeekClient extends LlmClient {
-  DeepSeekClient({required this.apiKey, required this.model, this.visionModel, http.Client? httpClient})
-    : _http = httpClient ?? http.Client();
+  DeepSeekClient({
+    required this.apiKey,
+    required this.model,
+    this.visionModel,
+    http.Client? httpClient,
+    this.timeout = defaultTimeout,
+  }) : _http = httpClient ?? http.Client();
 
   static const baseUrl = 'https://api.deepseek.com';
+
+  /// How long a call may go without hearing from DeepSeek.
+  static const defaultTimeout = Duration(seconds: 30);
+  final Duration timeout;
   static const defaultModel = 'deepseek-flash';
 
   final String apiKey;
@@ -187,7 +231,7 @@ class DeepSeekClient extends LlmClient {
   /// `GET /models` — the models this key may use.
   Future<List<DeepSeekModel>> listModels() async {
     final req = http.Request('GET', Uri.parse('$baseUrl/models'))..headers.addAll(_headers);
-    final res = await _send(_http, req);
+    final res = await _send(_http, req, timeout);
     final body = await res.stream.bytesToString();
     if (res.statusCode != 200) throw LlmException.fromStatus(res.statusCode, body);
     final data = (jsonDecode(body) as Map)['data'] as List? ?? const [];
@@ -251,7 +295,7 @@ class DeepSeekClient extends LlmClient {
         'messages': messages,
       });
 
-    final res = await _send(_http, req);
+    final res = await _send(_http, req, timeout);
     if (res.statusCode != 200) {
       throw LlmException.fromStatus(res.statusCode, await res.stream.bytesToString());
     }
@@ -294,7 +338,7 @@ class DeepSeekClient extends LlmClient {
         'messages': messages,
         if (tools.isNotEmpty) 'tools': tools,
       });
-    final res = await _send(_http, req);
+    final res = await _send(_http, req, timeout);
     final body = await res.stream.bytesToString();
     if (res.statusCode != 200) throw LlmException.fromStatus(res.statusCode, body);
     final j = jsonDecode(body) as Map<String, dynamic>;
