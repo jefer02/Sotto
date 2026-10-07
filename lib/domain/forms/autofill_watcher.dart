@@ -54,10 +54,10 @@ class ForegroundWindow {
       const {'chrome', 'msedge', 'edge', 'brave', 'chromium', 'vivaldi', 'opera'}.contains(_norm(app));
 
   /// A browser or document viewer: a questionnaire may be only pixels here
-  /// (a PDF, a canvas-drawn exam), so a screenshot is worth a look.
+  /// (a PDF form, a canvas-drawn page), so a screenshot is worth a look.
   bool get mayShowQuestions => isBrowser || _viewers.contains(_norm(app));
 
-  /// "Google Forms – Quiz" from "Google Forms – Quiz - Google Chrome".
+  /// "Event sign-up" from "Event sign-up - Google Chrome".
   String get pageName {
     final t = title.replaceFirst(
       RegExp(

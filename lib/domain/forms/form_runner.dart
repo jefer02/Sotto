@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show Offset;
 
@@ -47,10 +48,17 @@ enum ItemStatus {
 }
 
 /// A screenshot (JPEG data URL) and how its pixels map to the screen.
+/// Once the model has seen it, [release] drops the image (the mapper stays
+/// for clicks): a fill never holds more than one screenshot.
 class ScreenFrame {
-  const ScreenFrame(this.image, this.mapper);
-  final String image;
+  ScreenFrame(String image, this.mapper) : _image = image;
+  String? _image;
   final CoordinateMapper mapper;
+
+  String get image => _image ?? (throw StateError('Screenshot already released'));
+  bool get released => _image == null;
+
+  void release() => _image = null;
 }
 
 /// The platform: the accessibility tree and its actions, plus synthetic
@@ -243,10 +251,14 @@ class FormRunner {
 
     String result(String outcome) => outcome;
 
+    // The last screenshot, released before the next is taken (the model may
+    // not have needed it: a page already answered goes straight to Next).
+    ScreenFrame? held;
     for (var round = 0; round < 60; round++) {
       if (_stop) return FormRunResult(result('stopped'), page, _log);
       host.phase(FormPhase.reading, page: page);
-      final frame = await driver.capture();
+      held?.release();
+      final frame = held = await driver.capture();
       mapper = frame.mapper;
       final snap = await driver.read();
       if (_stop) continue;
@@ -257,7 +269,12 @@ class FormRunner {
         attempted.addAll(pending.map((f) => f.key));
         final ids = FormFiller.idsFor(pending);
         host.phase(FormPhase.thinking, page: page);
-        final reply = await vision.answer(frame, ids);
+        final FormReply reply;
+        try {
+          reply = await vision.answer(frame, ids);
+        } finally {
+          frame.release();
+        }
         if (reply.questionnaire || ids.isNotEmpty || reply.answers.isNotEmpty) sawQuestions = true;
         // Auto-fill looked at a page with no questions: leave it be.
         if (auto && !sawQuestions && page == 1 && scrolls.scrolls == 0) return FormRunResult('none', page, _log);
@@ -455,8 +472,12 @@ class FormRunner {
           for (var i = 0; i < screenSteps.length; i++)
             VisualCheck(i, screenSteps[i].question, screenSteps[i].answer.kind, screenSteps[i].answer.point!),
         ]);
+      } on TimeoutException {
+        rethrow; // the model is unreachable: the cycle ends
       } catch (_) {
         shown = const {}; // can't tell: don't retry blindly
+      } finally {
+        frame.release();
       }
       for (var i = 0; i < screenSteps.length; i++) {
         final value = shown[i];
@@ -558,8 +579,12 @@ class FormRunner {
     Offset? option;
     try {
       option = await vision.locateOption(frame, label);
+    } on TimeoutException {
+      rethrow;
     } catch (_) {
       option = null;
+    } finally {
+      frame.release();
     }
     final target = option == null ? null : frame.mapper.toScreen(option.dx, option.dy);
     if (target != null) {
