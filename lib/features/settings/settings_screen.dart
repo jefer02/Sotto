@@ -38,7 +38,7 @@ enum SettingsPage {
   ),
   forms(
     SottoIcons.form,
-    'forms questionnaire quiz exam auto-fill fill scroll instructions history formularios cuestionario examen autorrelleno rellenar historial',
+    'forms questionnaire survey registration auto-fill fill scroll instructions history browser chrome edge formularios cuestionario encuesta registro autorrelleno rellenar historial navegador',
   ),
   general(
     SottoIcons.sliders,

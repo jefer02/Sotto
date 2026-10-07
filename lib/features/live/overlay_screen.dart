@@ -52,7 +52,11 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   static const _chatHeight = 440.0;
   static const _panelHeight = QuestionnaireController.panelHeight;
 
-  bool _controlsVisible = false;
+  /// The hover panel: shown on pointer enter, faded [_chromeLinger] after
+  /// the pointer leaves. [_panelAtTop] keeps it off the camera edge.
+  bool _panelVisible = false;
+  bool _panelAtTop = false;
+  Timer? _panelHide;
 
   /// Text-only style: meta strip and controls appear on hover or while a
   /// shortcut is held, then fade out [_chromeLinger] later.
@@ -61,8 +65,6 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   Timer? _chromeHide;
   StreamSubscription<bool>? _pings;
   static const _chromeLinger = Duration(seconds: 2);
-  Timer? _hoverIntent;
-  Timer? _hoverHide;
   Timer? _geometryDebounce;
   Timer? _saveDebounce;
   DateTime _programmaticUntil = DateTime.fromMillisecondsSinceEpoch(0);
@@ -114,8 +116,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   @override
   void dispose() {
     windowManager.removeListener(this);
-    _hoverIntent?.cancel();
-    _hoverHide?.cancel();
+    _panelHide?.cancel();
     _chromeHide?.cancel();
     unawaited(_pings?.cancel());
     _geometryDebounce?.cancel();
@@ -256,21 +257,29 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   void _onEnter() {
     _hovering = true;
     _showChrome();
-    _hoverHide?.cancel();
-    _hoverIntent?.cancel();
-    _hoverIntent = Timer(Motion.hoverIntent, () {
-      if (mounted) setState(() => _controlsVisible = true);
-    });
+    _panelHide?.cancel();
+    // Click-through forwards pointer moves, but the panel stays away.
+    if (ref.read(liveControllerProvider).clickThrough) return;
+    unawaited(_placePanel());
+    if (!_panelVisible) setState(() => _panelVisible = true);
   }
 
   void _onExit() {
     _hovering = false;
     _hideChromeLater();
-    _hoverIntent?.cancel();
-    _hoverHide?.cancel();
-    _hoverHide = Timer(Motion.hoverHide, () {
-      if (mounted) setState(() => _controlsVisible = false);
+    _panelHide?.cancel();
+    _panelHide = Timer(_chromeLinger, () {
+      if (mounted) setState(() => _panelVisible = false);
     });
+  }
+
+  /// Opposite the camera edge: an overlay in the display's top half gets the
+  /// panel along its bottom, one in the bottom half along its top.
+  Future<void> _placePanel() async {
+    final b = await _window.bounds();
+    final area = await _window.displayArea();
+    final atTop = !OverlayGeometry.nearTop(b, area);
+    if (mounted && atTop != _panelAtTop) setState(() => _panelAtTop = atTop);
   }
 
   void _onWheel(PointerSignalEvent e) {
@@ -291,7 +300,13 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   Widget build(BuildContext context) {
     ref.listen(liveControllerProvider.select((s) => s.phase), _onPhaseChanged);
     ref.listen(liveControllerProvider.select((s) => s.historyOpen), (_, open) => unawaited(_onHistoryChanged(open)));
-    ref.listen(liveControllerProvider.select((s) => s.clickThrough), (_, on) => _onClickThroughChanged(on));
+    ref.listen(liveControllerProvider.select((s) => s.clickThrough), (_, on) {
+      _onClickThroughChanged(on);
+      if (on) {
+        _panelHide?.cancel();
+        _panelVisible = false;
+      }
+    });
     // The chat panel needs room; the reading size comes back on close.
     ref.listen(chatControllerProvider.select((c) => c.overlayOpen), (_, open) {
       unawaited(_resizeTo(open ? math.max(_readingHeight, _chatHeight) : _readingHeight));
@@ -367,6 +382,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
     // Text only: no ground, and the chrome fades with hover / shortcuts.
     final textOnly = o.textOnly;
+    final panelShown = _panelVisible && !s.clickThrough;
     final chrome = !textOnly || _chromeVisible;
     Widget fading(Widget child) => textOnly
         ? IgnorePointer(
@@ -464,13 +480,14 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
                 Positioned(
                   left: 0,
                   right: s.historyOpen ? _historyWidth : 0,
-                  bottom: 10,
+                  top: _panelAtTop ? _metaHeight + 2 : null,
+                  bottom: _panelAtTop ? null : 10,
                   child: Center(
                     child: IgnorePointer(
-                      ignoring: !(textOnly ? _chromeVisible : _controlsVisible),
+                      ignoring: !panelShown,
                       child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 120),
-                        opacity: (textOnly ? _chromeVisible : _controlsVisible) ? 1 : 0,
+                        duration: panelShown ? Motion.quick : Motion.smooth,
+                        opacity: panelShown ? 1 : 0,
                         child: OverlayControls(state: s, onEnd: () => unawaited(_end())),
                       ),
                     ),
