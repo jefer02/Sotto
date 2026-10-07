@@ -22,6 +22,9 @@ enum SottoIcons {
   ),
   search('<circle cx="7.1" cy="7.1" r="4.35"></circle><path d="m10.35 10.35 3.15 3.15"></path>'),
   plus('<path d="M8 3.25v9.5M3.25 8h9.5"></path>'),
+  // Text size: a capital A (10-unit cap height) with − or + beside it.
+  textSizeMinus('<path d="M1.75 13 5.5 3l3.75 10M3.1 9.5h4.8"></path><path d="M11 8h3.5"></path>'),
+  textSizePlus('<path d="M1.75 13 5.5 3l3.75 10M3.1 9.5h4.8"></path><path d="M11 8h3.5M12.75 6.25v3.5"></path>'),
   import(
     '<path d="M8 2.25v7.5M5 7l3 3 3-3"></path><path d="M2.75 10.25v2a1.5 1.5 0 0 0 1.5 1.5h7.5a1.5 1.5 0 0 0 1.5-1.5v-2"></path>',
   ),
@@ -129,11 +132,12 @@ enum SottoIcons {
   const SottoIcons(this.body);
   final String body;
 
-  String svg(Color color) {
+  /// [strokeWidth] above 1.5 draws a halo (the text-only outline).
+  String svg(Color color, {double strokeWidth = 1.5}) {
     final hex = '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     final opacity = color.a;
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" '
-        'fill="none" stroke="$hex" stroke-opacity="$opacity" stroke-width="1.5" '
+        'fill="none" stroke="$hex" stroke-opacity="$opacity" stroke-width="$strokeWidth" '
         'stroke-linecap="round" stroke-linejoin="round">'
         '${body.replaceAll('currentColor', hex)}</svg>';
   }

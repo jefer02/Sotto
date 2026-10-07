@@ -79,6 +79,10 @@ abstract final class OverlayGeometry {
     return Offset(left, top) & r.size;
   }
 
+  /// Whether [overlay] sits in the top half of [area] — nearer the camera
+  /// edge at the top than at the bottom.
+  static bool nearTop(Rect overlay, Rect area) => overlay.center.dy <= area.center.dy;
+
   /// [r] covers [area], the way a maximised or tiled window does.
   static bool fills(Rect r, Rect area, {double tolerance = 2}) =>
       r.width >= area.width - tolerance && r.height >= area.height - tolerance;
