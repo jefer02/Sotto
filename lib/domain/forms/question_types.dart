@@ -16,7 +16,7 @@ enum QuestionType {
   imageChoice('image_choice'),
 
   /// A question shown as plain text with nothing to fill (a PDF, a
-  /// read-only exam page): the answer is shown in the overlay instead.
+  /// form with no fields): the answer is shown in the overlay instead.
   readOnly('read_only');
 
   const QuestionType(this.wire);
@@ -121,7 +121,7 @@ abstract final class QuestionTypes {
 }
 
 /// A/B/C/D answers: the model gives the letter *and* the option's text, and
-/// either may match what's on screen (Google Forms shows no letters; exam
+/// either may match what's on screen (Google Forms shows no letters; other
 /// platforms show only letters).
 abstract final class ChoiceMatcher {
   static final _enumerator = RegExp(r'^\s*\(?([a-zA-Z])[).:\-]\s+');

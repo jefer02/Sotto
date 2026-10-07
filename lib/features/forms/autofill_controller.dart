@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/platform/power_service.dart';
 import '../../core/platform/window_service.dart';
+import '../../core/utils/skipping_ticker.dart';
 import '../../data/repositories.dart';
 import '../../domain/forms/autofill_watcher.dart';
 import '../../domain/forms/form_model.dart';
@@ -90,19 +92,24 @@ class AutoFillState {
 /// and chord + F go through the same controller.
 ///
 /// While a cycle runs the accessibility tree isn't read here (the fill
-/// owns it): only the window in front and its title are polled.
+/// owns it): only the window in front and its title are polled. A poll
+/// still running when the next is due makes that one skip (the native side
+/// reads on its own thread, so a slow page never blocks the UI); on
+/// battery saver the poll slows to [pollSaver].
 class AutoFillController extends Notifier<AutoFillState> {
   static const poll = Duration(milliseconds: 1500);
+  static const pollSaver = Duration(seconds: 3);
+  static const _powerCheck = Duration(seconds: 30);
   static const _maxLog = 200;
 
   final _watcher = AutoFillWatcher();
-  Timer? _timer;
-  bool _polling = false;
+  late final _ticker = SkippingTicker(_poll, interval: poll);
+  Timer? _powerTimer;
   ForegroundWindow? _cycleWindow;
 
   @override
   AutoFillState build() {
-    ref.onDispose(() => _timer?.cancel());
+    ref.onDispose(_stopPolling);
     final enabled = settingsProvider.select((s) => s.formsEnabled && s.formsAutoFill);
     ref.listen(enabled, (_, on) => on ? _enable() : unawaited(_disable()));
     // On at launch: start watching once the state exists (not from inside
@@ -114,15 +121,28 @@ class AutoFillController extends Notifier<AutoFillState> {
   void _enable() {
     if (_watcher.status != AutoFillStatus.off) return;
     _watcher.enable();
-    _timer?.cancel();
-    _timer = Timer.periodic(poll, (_) => unawaited(_poll()));
+    _ticker.start();
+    _powerTimer?.cancel();
+    _powerTimer = Timer.periodic(_powerCheck, (_) => unawaited(_checkPower()));
+    unawaited(_checkPower());
     _sync(clearMessage: true);
+  }
+
+  void _stopPolling() {
+    _ticker.stop();
+    _powerTimer?.cancel();
+    _powerTimer = null;
+  }
+
+  Future<void> _checkPower() async {
+    final saving = await ref.read(powerServiceProvider).saving();
+    if (!ref.mounted) return;
+    _ticker.interval = saving ? pollSaver : poll;
   }
 
   Future<void> _disable() async {
     if (_watcher.status == AutoFillStatus.off && !state.overlay) return;
-    _timer?.cancel();
-    _timer = null;
+    _stopPolling();
     if (_watcher.status == AutoFillStatus.filling) ref.read(questionnaireControllerProvider.notifier).stop();
     _watcher.disable();
     final overlay = state.overlay;
@@ -149,7 +169,7 @@ class AutoFillController extends Notifier<AutoFillState> {
   void resume() {
     _watcher.resume();
     _sync(clearMessage: true);
-    unawaited(_poll());
+    unawaited(_ticker.tick());
   }
 
   /// Stop (after its one-second hold): auto-fill off.
@@ -224,36 +244,32 @@ class AutoFillController extends Notifier<AutoFillState> {
     return PageSignature.of(w, fields);
   }
 
+  /// One tick of [_ticker] — never two at once.
   Future<void> _poll() async {
-    if (_polling) return;
     final status = _watcher.status;
     if (status == AutoFillStatus.off || status == AutoFillStatus.paused) return;
-    _polling = true;
-    try {
-      final forms = ref.read(formAccessProvider);
-      final w = await forms.foreground();
-      if (w == null || w.own) return;
-      if (status == AutoFillStatus.filling) {
-        // Another window, or the page changed title, while filling: queue a look.
-        final c = _cycleWindow;
-        if (c != null && (w.id != c.id || w.title != c.title)) {
-          _watcher.observe(w, 'w:${w.id}|${w.title}', eligible: true);
-        }
-        return;
+    final forms = ref.read(formAccessProvider);
+    final w = await forms.foreground();
+    if (w == null || w.own || !ref.mounted) return;
+    if (status == AutoFillStatus.filling) {
+      // Another window, or the page changed title, while filling: queue a look.
+      final c = _cycleWindow;
+      if (c != null && (w.id != c.id || w.title != c.title)) {
+        _watcher.observe(w, 'w:${w.id}|${w.title}', eligible: true);
       }
-      var fields = const <FormField>[];
-      try {
-        fields = (await forms.snapshot()).fields;
-      } on FormAccessException {
-        // Unreadable: the window and its title stand in.
-      }
-      final eligible = fields.any((f) => !f.sensitive) || w.mayShowQuestions;
-      final decision = _watcher.observe(w, PageSignature.of(w, fields), eligible: eligible);
-      if (decision == WatchDecision.start) unawaited(_cycle(w));
-      _sync();
-    } finally {
-      _polling = false;
+      return;
     }
+    var fields = const <FormField>[];
+    try {
+      fields = (await forms.snapshot()).fields;
+    } on FormAccessException {
+      // Unreadable: the window and its title stand in.
+    }
+    if (!ref.mounted) return;
+    final eligible = fields.any((f) => !f.sensitive) || w.mayShowQuestions;
+    final decision = _watcher.observe(w, PageSignature.of(w, fields), eligible: eligible);
+    if (decision == WatchDecision.start) unawaited(_cycle(w));
+    _sync();
   }
 
   Future<void> _cycle(ForegroundWindow w, {bool auto = true}) async {
@@ -299,7 +315,7 @@ class AutoFillController extends Notifier<AutoFillState> {
     } catch (_) {}
     final recheck = _watcher.cycleFinished(end);
     _sync();
-    if (recheck) unawaited(_poll());
+    if (recheck) unawaited(_ticker.tick());
   }
 }
 
