@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' show Locale;
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -182,5 +184,77 @@ void main() {
     final deltas = await client.streamMessages(messages: [], profile: DeepSeekTaskProfile.chat()).toList();
     expect(deltas.map((d) => d.reasoning).join(), 'hmm');
     expect(deltas.map((d) => d.content).join(), 'Hi');
+  });
+
+  group('30 s timeout', () {
+    const message = 'DeepSeek did not respond — check your connection';
+
+    /// Runs [call] in fake time and returns what it failed with after [after].
+    Object? failure(Future<void> Function() call, Duration after) {
+      Object? error;
+      fakeAsync((time) {
+        call().then(
+          (_) {},
+          onError: (Object e) {
+            error = e;
+          },
+        );
+        time.elapse(after);
+      });
+      return error;
+    }
+
+    test('no reply at all: nothing before 30 s, then the timeout message', () {
+      final client = DeepSeekClient(
+        apiKey: 'k',
+        model: 'deepseek-flash',
+        httpClient: MockClient.streaming((req, body) => Completer<http.StreamedResponse>().future),
+      );
+      expect(failure(() => client.complete(system: 's', user: 'u'), const Duration(seconds: 29)), isNull);
+      expect(
+        failure(() => client.complete(system: 's', user: 'u'), const Duration(seconds: 31)),
+        isA<LlmTimeout>().having((e) => e.message, 'message', message).having((e) => e.retryable, 'retryable', true),
+      );
+    });
+
+    test('a reply that stops streaming halfway times out too', () async {
+      final client = DeepSeekClient(
+        apiKey: 'k',
+        model: 'deepseek-flash',
+        httpClient: MockClient.streaming((req, body) async {
+          final body = StreamController<List<int>>();
+          body.add(utf8.encode('data: ${jsonEncode(_delta({'content': 'Hel'}))}\n\n'));
+          return http.StreamedResponse(body.stream, 200); // …and nothing more
+        }),
+      );
+      final got = <String>[];
+      Object? error;
+      fakeAsync((time) {
+        client.stream(system: 's', user: 'u').listen(got.add, onError: (Object e) => error = e);
+        time.elapse(const Duration(seconds: 20));
+        expect(got, ['Hel']);
+        expect(error, isNull);
+        time.elapse(const Duration(seconds: 11));
+      });
+      await pumpEventQueue(); // the error reaches the listener on a real microtask
+      expect(error, isA<LlmTimeout>().having((e) => e.message, 'message', message));
+    });
+
+    test('non-streaming calls (agent, model list) time out the same way', () {
+      final client = DeepSeekClient(
+        apiKey: 'k',
+        model: 'deepseek-flash',
+        httpClient: MockClient.streaming((req, body) => Completer<http.StreamedResponse>().future),
+      );
+      expect(failure(() => client.chat(messages: const []), const Duration(seconds: 31)), isA<LlmTimeout>());
+      expect(failure(client.listModels, const Duration(seconds: 31)), isA<LlmTimeout>());
+    });
+
+    test('the message in Spanish', () {
+      final before = L10n.current;
+      addTearDown(() => L10n.current = before);
+      L10n.current = lookupAppLocalizations(const Locale('es'));
+      expect(LlmTimeout().message, 'DeepSeek no respondió — comprueba tu conexión');
+    });
   });
 }
