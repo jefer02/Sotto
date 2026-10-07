@@ -2,12 +2,16 @@ import 'dart:async';
 
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 
+import 'write_buffer.dart';
+
 /// All app data lives in Hive boxes under the platform's application-support
 /// directory. Records are stored as plain JSON maps so the schema can evolve
 /// without generated adapters: unknown keys are ignored, missing ones fall
 /// back to defaults in each model's `fromJson`.
 class LocalStore {
-  LocalStore._(this.scripts, this.collections, this.settings, this.qa, this.sessions, this.organizeCache, this.chats);
+  LocalStore._(this.scripts, this.collections, this.settings, this.qa, this.sessions, this.organizeCache, this.chats)
+    : sessionWrites = BoxWriteBuffer(sessions),
+      settingsWrites = BoxWriteBuffer(settings);
 
   final Box<Map> scripts;
   final Box<Map> collections;
@@ -21,6 +25,14 @@ class LocalStore {
 
   /// Assistant chat conversations.
   final Box<Map> chats;
+
+  /// Session records (and the fill log inside them) and settings change in
+  /// bursts — a fill cycle, a slider drag: their writes are coalesced.
+  final BoxWriteBuffer sessionWrites;
+  final BoxWriteBuffer settingsWrites;
+
+  /// Writes every coalesced change now (on exit).
+  Future<void> flush() => Future.wait([sessionWrites.flush(), settingsWrites.flush()]);
 
   /// [path] is for tests; the app uses the application-support directory.
   static Future<LocalStore> open({String? path}) async {
@@ -49,10 +61,14 @@ class LocalStore {
     }
   }
 
-  Future<void> close() => Hive.close();
+  Future<void> close() async {
+    await flush();
+    await Hive.close();
+  }
 
   /// "Delete all local data" in Privacy & data.
   Future<void> wipe() async {
+    sessionWrites.discard();
     await Future.wait([
       scripts.clear(),
       collections.clear(),
