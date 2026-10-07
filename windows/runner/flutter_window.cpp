@@ -96,6 +96,8 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  forms_worker_.Start(GetHandle());
+  capture_worker_.Start(GetHandle());
 
   overlay_channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
       flutter_controller_->engine()->messenger(), "app.sotto/overlay",
@@ -148,6 +150,22 @@ bool FlutterWindow::OnCreate() {
       [this](const flutter::MethodCall<flutter::EncodableValue>& call,
              std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
         HandleFormsCall(call, std::move(result));
+      });
+
+  // Battery saver: background polling (auto-fill) slows down.
+  power_channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "app.sotto/power",
+      &flutter::StandardMethodCodec::GetInstance());
+  power_channel_->SetMethodCallHandler(
+      [](const flutter::MethodCall<flutter::EncodableValue>& call,
+         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() != "saver") {
+          result->NotImplemented();
+          return;
+        }
+        SYSTEM_POWER_STATUS status{};
+        const bool saver = GetSystemPowerStatus(&status) && status.SystemStatusFlag == 1;
+        result->Success(flutter::EncodableValue(saver));
       });
 
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
@@ -243,31 +261,54 @@ void FlutterWindow::HandleScreenCall(
     monitor = MonitorFromWindow(GetHandle(), MONITOR_DEFAULTTOPRIMARY);
   }
   // Sotto must never be in its own screenshots, even with "Hide from
-  // screen capture" turned off: exclude the window for this one capture.
+  // screen capture" turned off: exclude the window while captures run.
   HWND hwnd = GetHandle();
-  DWORD previous = WDA_NONE;
-  GetWindowDisplayAffinity(hwnd, &previous);
-  SetWindowDisplayAffinity(hwnd, kExcludeFromCapture);
-  SottoCapture capture{};
-  const bool ok = SottoCaptureMonitor(monitor, GetInt(a, "maxSide", 1300), GetInt(a, "quality", 80), &capture);
-  SetWindowDisplayAffinity(hwnd, previous);
-  if (!ok) {
-    result->Error("capture_failed", capture.error);
-    return;
+  if (captures_in_flight_++ == 0) {
+    affinity_before_capture_ = WDA_NONE;
+    GetWindowDisplayAffinity(hwnd, &affinity_before_capture_);
+    SetWindowDisplayAffinity(hwnd, kExcludeFromCapture);
   }
-  std::vector<uint8_t> jpeg(capture.jpeg, capture.jpeg + capture.jpeg_size);
-  SottoCaptureFree(&capture);
-  result->Success(flutter::EncodableValue(flutter::EncodableMap{
-      {flutter::EncodableValue("jpeg"), flutter::EncodableValue(std::move(jpeg))},
-      {flutter::EncodableValue("width"), flutter::EncodableValue(capture.width)},
-      {flutter::EncodableValue("height"), flutter::EncodableValue(capture.height)},
-      {flutter::EncodableValue("left"), flutter::EncodableValue(capture.left)},
-      {flutter::EncodableValue("top"), flutter::EncodableValue(capture.top)},
-      {flutter::EncodableValue("screenWidth"), flutter::EncodableValue(capture.screen_width)},
-      {flutter::EncodableValue("screenHeight"), flutter::EncodableValue(capture.screen_height)},
-      {flutter::EncodableValue("scale"), flutter::EncodableValue(capture.scale)},
-      {flutter::EncodableValue("method"), flutter::EncodableValue(std::string(capture.method))},
-  }));
+  const int max_side = GetInt(a, "maxSide", 1300);
+  const int quality = GetInt(a, "quality", 80);
+  std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> reply(std::move(result));
+  // Back on the platform thread: the window's affinity first.
+  auto done = [this, hwnd]() {
+    if (--captures_in_flight_ == 0) SetWindowDisplayAffinity(hwnd, affinity_before_capture_);
+  };
+  // Capture and JPEG encoding run on the capture thread; the raw pixels are
+  // freed there and only the JPEG crosses back.
+  capture_worker_.Post(
+      [monitor, max_side, quality, reply, done]() -> NativeWorker::Reply {
+        SottoCapture capture{};
+        if (!SottoCaptureMonitor(monitor, max_side, quality, &capture)) {
+          std::string error(capture.error);
+          return [reply, done, error]() {
+            done();
+            reply->Error("capture_failed", error);
+          };
+        }
+        auto value = std::make_shared<flutter::EncodableValue>(flutter::EncodableMap{
+            {flutter::EncodableValue("jpeg"),
+             flutter::EncodableValue(std::vector<uint8_t>(capture.jpeg, capture.jpeg + capture.jpeg_size))},
+            {flutter::EncodableValue("width"), flutter::EncodableValue(capture.width)},
+            {flutter::EncodableValue("height"), flutter::EncodableValue(capture.height)},
+            {flutter::EncodableValue("left"), flutter::EncodableValue(capture.left)},
+            {flutter::EncodableValue("top"), flutter::EncodableValue(capture.top)},
+            {flutter::EncodableValue("screenWidth"), flutter::EncodableValue(capture.screen_width)},
+            {flutter::EncodableValue("screenHeight"), flutter::EncodableValue(capture.screen_height)},
+            {flutter::EncodableValue("scale"), flutter::EncodableValue(capture.scale)},
+            {flutter::EncodableValue("method"), flutter::EncodableValue(std::string(capture.method))},
+        });
+        SottoCaptureFree(&capture);
+        return [reply, done, value]() {
+          done();
+          reply->Success(*value);
+        };
+      },
+      [reply, done]() {
+        done();
+        reply->Error("capture_failed", "Screen capture failed");
+      });
 }
 
 void FlutterWindow::HandleInputCall(
@@ -355,63 +396,61 @@ void FlutterWindow::SetOverlayKeyboard(bool on) {
 void FlutterWindow::HandleFormsCall(
     const flutter::MethodCall<flutter::EncodableValue>& call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  const std::string& method = call.method_name();
+  const std::string method = call.method_name();
   const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
-  const flutter::EncodableMap empty;
-  const auto& a = args != nullptr ? *args : empty;
+  const flutter::EncodableMap a = args != nullptr ? *args : flutter::EncodableMap();
   if (method == "permission") {
     result->Success(flutter::EncodableValue("granted"));  // UI Automation needs none
     return;
   }
-  if (method == "foreground") {
-    char* json = nullptr;
-    if (!SottoForegroundInfo(&json)) {
-      result->Error("no_window", "No window in front");
-      return;
-    }
-    std::string out(json);
-    SottoFormFree(json);
-    result->Success(flutter::EncodableValue(out));
-    return;
-  }
-  if (method == "canScrollDown") {
-    const int r = SottoFormCanScrollDown();
-    result->Success(r < 0 ? flutter::EncodableValue() : flutter::EncodableValue(r == 1));
-    return;
-  }
-  if (method == "read") {
-    char* json = nullptr;
-    const char* error = "";
-    if (!SottoFormRead(GetInt(a, "max", 800), &json, &error)) {
-      result->Error(error, error);
-      return;
-    }
-    std::string out(json);
-    SottoFormFree(json);
-    result->Success(flutter::EncodableValue(out));
-    return;
-  }
-  const std::string id = GetString(a, "id");
-  bool ok = false;
-  if (method == "setValue") {
-    ok = SottoFormSetValue(id.c_str(), Wide(GetString(a, "text")).c_str());
-  } else if (method == "select") {
-    ok = SottoFormSelect(id.c_str());
-  } else if (method == "toggle") {
-    ok = SottoFormToggle(id.c_str(), GetBool(a, "on"));
-  } else if (method == "choose") {
-    ok = SottoFormChoose(id.c_str(), Wide(GetString(a, "label")).c_str());
-  } else if (method == "invoke") {
-    ok = SottoFormInvoke(id.c_str());
-  } else if (method == "focus") {
-    ok = SottoFormFocus(id.c_str());
-  } else if (method == "scrollIntoView") {
-    ok = SottoFormScrollIntoView(id.c_str());
-  } else {
+  static const char* const kMethods[] = {"foreground", "canScrollDown", "read",   "setValue",       "select",
+                                         "toggle",     "choose",        "invoke", "scrollIntoView", "focus"};
+  if (std::none_of(std::begin(kMethods), std::end(kMethods), [&](const char* m) { return method == m; })) {
     result->NotImplemented();
     return;
   }
-  result->Success(flutter::EncodableValue(ok));
+  // A page's tree can take a while to walk: never on the platform thread.
+  std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> reply(std::move(result));
+  forms_worker_.Post(
+      [method, a, reply]() -> NativeWorker::Reply {
+        using flutter::EncodableValue;
+        if (method == "foreground" || method == "read") {
+          char* json = nullptr;
+          const char* error = "no_window";
+          const bool ok = method == "read" ? SottoFormRead(GetInt(a, "max", 800), &json, &error)
+                                           : SottoForegroundInfo(&json);
+          if (!ok) {
+            std::string code(error);
+            return [reply, code]() { reply->Error(code, code); };
+          }
+          auto out = std::make_shared<EncodableValue>(std::string(json));
+          SottoFormFree(json);
+          return [reply, out]() { reply->Success(*out); };
+        }
+        if (method == "canScrollDown") {
+          const int r = SottoFormCanScrollDown();
+          return [reply, r]() { reply->Success(r < 0 ? EncodableValue() : EncodableValue(r == 1)); };
+        }
+        const std::string id = GetString(a, "id");
+        bool ok = false;
+        if (method == "setValue") {
+          ok = SottoFormSetValue(id.c_str(), Wide(GetString(a, "text")).c_str());
+        } else if (method == "select") {
+          ok = SottoFormSelect(id.c_str());
+        } else if (method == "toggle") {
+          ok = SottoFormToggle(id.c_str(), GetBool(a, "on"));
+        } else if (method == "choose") {
+          ok = SottoFormChoose(id.c_str(), Wide(GetString(a, "label")).c_str());
+        } else if (method == "invoke") {
+          ok = SottoFormInvoke(id.c_str());
+        } else if (method == "focus") {
+          ok = SottoFormFocus(id.c_str());
+        } else if (method == "scrollIntoView") {
+          ok = SottoFormScrollIntoView(id.c_str());
+        }
+        return [reply, ok]() { reply->Success(EncodableValue(ok)); };
+      },
+      [reply]() { reply->Error("uia_failed", "UI Automation failed"); });
 }
 
 // A few pixels of what is behind the overlay, for the text-contrast check:
@@ -488,6 +527,9 @@ void FlutterWindow::CaptureRegion(
 }
 
 void FlutterWindow::OnDestroy() {
+  forms_worker_.Stop();
+  capture_worker_.Stop();
+  NativeWorker::DropReplies(GetHandle());
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
@@ -499,6 +541,11 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  // A screen capture or UI Automation call finished on its worker thread.
+  if (message == NativeWorker::kWorkerReply) {
+    NativeWorker::RunReply(lparam);
+    return 0;
+  }
   // The overlay never activates on click; checked before plugins so no
   // handler can override it.
   if (overlay_ && !overlay_keyboard_ && message == WM_MOUSEACTIVATE) {

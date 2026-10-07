@@ -7,6 +7,7 @@
 
 #include <memory>
 
+#include "native/worker.h"
 #include "win32_window.h"
 
 // A window that does nothing but host a Flutter view.
@@ -35,6 +36,17 @@ class FlutterWindow : public Win32Window {
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> screen_channel_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> input_channel_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> forms_channel_;
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> power_channel_;
+
+  // UI Automation (one thread: its element cache is not shared) and screen
+  // capture run off the platform thread; replies come back as messages.
+  NativeWorker forms_worker_;
+  NativeWorker capture_worker_;
+
+  // Captures in flight: the window stays excluded from capture until the
+  // last one is done, then gets its previous affinity back.
+  int captures_in_flight_ = 0;
+  DWORD affinity_before_capture_ = WDA_NONE;
 
   // True while the window is the live overlay.
   bool overlay_ = false;
