@@ -29,12 +29,19 @@ class NativeFormDriver implements FormDriver {
   CoordinateMapper? _mapper;
   CdpPage? _page;
 
+  /// The one screenshot this driver may hold: released before the next
+  /// capture and when the fill ends.
+  ScreenFrame? _frame;
+
   static bool _isCdp(String id) => id.startsWith('cdp:');
 
   Offset _native(Offset physical) => Platform.isMacOS && _mapper != null ? _mapper!.toLogical(physical) : physical;
 
   @override
   Future<ScreenFrame> capture() async {
+    _frame?.release();
+    _frame = null;
+    // The JPEG bytes live only in this call: the frame keeps the data URL.
     final shot = await screen.capture(target: CaptureTarget.foregroundDisplay);
     final mapper = _mapper = CoordinateMapper(
       imageWidth: shot.width,
@@ -42,7 +49,7 @@ class NativeFormDriver implements FormDriver {
       screen: shot.screen,
       scale: shot.scale,
     );
-    return ScreenFrame(shot.dataUrl, mapper);
+    return _frame = ScreenFrame(shot.dataUrl, mapper);
   }
 
   /// A tree that can't be read (some browsers, canvas-drawn forms) is an
@@ -74,6 +81,8 @@ class NativeFormDriver implements FormDriver {
 
   /// Lets go of the DevTools connection, if one was opened.
   Future<void> close() async {
+    _frame?.release();
+    _frame = null;
     await _page?.close();
     _page = null;
   }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,13 +38,27 @@ class FormAccessService {
     }
   }
 
+  /// The tree arrives as JSON from the native side, which walks it on its
+  /// own thread; a big one is also parsed off the UI isolate.
   Future<List<UiElement>> read({int max = 800}) async {
-    final json = await _call<String>('read', {'max': max});
-    final list = jsonDecode(json ?? '[]') as List;
+    final json = await _call<String>('read', {'max': max}) ?? '[]';
+    return json.length < isolateAbove ? parseElements(json) : Isolate.run(() => parseElements(json));
+  }
+
+  Future<FormSnapshot> snapshot() async {
+    final json = await _call<String>('read', {'max': 800}) ?? '[]';
+    return json.length < isolateAbove ? _snapshot(json) : Isolate.run(() => _snapshot(json));
+  }
+
+  /// Below this many characters an isolate costs more than the parse.
+  static const isolateAbove = 64 * 1024;
+
+  static List<UiElement> parseElements(String json) {
+    final list = jsonDecode(json) as List;
     return [for (final m in list.whereType<Map<Object?, Object?>>()) UiElement.fromMap(m)];
   }
 
-  Future<FormSnapshot> snapshot() async => FormSnapshot.fromElements(await read());
+  static FormSnapshot _snapshot(String json) => FormSnapshot.fromElements(parseElements(json));
 
   Future<bool> setValue(String id, String text) async =>
       await _call<bool>('setValue', {'id': id, 'text': text}) ?? false;

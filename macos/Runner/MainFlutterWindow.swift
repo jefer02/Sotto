@@ -1,5 +1,6 @@
 import Cocoa
 import FlutterMacOS
+import IOKit.ps
 import ScreenCaptureKit
 
 /// Sotto's single window. While preparing it is an ordinary titled window;
@@ -84,6 +85,14 @@ class MainFlutterWindow: NSPanel {
       binaryMessenger: flutterViewController.engine.binaryMessenger)
     screenChannel.setMethodCallHandler { [weak self] call, result in
       self?.handleScreen(call, result: result)
+    }
+
+    // Battery saver: background polling (auto-fill) slows down.
+    let powerChannel = FlutterMethodChannel(
+      name: "app.sotto/power",
+      binaryMessenger: flutterViewController.engine.binaryMessenger)
+    powerChannel.setMethodCallHandler { call, result in
+      call.method == "saver" ? result(MainFlutterWindow.savingPower()) : result(FlutterMethodNotImplemented)
     }
 
     super.awakeFromNib()
@@ -259,25 +268,31 @@ extension MainFlutterWindow {
     let outW = Int((pixelW * k).rounded())
     let outH = Int((pixelH * k).rounded())
 
+    // On the main thread, where Flutter results go.
+    func reply(_ jpeg: Data?, method: String) {
+      guard let jpeg = jpeg else {
+        result(FlutterError(code: "capture_failed", message: "Screen capture failed", details: nil))
+        return
+      }
+      result([
+        "jpeg": FlutterStandardTypedData(bytes: jpeg),
+        "width": outW,
+        "height": outH,
+        "left": Double(bounds.origin.x * scale),
+        "top": Double(bounds.origin.y * scale),
+        "screenWidth": Double(pixelW),
+        "screenHeight": Double(pixelH),
+        "scale": Double(scale),
+        "method": method,
+      ])
+    }
+
+    // The JPEG is encoded off the main thread; the full-size image is
+    // released there as soon as it is encoded.
     func finish(_ image: CGImage?, method: String) {
-      DispatchQueue.main.async {
-        guard let image = image,
-          let jpeg = MainFlutterWindow.jpeg(image, width: outW, height: outH, quality: quality)
-        else {
-          result(FlutterError(code: "capture_failed", message: "Screen capture failed", details: nil))
-          return
-        }
-        result([
-          "jpeg": FlutterStandardTypedData(bytes: jpeg),
-          "width": outW,
-          "height": outH,
-          "left": Double(bounds.origin.x * scale),
-          "top": Double(bounds.origin.y * scale),
-          "screenWidth": Double(pixelW),
-          "screenHeight": Double(pixelH),
-          "scale": Double(scale),
-          "method": method,
-        ])
+      MainFlutterWindow.captureQueue.async {
+        let jpeg = image.flatMap { MainFlutterWindow.jpeg($0, width: outW, height: outH, quality: quality) }
+        DispatchQueue.main.async { reply(jpeg, method: method) }
       }
     }
 
@@ -451,18 +466,39 @@ extension MainFlutterWindow {
     }
   }
 
+  /// AX calls into another app can take a while on a big page: they run
+  /// here, one at a time, never on the main thread.
+  static let formsQueue = DispatchQueue(label: "app.sotto.forms", qos: .userInitiated)
+  static let captureQueue = DispatchQueue(label: "app.sotto.capture", qos: .userInitiated)
+
   fileprivate func handleForms(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    let args = call.arguments as? [String: Any] ?? [:]
-    let id = args["id"] as? String ?? ""
-    let element = MainFlutterWindow.formElements[id]
     switch call.method {
     case "permission":
       result(AXIsProcessTrusted() ? "granted" : "denied")
     case "requestPermission":
       let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
       result(AXIsProcessTrustedWithOptions([key: true] as CFDictionary))
+    default:
+      // NSScreen is main-thread only: the displays' scales are read here.
+      let displays = MainFlutterWindow.displayScales()
+      let reply: FlutterResult = { value in DispatchQueue.main.async { result(value) } }
+      MainFlutterWindow.formsQueue.async { [weak self] in
+        guard let self = self else { return reply(FlutterError(code: "no_window", message: nil, details: nil)) }
+        self.handleFormsOffMain(call, displays: displays, result: reply)
+      }
+    }
+  }
+
+  /// Runs on [formsQueue].
+  private func handleFormsOffMain(
+    _ call: FlutterMethodCall, displays: [(CGRect, CGFloat)], result: @escaping FlutterResult
+  ) {
+    let args = call.arguments as? [String: Any] ?? [:]
+    let id = args["id"] as? String ?? ""
+    let element = MainFlutterWindow.formElements[id]
+    switch call.method {
     case "read":
-      readForm(max: args["max"] as? Int ?? 800, result: result)
+      readForm(max: args["max"] as? Int ?? 800, displays: displays, result: result)
     case "setValue":
       guard let e = element else { return result(false) }
       AXUIElementSetAttributeValue(e, kAXFocusedAttribute as CFString, kCFBooleanTrue)
@@ -570,7 +606,33 @@ extension MainFlutterWindow {
     return string(e, kAXPlaceholderValueAttribute) ?? ""
   }
 
-  private func readForm(max: Int, result: @escaping FlutterResult) {
+  /// Each display's bounds (global points, top-left origin) and scale.
+  fileprivate static func displayScales() -> [(CGRect, CGFloat)] {
+    NSScreen.screens.compactMap { s in
+      guard let n = s.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return nil }
+      return (CGDisplayBounds(CGDirectDisplayID(n.uint32Value)), s.backingScaleFactor)
+    }
+  }
+
+  /// Low Power Mode, or running on a battery at 20 % or less
+  /// (IOPSCopyPowerSourcesInfo) — the Mac's battery saver.
+  fileprivate static func savingPower() -> Bool {
+    if #available(macOS 12.0, *), ProcessInfo.processInfo.isLowPowerModeEnabled { return true }
+    guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+      let sources = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef]
+    else { return false }
+    for source in sources {
+      guard let d = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue() as? [String: Any],
+        d[kIOPSPowerSourceStateKey] as? String == kIOPSBatteryPowerValue
+      else { continue }
+      let current = d[kIOPSCurrentCapacityKey] as? Int ?? 100
+      let max = d[kIOPSMaxCapacityKey] as? Int ?? 100
+      if max > 0 && current * 100 / max <= 20 { return true }
+    }
+    return false
+  }
+
+  private func readForm(max: Int, displays: [(CGRect, CGFloat)], result: @escaping FlutterResult) {
     guard AXIsProcessTrusted() else {
       return result(FlutterError(code: "permission_denied", message: "Accessibility permission is off", details: nil))
     }
@@ -598,7 +660,7 @@ extension MainFlutterWindow {
     if let pos = MainFlutterWindow.attr(window, kAXPositionAttribute) {
       var p = CGPoint.zero
       AXValueGetValue(pos as! AXValue, .cgPoint, &p)
-      scale = MainFlutterWindow.screen(containing: p)?.backingScaleFactor ?? 2
+      scale = displays.first { $0.0.contains(p) }?.1 ?? 2
     }
 
     MainFlutterWindow.formElements = [:]
@@ -691,7 +753,7 @@ extension MainFlutterWindow {
   /// an editable combo box.
   private func chooseOption(_ e: AXUIElement, label: String, result: @escaping FlutterResult) {
     AXUIElementPerformAction(e, kAXPressAction as CFString)
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+    MainFlutterWindow.formsQueue.asyncAfter(deadline: .now() + 0.2) {
       let want = label.lowercased()
       for menu in MainFlutterWindow.children(e) {
         for item in MainFlutterWindow.children(menu)
