@@ -107,7 +107,7 @@ class FormRunRecord {
   final int pages;
   final List<FormFieldRecord> fields;
 
-  /// The app or website it was in ("Google Forms – Quiz", "Acrobat").
+  /// The app or website it was in ("Event sign-up", "Acrobat").
   final String app;
   final DateTime? at;
 

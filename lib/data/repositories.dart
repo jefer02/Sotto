@@ -104,13 +104,13 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   @override
   AppSettings build() {
-    final raw = ref.watch(localStoreProvider).settings.get(_key);
+    final raw = ref.watch(localStoreProvider).settingsWrites.get(_key);
     return raw == null ? const AppSettings() : AppSettings.fromJson(raw);
   }
 
   void update(AppSettings Function(AppSettings s) change) {
     state = change(state);
-    unawaited(ref.read(localStoreProvider).settings.put(_key, state.toJson()));
+    unawaited(ref.read(localStoreProvider).settingsWrites.put(_key, state.toJson()));
   }
 
   void reset(AppSettings Function(AppSettings current, AppSettings defaults) pick) =>
@@ -177,19 +177,23 @@ class SessionRepository {
       LocalStore.watchAll(_store.sessions)
           .map((maps) => maps.map(SessionRecord.fromJson).sortedBy((s) => s.startedAt).reversed.toList());
 
-  Future<void> save(SessionRecord r) => _store.sessions.put(r.id, r.toJson());
+  /// Coalesced: writes within 200 ms reach disk together.
+  Future<void> save(SessionRecord r) => _store.sessionWrites.put(r.id, r.toJson());
 
-  Future<void> delete(String id) => _store.sessions.delete(id);
+  Future<void> delete(String id) => _store.sessionWrites.delete(id);
 
   /// "Clear fill history": questionnaire records go; sessions that were
   /// only a questionnaire go with them, live sessions keep the rest.
   Future<void> clearFormRuns() async {
+    await _store.sessionWrites.flush();
+    final writes = <Future<void>>[];
     for (final raw in _store.sessions.values.toList()) {
       final r = SessionRecord.fromJson(raw);
       if (r.formRuns.isEmpty) continue;
       final onlyForms = r.agentRuns.isEmpty && r.wordsSpoken == 0 && r.sectionSeconds.isEmpty;
-      await (onlyForms ? delete(r.id) : save(r.withoutFormRuns()));
+      writes.add(onlyForms ? delete(r.id) : save(r.withoutFormRuns()));
     }
+    await Future.wait(writes);
   }
 }
 
