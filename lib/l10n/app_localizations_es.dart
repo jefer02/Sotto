@@ -234,7 +234,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String llmTimeout(String provider) {
-    return '$provider no respondió a tiempo.';
+    return '$provider no respondió — comprueba tu conexión';
   }
 
   @override
@@ -2818,11 +2818,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get autofillIndicator => 'Sotto está rellenando';
 
   @override
-  String get autofillToggle => 'Rellenar formularios y cuestionarios automáticamente';
+  String get autofillToggle => 'Rellenar formularios automáticamente';
 
   @override
   String get autofillToggleSub =>
-      'Vigila la ventana activa y rellena cada formulario, cuestionario o examen que aparezca. Las capturas van a DeepSeek. Nunca pulsa Enviar.';
+      'Vigila la ventana activa y rellena los formularios que aparezcan — registros, encuestas, solicitudes. Las capturas van a DeepSeek. Nunca pulsa Enviar.';
 
   @override
   String get formsScrollTitle => 'Desplazar para buscar más preguntas';
@@ -2887,7 +2887,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get formsDescription =>
-      'Rellenar formularios, cuestionarios y exámenes en pantalla: automáticamente al aparecer, o cuando lo pidas.';
+      'Rellenar formularios corrientes en pantalla — registros, encuestas, solicitudes de empleo, contacto: automáticamente al aparecer, o cuando lo pidas. Los exámenes y pruebas evaluadas no se tocan.';
 
   @override
   String get showFormsNav => 'Mostrar Formularios en la barra lateral';
@@ -2910,8 +2910,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get formsStatusOffSub => 'Activa el autorrelleno arriba, o rellena una vez lo que hay en pantalla.';
 
   @override
-  String get formsStatusWatchingSub =>
-      'Cambia a un formulario, cuestionario o examen: Sotto lo rellena y se detiene antes de Enviar.';
+  String get formsStatusWatchingSub => 'Cambia a un formulario: Sotto lo rellena y se detiene antes de Enviar.';
 
   @override
   String get formsStatusPausedSub => 'No se vigila ni se rellena nada hasta que reanudes.';
@@ -2979,4 +2978,36 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get formsHistoryGroup => 'Historial';
+
+  @override
+  String get formsBrowserNote =>
+      'Chrome / Edge: para leer las páginas con precisión, abre el navegador con --remote-debugging-port=9222. Si no, Sotto lee la pantalla. Firefox: siempre desde la pantalla.';
+
+  @override
+  String get formsBrowserNoteLink => 'Cómo configurarlo';
+
+  @override
+  String hoverOverlayStyle(String style) {
+    return 'Estilo del overlay: $style';
+  }
+
+  @override
+  String hoverTextColor(String color) {
+    return 'Color del texto: $color';
+  }
+
+  @override
+  String get hoverAutoFillOn => 'El autocompletado está activado — desactivar';
+
+  @override
+  String get hoverAutoFillOff => 'El autocompletado está desactivado — activar';
+
+  @override
+  String get hoverOpenChat => 'Abrir chat';
+
+  @override
+  String get hoverCloseChat => 'Cerrar chat';
+
+  @override
+  String get hoverEndSessionHold => 'Mantén 1 s para terminar la sesión';
 }

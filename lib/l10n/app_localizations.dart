@@ -497,7 +497,7 @@ abstract class AppLocalizations {
   /// No description provided for @llmTimeout.
   ///
   /// In en, this message translates to:
-  /// **'{provider} did not respond in time.'**
+  /// **'{provider} did not respond — check your connection'**
   String llmTimeout(String provider);
 
   /// No description provided for @llmOffline.
@@ -5057,13 +5057,13 @@ abstract class AppLocalizations {
   /// No description provided for @autofillToggle.
   ///
   /// In en, this message translates to:
-  /// **'Auto-fill forms and quizzes'**
+  /// **'Auto-fill forms'**
   String get autofillToggle;
 
   /// No description provided for @autofillToggleSub.
   ///
   /// In en, this message translates to:
-  /// **'Watches the window in front and fills every form, quiz or exam that appears. Screenshots go to DeepSeek. Never presses Submit.'**
+  /// **'Watches the window in front and fills the forms that appear — sign-ups, surveys, applications. Screenshots go to DeepSeek. Never presses Submit.'**
   String get autofillToggleSub;
 
   /// No description provided for @formsScrollTitle.
@@ -5189,7 +5189,7 @@ abstract class AppLocalizations {
   /// No description provided for @formsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Filling forms, quizzes and exams on screen: automatically as they appear, or when you ask.'**
+  /// **'Filling ordinary forms on screen — registrations, surveys, job applications, contact forms: automatically as they appear, or when you ask. Graded tests and exams are left alone.'**
   String get formsDescription;
 
   /// No description provided for @showFormsNav.
@@ -5231,7 +5231,7 @@ abstract class AppLocalizations {
   /// No description provided for @formsStatusWatchingSub.
   ///
   /// In en, this message translates to:
-  /// **'Switch to a form, quiz or exam: Sotto fills it and stops before Submit.'**
+  /// **'Switch to a form: Sotto fills it and stops before Submit.'**
   String get formsStatusWatchingSub;
 
   /// No description provided for @formsStatusPausedSub.
@@ -5341,6 +5341,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'History'**
   String get formsHistoryGroup;
+
+  /// No description provided for @formsBrowserNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Chrome / Edge: to read pages precisely, start the browser with --remote-debugging-port=9222. Otherwise Sotto reads the screen. Firefox: always from the screen.'**
+  String get formsBrowserNote;
+
+  /// No description provided for @formsBrowserNoteLink.
+  ///
+  /// In en, this message translates to:
+  /// **'How to set it up'**
+  String get formsBrowserNoteLink;
+
+  /// No description provided for @hoverOverlayStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay style: {style}'**
+  String hoverOverlayStyle(String style);
+
+  /// No description provided for @hoverTextColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text color: {color}'**
+  String hoverTextColor(String color);
+
+  /// No description provided for @hoverAutoFillOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-fill is on — turn off'**
+  String get hoverAutoFillOn;
+
+  /// No description provided for @hoverAutoFillOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-fill is off — turn on'**
+  String get hoverAutoFillOff;
+
+  /// No description provided for @hoverOpenChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Open chat'**
+  String get hoverOpenChat;
+
+  /// No description provided for @hoverCloseChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Close chat'**
+  String get hoverCloseChat;
+
+  /// No description provided for @hoverEndSessionHold.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold 1 s to end session'**
+  String get hoverEndSessionHold;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -234,7 +234,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String llmTimeout(String provider) {
-    return '$provider did not respond in time.';
+    return '$provider did not respond — check your connection';
   }
 
   @override
@@ -2808,11 +2808,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get autofillIndicator => 'Sotto is filling';
 
   @override
-  String get autofillToggle => 'Auto-fill forms and quizzes';
+  String get autofillToggle => 'Auto-fill forms';
 
   @override
   String get autofillToggleSub =>
-      'Watches the window in front and fills every form, quiz or exam that appears. Screenshots go to DeepSeek. Never presses Submit.';
+      'Watches the window in front and fills the forms that appear — sign-ups, surveys, applications. Screenshots go to DeepSeek. Never presses Submit.';
 
   @override
   String get formsScrollTitle => 'Scroll to find more questions';
@@ -2877,7 +2877,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formsDescription =>
-      'Filling forms, quizzes and exams on screen: automatically as they appear, or when you ask.';
+      'Filling ordinary forms on screen — registrations, surveys, job applications, contact forms: automatically as they appear, or when you ask. Graded tests and exams are left alone.';
 
   @override
   String get showFormsNav => 'Show Forms in sidebar';
@@ -2900,7 +2900,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get formsStatusOffSub => 'Turn on auto-fill above, or fill what\'s on screen once.';
 
   @override
-  String get formsStatusWatchingSub => 'Switch to a form, quiz or exam: Sotto fills it and stops before Submit.';
+  String get formsStatusWatchingSub => 'Switch to a form: Sotto fills it and stops before Submit.';
 
   @override
   String get formsStatusPausedSub => 'Nothing is watched or filled until you resume.';
@@ -2966,4 +2966,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formsHistoryGroup => 'History';
+
+  @override
+  String get formsBrowserNote =>
+      'Chrome / Edge: to read pages precisely, start the browser with --remote-debugging-port=9222. Otherwise Sotto reads the screen. Firefox: always from the screen.';
+
+  @override
+  String get formsBrowserNoteLink => 'How to set it up';
+
+  @override
+  String hoverOverlayStyle(String style) {
+    return 'Overlay style: $style';
+  }
+
+  @override
+  String hoverTextColor(String color) {
+    return 'Text color: $color';
+  }
+
+  @override
+  String get hoverAutoFillOn => 'Auto-fill is on — turn off';
+
+  @override
+  String get hoverAutoFillOff => 'Auto-fill is off — turn on';
+
+  @override
+  String get hoverOpenChat => 'Open chat';
+
+  @override
+  String get hoverCloseChat => 'Close chat';
+
+  @override
+  String get hoverEndSessionHold => 'Hold 1 s to end session';
 }
