@@ -147,7 +147,7 @@
     }
   },
   "llmRefusal": "The model declined to answer this question.",
-  "llmTimeout": "{provider} did not respond in time.",
+  "llmTimeout": "{provider} did not respond — check your connection",
   "@llmTimeout": {
     "placeholders": {
       "provider": {
@@ -1641,8 +1641,8 @@
   },
   "autofillWatching": "Watching for questionnaires",
   "autofillIndicator": "Sotto is filling",
-  "autofillToggle": "Auto-fill forms and quizzes",
-  "autofillToggleSub": "Watches the window in front and fills every form, quiz or exam that appears. Screenshots go to DeepSeek. Never presses Submit.",
+  "autofillToggle": "Auto-fill forms",
+  "autofillToggleSub": "Watches the window in front and fills the forms that appear — sign-ups, surveys, applications. Screenshots go to DeepSeek. Never presses Submit.",
   "formsScrollTitle": "Scroll to find more questions",
   "formsScrollSub": "Scrolls down, up to 10 times a page, while new questions keep appearing",
   "qtText": "Text",
@@ -1663,7 +1663,7 @@
   "chatAutoCloseNever": "Never",
   "navForms": "Forms",
   "setForms": "Forms",
-  "formsDescription": "Filling forms, quizzes and exams on screen: automatically as they appear, or when you ask.",
+  "formsDescription": "Filling ordinary forms on screen — registrations, surveys, job applications, contact forms: automatically as they appear, or when you ask. Graded tests and exams are left alone.",
   "showFormsNav": "Show Forms in sidebar",
   "showFormsNavSub": "The page with auto-fill, its status and recent fills",
   "formsStatusOff": "Off",
@@ -1680,7 +1680,7 @@
     }
   },
   "formsStatusOffSub": "Turn on auto-fill above, or fill what's on screen once.",
-  "formsStatusWatchingSub": "Switch to a form, quiz or exam: Sotto fills it and stops before Submit.",
+  "formsStatusWatchingSub": "Switch to a form: Sotto fills it and stops before Submit.",
   "formsStatusPausedSub": "Nothing is watched or filled until you resume.",
   "formsFillNow": "Fill what's on screen now",
   "formsFillNowSub": "Then switch to the form within 3 seconds — same as {keys}.",
@@ -1712,5 +1712,16 @@
   "formsOpenSettings": "Forms settings",
   "formsAutofillGroup": "Auto-fill",
   "formsAnswersGroup": "Answers",
-  "formsHistoryGroup": "History"
+  "formsHistoryGroup": "History",
+  "formsBrowserNote": "Chrome / Edge: to read pages precisely, start the browser with --remote-debugging-port=9222. Otherwise Sotto reads the screen. Firefox: always from the screen.",
+  "formsBrowserNoteLink": "How to set it up",
+  "hoverOverlayStyle": "Overlay style: {style}",
+  "@hoverOverlayStyle": {"placeholders": {"style": {"type": "String"}}},
+  "hoverTextColor": "Text color: {color}",
+  "@hoverTextColor": {"placeholders": {"color": {"type": "String"}}},
+  "hoverAutoFillOn": "Auto-fill is on — turn off",
+  "hoverAutoFillOff": "Auto-fill is off — turn on",
+  "hoverOpenChat": "Open chat",
+  "hoverCloseChat": "Close chat",
+  "hoverEndSessionHold": "Hold 1 s to end session"
 }

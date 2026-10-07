@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/design/icons.dart';
 import '../../../core/design/theme.dart';
 import '../../../core/design/typography.dart';
+import '../../../core/platform/external_links.dart';
 import '../../../core/platform/platform_keys.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/controls.dart';
@@ -19,6 +20,9 @@ import '../../../services/screen/form_access.dart';
 import '../../../services/screen/screen_service.dart';
 import '../../forms/autofill_controller.dart';
 import '../settings_screen.dart';
+
+/// The README section on reading Chrome / Edge pages through DevTools.
+const browserHelpUrl = 'https://github.com/jefer02/Sotto#reading-browser-pages-chrome-and-edge';
 
 /// Settings → Forms: everything about filling questionnaires on screen —
 /// auto-fill, chord + F, how answers are written, and their history.
@@ -138,6 +142,22 @@ class _FormsSettingsPageState extends ConsumerState<FormsSettingsPage> {
               trailing: SottoToggle(
                 value: s.formsScroll,
                 onChanged: (v) => n.update((x) => x.copyWith(formsScroll: v)),
+              ),
+            ),
+            // Read-only: how browser pages are read, and where to learn more.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l.formsBrowserNote, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                  const SizedBox(height: 4),
+                  TextLink(
+                    '${l.formsBrowserNoteLink}  ›',
+                    muted: true,
+                    onTap: () => unawaited(openExternal(browserHelpUrl)),
+                  ),
+                ],
               ),
             ),
           ],
