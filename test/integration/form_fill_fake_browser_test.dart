@@ -13,6 +13,7 @@ import 'package:sotto/domain/agent/safety.dart';
 import 'package:sotto/domain/forms/form_filler.dart';
 import 'package:sotto/domain/forms/form_model.dart';
 import 'package:sotto/domain/forms/form_runner.dart';
+import 'package:sotto/services/ai/llm_client.dart';
 
 // ───────────────────────────── The fake window ─────────────────────────────
 
@@ -76,6 +77,7 @@ class FakeBrowser implements FormDriver {
   final keys = <String>[];
   var reads = 0;
   var captures = 0;
+  final frames = <ScreenFrame>[];
 
   var scrolls = 0;
   List<Control> get controls => [
@@ -87,7 +89,11 @@ class FakeBrowser implements FormDriver {
   @override
   Future<ScreenFrame> capture() async {
     captures++;
-    return const ScreenFrame('data:image/jpeg;base64,FAKE', mapper);
+    // Every test checks this: a fill never holds two screenshots.
+    expect(frames.where((f) => !f.released), isEmpty, reason: 'the previous screenshot was not released');
+    final frame = ScreenFrame('data:image/jpeg;base64,FAKE', mapper);
+    frames.add(frame);
+    return frame;
   }
 
   /// Nothing: this browser exposes no accessibility tree.
@@ -654,6 +660,61 @@ void main() {
     );
     expect((await none.run()).outcome, 'none');
   });
+
+  group('DeepSeek does not respond', () {
+    test('while reading the page: the cycle ends with the timeout, the screenshot released', () async {
+      final browser = FakeBrowser(_twoPageForm());
+      final runner = FormRunner(
+        driver: browser,
+        vision: _TimesOut(onAnswer: true),
+        host: FakeHost()..browser = browser,
+        texts: _Texts(),
+        auto: true,
+      );
+      await expectLater(
+        runner.run(),
+        throwsA(
+          isA<LlmTimeout>().having((e) => e.message, 'message', 'DeepSeek did not respond — check your connection'),
+        ),
+      );
+      expect(browser.captures, 1, reason: 'nothing more is tried after the timeout');
+      expect(browser.typed, isEmpty);
+      expect(browser.frames.single.released, isTrue);
+    });
+
+    test('while checking what was filled: not swallowed as "can\'t tell" — the cycle ends', () async {
+      final browser = FakeBrowser(_twoPageForm());
+      final runner = FormRunner(
+        driver: browser,
+        vision: _TimesOut(inner: FakeVision(browser, _answers)),
+        host: FakeHost()..browser = browser,
+        texts: _Texts(),
+        auto: true,
+      );
+      await expectLater(runner.run(), throwsA(isA<LlmTimeout>()));
+      expect(browser.frames.every((f) => f.released), isTrue);
+    });
+  });
+}
+
+/// A model that stops answering: at once ([onAnswer]), or once the answers
+/// are in and the fill is being checked on a screenshot.
+class _TimesOut implements FormVision {
+  _TimesOut({this.onAnswer = false, this.inner});
+  final bool onAnswer;
+  final FormVision? inner;
+
+  @override
+  Future<FormReply> answer(ScreenFrame frame, Map<String, FormField> ids) async {
+    if (onAnswer || inner == null) throw LlmTimeout();
+    return inner!.answer(frame, ids);
+  }
+
+  @override
+  Future<Offset?> locateOption(ScreenFrame frame, String label) async => throw LlmTimeout();
+
+  @override
+  Future<Map<int, String>> readValues(ScreenFrame frame, List<VisualCheck> checks) async => throw LlmTimeout();
 }
 
 /// Replies in order, then nothing.

@@ -172,6 +172,52 @@ void main() {
     });
   });
 
+  group('lettered options in an ordinary form', () {
+    test('"Which option best describes you" is selected by letter or by text, through the tree or visually', () {
+      const options = ['A) Student', 'B) Employee', 'C) Freelancer', 'D) Other'];
+      expect(ChoiceMatcher.match(options, answer: 'Freelancer'), 2);
+      expect(ChoiceMatcher.match(options, letter: 'B'), 1);
+      expect(ChoiceMatcher.match(options, answer: 'C) Freelancer', letter: 'C'), 2);
+
+      final tree = FormSnapshot.fromElements([
+        const UiElement(
+          id: 'g',
+          type: 'group',
+          name: 'Which option best describes you?',
+          bounds: Rect.fromLTWH(0, 0, 300, 200),
+        ),
+        for (var i = 0; i < options.length; i++)
+          UiElement(
+            id: 'r$i',
+            type: 'radio',
+            name: options[i],
+            parent: 'g',
+            bounds: Rect.fromLTWH(0, 40.0 * i + 20, 300, 30),
+            patterns: const {'select'},
+          ),
+      ]);
+      final f = tree.fields.single;
+      expect(f.label, 'Which option best describes you?');
+      final plan = FormFiller.plan(
+        {'f1': f},
+        const [
+          FieldAnswer(fieldId: 'f1', question: 'Which option best describes you?', answer: 'Employee', letter: 'B'),
+        ],
+      );
+      expect((plan.steps.single.actions.single as SelectAction).elementId, 'r1');
+
+      // The same options drawn as plain text: a click at the chosen one.
+      final visual = _radio('Which option best describes you?', options, patterns: const {});
+      final click =
+          FormFiller.plan(
+                {'f1': visual},
+                const [FieldAnswer(fieldId: 'f1', question: 'Q', answer: 'D')],
+              ).steps.single.actions.single
+              as ClickTypeAction;
+      expect(click.point, visual.options[3].bounds.center);
+    });
+  });
+
   group('question types', () {
     test('classified from the field', () {
       expect(QuestionTypes.classify(_radio('Q', ['True', 'False'])), QuestionType.trueFalse);
