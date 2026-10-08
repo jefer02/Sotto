@@ -2087,6 +2087,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get welcomeWriteSub => 'Un guion en blanco';
 
   @override
+  String get welcomeBrowserTitle => 'Extensión del navegador (opcional)';
+
+  @override
+  String get welcomeBrowserBody =>
+      'Instala la extensión del navegador para una lectura precisa (puedes omitirlo). Lee los formularios web desde la propia página, solo cuando lo pides, y nunca ve contraseñas ni datos de pago. Sin ella, Sotto lee la pantalla.';
+
+  @override
   String get overlayStyle => 'Estilo de la superposición';
 
   @override
@@ -2980,11 +2987,32 @@ class AppLocalizationsEs extends AppLocalizations {
   String get formsHistoryGroup => 'Historial';
 
   @override
-  String get formsBrowserNote =>
-      'Chrome / Edge: para leer las páginas con precisión, abre el navegador con --remote-debugging-port=9222. Si no, Sotto lee la pantalla. Firefox: siempre desde la pantalla.';
+  String get formsBrowserTitle => 'Integración con el navegador';
 
   @override
-  String get formsBrowserNoteLink => 'Cómo configurarlo';
+  String get formsBrowserExtension => 'Extensión Sotto Bridge';
+
+  @override
+  String get formsBrowserSub =>
+      'Lee los formularios web con precisión, desde la propia página. Sin ella, Sotto lee la pantalla.';
+
+  @override
+  String get formsBrowserLearnMore => 'Qué puede y qué no puede ver';
+
+  @override
+  String get bridgeConnected => 'Conectada';
+
+  @override
+  String get bridgeNotInstalled => 'No instalada';
+
+  @override
+  String get bridgeInstall => 'Instalar extensión';
+
+  @override
+  String get bridgeReconnect => 'Reconectar';
+
+  @override
+  String get bridgeReconnecting => 'Reconectando: los navegadores con la extensión vuelven en unos segundos.';
 
   @override
   String hoverOverlayStyle(String style) {

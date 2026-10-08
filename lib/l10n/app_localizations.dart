@@ -3758,6 +3758,18 @@ abstract class AppLocalizations {
   /// **'A blank script'**
   String get welcomeWriteSub;
 
+  /// No description provided for @welcomeBrowserTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser extension (optional)'**
+  String get welcomeBrowserTitle;
+
+  /// No description provided for @welcomeBrowserBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Install the browser extension for precise reading (you can skip it). It reads web forms from the page itself, only when you ask, and never sees passwords or payment details. Without it, Sotto reads the screen.'**
+  String get welcomeBrowserBody;
+
   /// No description provided for @overlayStyle.
   ///
   /// In en, this message translates to:
@@ -5342,17 +5354,59 @@ abstract class AppLocalizations {
   /// **'History'**
   String get formsHistoryGroup;
 
-  /// No description provided for @formsBrowserNote.
+  /// No description provided for @formsBrowserTitle.
   ///
   /// In en, this message translates to:
-  /// **'Chrome / Edge: to read pages precisely, start the browser with --remote-debugging-port=9222. Otherwise Sotto reads the screen. Firefox: always from the screen.'**
-  String get formsBrowserNote;
+  /// **'Browser integration'**
+  String get formsBrowserTitle;
 
-  /// No description provided for @formsBrowserNoteLink.
+  /// No description provided for @formsBrowserExtension.
   ///
   /// In en, this message translates to:
-  /// **'How to set it up'**
-  String get formsBrowserNoteLink;
+  /// **'Sotto Bridge extension'**
+  String get formsBrowserExtension;
+
+  /// No description provided for @formsBrowserSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads web forms precisely, from the page itself. Without it, Sotto reads the screen.'**
+  String get formsBrowserSub;
+
+  /// No description provided for @formsBrowserLearnMore.
+  ///
+  /// In en, this message translates to:
+  /// **'What it can and can\'t see'**
+  String get formsBrowserLearnMore;
+
+  /// No description provided for @bridgeConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get bridgeConnected;
+
+  /// No description provided for @bridgeNotInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Not installed'**
+  String get bridgeNotInstalled;
+
+  /// No description provided for @bridgeInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Install extension'**
+  String get bridgeInstall;
+
+  /// No description provided for @bridgeReconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect'**
+  String get bridgeReconnect;
+
+  /// No description provided for @bridgeReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnecting — browsers with the extension come back within a few seconds.'**
+  String get bridgeReconnecting;
 
   /// No description provided for @hoverOverlayStyle.
   ///

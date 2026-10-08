@@ -16,13 +16,15 @@ import '../../../data/models/settings.dart';
 import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
 import '../../../l10n/l10n.dart';
+import '../../../services/screen/browser_bridge.dart';
 import '../../../services/screen/form_access.dart';
 import '../../../services/screen/screen_service.dart';
 import '../../forms/autofill_controller.dart';
+import '../../forms/browser_extension_rows.dart';
 import '../settings_screen.dart';
 
-/// The README section on reading Chrome / Edge pages through DevTools.
-const browserHelpUrl = 'https://github.com/jefer02/Sotto#reading-browser-pages-chrome-and-edge';
+/// The README section on the browser extension.
+const browserHelpUrl = 'https://github.com/jefer02/Sotto#browser-extension';
 
 /// Settings → Forms: everything about filling questionnaires on screen —
 /// auto-fill, chord + F, how answers are written, and their history.
@@ -69,6 +71,13 @@ class _FormsSettingsPageState extends ConsumerState<FormsSettingsPage> {
   Future<void> _autoFill(bool on) async {
     ref.read(autoFillControllerProvider.notifier).setEnabled(on);
     if (on && Platform.isMacOS) await _toggle(true);
+  }
+
+  /// Registers the host again and waits for the extensions to come back.
+  Future<void> _reconnect() async {
+    await ref.read(browserBridgeProvider).reconnect();
+    if (!mounted) return;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(context.l10n.bridgeReconnecting)));
   }
 
   Future<void> _clearHistory() async {
@@ -144,22 +153,32 @@ class _FormsSettingsPageState extends ConsumerState<FormsSettingsPage> {
                 onChanged: (v) => n.update((x) => x.copyWith(formsScroll: v)),
               ),
             ),
-            // Read-only: how browser pages are read, and where to learn more.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l.formsBrowserNote, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
-                  const SizedBox(height: 4),
-                  TextLink(
-                    '${l.formsBrowserNoteLink}  ›',
+          ],
+        ),
+        SettingsGroup(
+          title: l.formsBrowserTitle,
+          children: [
+            SettingRow(
+              title: l.formsBrowserExtension,
+              subtitle: l.formsBrowserSub,
+              trailing: SottoButton(
+                label: l.bridgeReconnect,
+                size: ButtonSize.small,
+                onPressed: () => unawaited(_reconnect()),
+              ),
+              below: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextLink(
+                    '${l.formsBrowserLearnMore}  ›',
                     muted: true,
                     onTap: () => unawaited(openExternal(browserHelpUrl)),
                   ),
-                ],
+                ),
               ),
             ),
+            const BrowserExtensionRows(),
           ],
         ),
         SettingsGroup(

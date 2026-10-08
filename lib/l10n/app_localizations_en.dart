@@ -2080,6 +2080,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeWriteSub => 'A blank script';
 
   @override
+  String get welcomeBrowserTitle => 'Browser extension (optional)';
+
+  @override
+  String get welcomeBrowserBody =>
+      'Install the browser extension for precise reading (you can skip it). It reads web forms from the page itself, only when you ask, and never sees passwords or payment details. Without it, Sotto reads the screen.';
+
+  @override
   String get overlayStyle => 'Overlay style';
 
   @override
@@ -2968,11 +2975,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get formsHistoryGroup => 'History';
 
   @override
-  String get formsBrowserNote =>
-      'Chrome / Edge: to read pages precisely, start the browser with --remote-debugging-port=9222. Otherwise Sotto reads the screen. Firefox: always from the screen.';
+  String get formsBrowserTitle => 'Browser integration';
 
   @override
-  String get formsBrowserNoteLink => 'How to set it up';
+  String get formsBrowserExtension => 'Sotto Bridge extension';
+
+  @override
+  String get formsBrowserSub => 'Reads web forms precisely, from the page itself. Without it, Sotto reads the screen.';
+
+  @override
+  String get formsBrowserLearnMore => 'What it can and can\'t see';
+
+  @override
+  String get bridgeConnected => 'Connected';
+
+  @override
+  String get bridgeNotInstalled => 'Not installed';
+
+  @override
+  String get bridgeInstall => 'Install extension';
+
+  @override
+  String get bridgeReconnect => 'Reconnect';
+
+  @override
+  String get bridgeReconnecting => 'Reconnecting — browsers with the extension come back within a few seconds.';
 
   @override
   String hoverOverlayStyle(String style) {
