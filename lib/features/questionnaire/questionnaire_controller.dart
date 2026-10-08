@@ -19,7 +19,7 @@ import '../../l10n/l10n.dart';
 import '../../services/agent/input_service.dart';
 import '../../services/ai/llm_client.dart';
 import '../../services/ai/questionnaire_service.dart';
-import '../../services/screen/cdp_dom.dart';
+import '../../services/screen/browser_bridge.dart';
 import '../../services/screen/form_access.dart';
 import '../../services/screen/native_form_driver.dart';
 import '../../services/screen/screen_service.dart';
@@ -220,8 +220,13 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
       screen: ref.read(screenServiceProvider),
       forms: ref.read(formAccessProvider),
       input: ref.read(inputServiceProvider),
-      cdp: CdpDom(),
+      bridge: ref.read(browserBridgeProvider),
     );
+    // A fill the presenter started (or auto-fill) arms the extension, and the
+    // page shows "Sotto is filling" until it ends.
+    ref.read(browserBridgeProvider)
+      ..arm('run', true)
+      ..indicate(true);
     final runner = FormRunner(
       driver: driver,
       vision: DeepSeekFormVision(
@@ -249,6 +254,9 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
       state = state.copyWith(error: L10n.current.formsBadReply);
     } finally {
       client.close();
+      ref.read(browserBridgeProvider)
+        ..indicate(false)
+        ..arm('run', false);
       await driver.close();
       await _clearKeys();
     }
@@ -266,6 +274,7 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
         app: app,
         at: startedAt,
         auto: auto,
+        actions: driver.actions,
         fields: [
           for (final f in result.fields)
             FormFieldRecord(
@@ -422,6 +431,10 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
 
   /// The emergency stop: nothing more is typed or clicked.
   void stop() {
+    // Whatever the extension was about to do, it doesn't, and the badge goes.
+    ref.read(browserBridgeProvider)
+      ..cancelAll()
+      ..indicate(false);
     if (!state.active) return;
     _cancelled = true;
     reject();

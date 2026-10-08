@@ -10,6 +10,7 @@ import '../../domain/forms/autofill_watcher.dart';
 import '../../domain/forms/form_model.dart';
 import '../../domain/forms/question_types.dart';
 import '../../l10n/l10n.dart';
+import '../../services/screen/browser_bridge.dart';
 import '../../services/screen/form_access.dart';
 import '../live/live_controller.dart';
 import '../questionnaire/questionnaire_controller.dart';
@@ -121,6 +122,7 @@ class AutoFillController extends Notifier<AutoFillState> {
   void _enable() {
     if (_watcher.status != AutoFillStatus.off) return;
     _watcher.enable();
+    ref.read(browserBridgeProvider).arm('autofill', true);
     _ticker.start();
     _powerTimer?.cancel();
     _powerTimer = Timer.periodic(_powerCheck, (_) => unawaited(_checkPower()));
@@ -143,6 +145,7 @@ class AutoFillController extends Notifier<AutoFillState> {
   Future<void> _disable() async {
     if (_watcher.status == AutoFillStatus.off && !state.overlay) return;
     _stopPolling();
+    ref.read(browserBridgeProvider).arm('autofill', false);
     if (_watcher.status == AutoFillStatus.filling) ref.read(questionnaireControllerProvider.notifier).stop();
     _watcher.disable();
     final overlay = state.overlay;
@@ -163,11 +166,13 @@ class AutoFillController extends Notifier<AutoFillState> {
   /// Pause: a running cycle finishes first.
   void pause() {
     _watcher.pause();
+    ref.read(browserBridgeProvider).arm('autofill', false);
     _sync();
   }
 
   void resume() {
     _watcher.resume();
+    ref.read(browserBridgeProvider).arm('autofill', true);
     _sync(clearMessage: true);
     unawaited(_ticker.tick());
   }
@@ -179,6 +184,7 @@ class AutoFillController extends Notifier<AutoFillState> {
   /// watcher rests until Resume.
   void emergencyStop() {
     ref.read(questionnaireControllerProvider.notifier).stop();
+    ref.read(browserBridgeProvider).arm('autofill', false);
     _watcher.emergencyStop();
     _sync();
   }

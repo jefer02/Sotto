@@ -12,11 +12,13 @@ import '../../core/widgets/interactive.dart';
 import '../../data/repositories.dart';
 import '../../l10n/l10n.dart';
 import '../../services/speech/model_manager.dart';
+import '../forms/browser_extension_rows.dart';
 import '../library/library_actions.dart';
 import '../settings/pages/voice_page.dart';
 
 /// Shows the first-run welcome once. Answers need no setup (the DeepSeek key
-/// is built in), so it only covers voice models and the first script.
+/// is built in), so it only covers voice models, the optional browser
+/// extension and the first script.
 /// [ref] must outlive the dialog (the library shell's), since the chosen
 /// action runs after it closes.
 Future<void> showWelcomeIfNeeded(BuildContext context, WidgetRef ref) async {
@@ -56,6 +58,7 @@ class WelcomeDialog extends ConsumerStatefulWidget {
 }
 
 class _WelcomeDialogState extends ConsumerState<WelcomeDialog> {
+  static const _steps = 3;
   int _step = 0;
 
   void _close() => Navigator.of(context).pop();
@@ -85,7 +88,7 @@ class _WelcomeDialogState extends ConsumerState<WelcomeDialog> {
                 children: [
                   Row(
                     children: [
-                      Text(l.welcomeStep(_step + 1, 2), style: TypeScale.monoSmall.copyWith(color: p.inkTertiary)),
+                      Text(l.welcomeStep(_step + 1, _steps), style: TypeScale.monoSmall.copyWith(color: p.inkTertiary)),
                       const Spacer(),
                       SottoIconButton(icon: SottoIcons.close, tooltip: l.closeEsc, onPressed: _close),
                     ],
@@ -93,14 +96,18 @@ class _WelcomeDialogState extends ConsumerState<WelcomeDialog> {
                   const SizedBox(height: 8),
                   AnimatedSwitcher(
                     duration: Motion.snappy,
-                    child: _step == 0 ? _ModelsStep(key: const ValueKey(0)) : _ScriptStep(key: const ValueKey(1)),
+                    child: switch (_step) {
+                      0 => _ModelsStep(key: const ValueKey(0)),
+                      1 => const _BrowserStep(key: ValueKey(1)),
+                      _ => _ScriptStep(key: const ValueKey(2)),
+                    },
                   ),
                   const SizedBox(height: 20),
                   Divider(height: 1, color: p.hairline),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      for (var i = 0; i < 2; i++)
+                      for (var i = 0; i < _steps; i++)
                         Container(
                           width: 18,
                           height: 3,
@@ -115,8 +122,14 @@ class _WelcomeDialogState extends ConsumerState<WelcomeDialog> {
                         SottoButton.ghost(label: l.welcomeSkip, onPressed: () => setState(() => _step = 1)),
                         const SizedBox(width: 8),
                         SottoButton.primary(label: l.welcomeNext, onPressed: () => setState(() => _step = 1)),
-                      ] else ...[
+                      ] else if (_step == 1) ...[
                         SottoButton.ghost(label: l.welcomeBack, onPressed: () => setState(() => _step = 0)),
+                        const SizedBox(width: 8),
+                        SottoButton.ghost(label: l.welcomeSkip, onPressed: () => setState(() => _step = 2)),
+                        const SizedBox(width: 8),
+                        SottoButton.primary(label: l.welcomeNext, onPressed: () => setState(() => _step = 2)),
+                      ] else ...[
+                        SottoButton.ghost(label: l.welcomeBack, onPressed: () => setState(() => _step = 1)),
                         const SizedBox(width: 8),
                         SottoButton.primary(label: l.welcomeUseExample, onPressed: _close),
                       ],
@@ -158,6 +171,27 @@ class _ModelsStep extends ConsumerWidget {
               ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+/// Optional: the Sotto Bridge extension, per browser.
+class _BrowserStep extends StatelessWidget {
+  const _BrowserStep({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final l = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(l.welcomeBrowserTitle, style: TypeScale.title2.copyWith(color: p.inkPrimary)),
+        const SizedBox(height: 6),
+        Text(l.welcomeBrowserBody, style: TypeScale.body.copyWith(color: p.inkSecondary)),
+        const SizedBox(height: 16),
+        const SettingsGroup(children: [BrowserExtensionRows()]),
       ],
     );
   }
