@@ -91,6 +91,39 @@ class FormFieldRecord {
   );
 }
 
+/// One thing a fill did to the page: a read (and where from) or an action
+/// on a field. Never the text typed — the answers live in the fields.
+class FormActionRecord {
+  const FormActionRecord({required this.op, required this.via, this.target = '', this.ok = true, this.at});
+
+  /// read, value, select, toggle, choose, invoke, click or type.
+  final String op;
+
+  /// extension, accessibility, vision or input (synthetic mouse / keys).
+  final String via;
+
+  /// The field's label, or for a read the page ("https://example.org").
+  final String target;
+  final bool ok;
+  final DateTime? at;
+
+  Map<String, Object?> toJson() => {
+    'op': op,
+    'via': via,
+    if (target.isNotEmpty) 't': target,
+    if (!ok) 'ok': false,
+    if (at != null) 'at': at!.toIso8601String(),
+  };
+
+  factory FormActionRecord.fromJson(Map<dynamic, dynamic> j) => FormActionRecord(
+    op: j['op'] as String? ?? '',
+    via: j['via'] as String? ?? '',
+    target: j['t'] as String? ?? '',
+    ok: j['ok'] as bool? ?? true,
+    at: DateTime.tryParse(j['at'] as String? ?? ''),
+  );
+}
+
 /// One questionnaire filled on screen.
 class FormRunRecord {
   const FormRunRecord({
@@ -100,7 +133,11 @@ class FormRunRecord {
     this.app = '',
     this.at,
     this.auto = false,
+    this.actions = const [],
   });
+
+  /// Every read and action, in order (see [FormActionRecord]).
+  final List<FormActionRecord> actions;
 
   /// submitted, ready (waiting for the presenter to submit), stopped or failed.
   final String status;
@@ -123,6 +160,7 @@ class FormRunRecord {
     if (app.isNotEmpty) 'app': app,
     if (at != null) 'at': at!.toIso8601String(),
     if (auto) 'auto': true,
+    if (actions.isNotEmpty) 'actions': [for (final a in actions) a.toJson()],
   };
 
   factory FormRunRecord.fromJson(Map<dynamic, dynamic> j) => FormRunRecord(
@@ -132,6 +170,7 @@ class FormRunRecord {
     app: j['app'] as String? ?? '',
     at: DateTime.tryParse(j['at'] as String? ?? ''),
     auto: j['auto'] as bool? ?? false,
+    actions: [for (final a in (j['actions'] as List? ?? const [])) FormActionRecord.fromJson(a as Map)],
   );
 }
 

@@ -14,6 +14,7 @@ import 'data/models/settings.dart';
 import 'data/storage/local_store.dart';
 import 'l10n/l10n.dart';
 import 'services/ai/deepseek_models.dart';
+import 'services/screen/browser_bridge.dart';
 
 Future<void> main() async {
   final startup = StartupTimer();
@@ -62,6 +63,9 @@ Future<void> main() async {
   unawaited(container.read(chatRepositoryProvider).prune(container.read(settingsProvider).historyRetentionDays));
   unawaited(_checkModel(container));
   unawaited(container.read(secretStoreProvider).purgeLegacy());
+  // The browser extension's host is registered for this user and Sotto
+  // listens for it. It never launches a browser.
+  unawaited(container.read(browserBridgeProvider).start());
 
   startup.mark('runApp');
   runApp(UncontrolledProviderScope(container: container, child: const SottoApp()));

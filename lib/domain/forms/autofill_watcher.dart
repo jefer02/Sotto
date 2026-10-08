@@ -49,10 +49,6 @@ class ForegroundWindow {
   /// A browser: forms may be web pages the accessibility tree barely shows.
   bool get isBrowser => _browsers.contains(_norm(app));
 
-  /// Chrome, Edge, Brave…: reachable through the DevTools protocol.
-  bool get isChromium =>
-      const {'chrome', 'msedge', 'edge', 'brave', 'chromium', 'vivaldi', 'opera'}.contains(_norm(app));
-
   /// A browser or document viewer: a questionnaire may be only pixels here
   /// (a PDF form, a canvas-drawn page), so a screenshot is worth a look.
   bool get mayShowQuestions => isBrowser || _viewers.contains(_norm(app));

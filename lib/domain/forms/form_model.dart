@@ -21,9 +21,11 @@ class UiElement {
     this.options = const [],
     this.patterns = const {},
     this.multiline = false,
+    this.sensitive = false,
   });
 
-  /// Opaque, stable while the page stays: the UIA runtime id, an AX handle.
+  /// Opaque, stable while the page stays: the UIA runtime id, an AX handle,
+  /// or `ext:N` from the browser extension.
   final String id;
 
   /// edit, document, radio, checkbox, combo, list, listitem, button, group,
@@ -51,6 +53,10 @@ class UiElement {
 
   /// A text area (Enter makes a new line rather than submitting).
   final bool multiline;
+
+  /// Flagged by the browser extension as a password, one-time-code or
+  /// payment field: it arrives without its value and is never filled.
+  final bool sensitive;
 
   bool has(String pattern) => patterns.contains(pattern);
 
@@ -234,7 +240,7 @@ class FormSnapshot {
     }
 
     bool sensitive(UiElement e, String label) =>
-        e.password || SafetyGate.isSecretLabel(label) || SafetyGate.isPaymentLabel(label);
+        e.password || e.sensitive || SafetyGate.isSecretLabel(label) || SafetyGate.isPaymentLabel(label);
 
     final fields = <FormField>[];
 
