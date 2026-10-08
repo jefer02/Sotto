@@ -3,10 +3,18 @@
 #include <windows.h>
 
 #include "flutter_window.h"
+#include "native/bridge.h"
 #include "utils.h"
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  // Started by a browser as the extension's native messaging host: relay
+  // between stdin / stdout and the running app's pipe. No window, no
+  // Flutter, no console.
+  if (SottoBridgeIsHostLaunch()) {
+    return SottoBridgeHostMain();
+  }
+
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {

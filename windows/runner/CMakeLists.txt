@@ -20,13 +20,15 @@ add_executable(${BINARY_NAME} WIN32
 # that need different build settings.
 apply_standard_settings(${BINARY_NAME})
 
-# Screen capture and input. Built apart from the runner because C++/WinRT
+# Screen capture, input, UI Automation and the browser extension's pipe
+# (plus native messaging host mode). Built apart from the runner because C++/WinRT
 # needs exceptions, which the runner's standard settings turn off; the
 # boundary between the two is plain C (see native/*.h).
 add_library(sotto_native STATIC
   "native/screen_capture.cpp"
   "native/input.cpp"
   "native/forms.cpp"
+  "native/bridge.cpp"
 )
 target_compile_features(sotto_native PRIVATE cxx_std_20)
 target_compile_options(sotto_native PRIVATE /EHsc /W3 /permissive-)

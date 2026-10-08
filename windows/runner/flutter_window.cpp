@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "native/bridge.h"
 #include "native/forms.h"
 #include "native/input.h"
 #include "native/screen_capture.h"
@@ -166,6 +167,15 @@ bool FlutterWindow::OnCreate() {
         SYSTEM_POWER_STATUS status{};
         const bool saver = GetSystemPowerStatus(&status) && status.SystemStatusFlag == 1;
         result->Success(flutter::EncodableValue(saver));
+      });
+
+  bridge_channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "app.sotto/bridge",
+      &flutter::StandardMethodCodec::GetInstance());
+  bridge_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        HandleBridgeCall(call, std::move(result));
       });
 
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
@@ -526,7 +536,67 @@ void FlutterWindow::CaptureRegion(
   }));
 }
 
+void FlutterWindow::HandleBridgeCall(
+    const flutter::MethodCall<flutter::EncodableValue>& call,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
+  const std::string& method = call.method_name();
+  if (method == "start") {
+    result->Success(flutter::EncodableValue(SottoBridgeStart(&FlutterWindow::OnBridgeEvent, this)));
+    return;
+  }
+  if (method == "stop") {
+    SottoBridgeStop();
+    result->Success();
+    return;
+  }
+  if (args == nullptr) {
+    result->Error("bad_args", "Expected a map");
+    return;
+  }
+  if (method == "write") {
+    auto it = args->find(flutter::EncodableValue("bytes"));
+    const auto* bytes = it == args->end() ? nullptr : std::get_if<std::vector<uint8_t>>(&it->second);
+    if (bytes == nullptr) {
+      result->Error("bad_args", "Expected bytes");
+      return;
+    }
+    result->Success(flutter::EncodableValue(SottoBridgeWrite(GetInt(*args, "conn", -1), bytes->data(), bytes->size())));
+    return;
+  }
+  if (method == "close") {
+    SottoBridgeClose(GetInt(*args, "conn", -1));
+    result->Success();
+    return;
+  }
+  if (method == "registerHost") {
+    const std::wstring key = Wide(GetString(*args, "key"));
+    const std::wstring manifest = Wide(GetString(*args, "manifest"));
+    result->Success(flutter::EncodableValue(!key.empty() && !manifest.empty() &&
+                                            SottoBridgeRegisterHost(key.c_str(), manifest.c_str())));
+    return;
+  }
+  result->NotImplemented();
+}
+
+void FlutterWindow::OnBridgeEvent(void* context, int conn, int event, const uint8_t* data, size_t size) {
+  auto* self = static_cast<FlutterWindow*>(context);
+  std::vector<uint8_t> bytes(data, data + size);
+  auto* reply = new NativeWorker::Reply([self, conn, event, bytes = std::move(bytes)]() mutable {
+    if (!self->bridge_channel_) return;
+    flutter::EncodableMap args{
+        {flutter::EncodableValue("conn"), flutter::EncodableValue(conn)},
+        {flutter::EncodableValue("kind"),
+         flutter::EncodableValue(std::string(event == 0 ? "open" : event == 1 ? "data" : "close"))},
+    };
+    if (event == 1) args[flutter::EncodableValue("bytes")] = flutter::EncodableValue(std::move(bytes));
+    self->bridge_channel_->InvokeMethod("event", std::make_unique<flutter::EncodableValue>(std::move(args)));
+  });
+  if (!PostMessage(self->GetHandle(), NativeWorker::kWorkerReply, 0, reinterpret_cast<LPARAM>(reply))) delete reply;
+}
+
 void FlutterWindow::OnDestroy() {
+  SottoBridgeStop();
   forms_worker_.Stop();
   capture_worker_.Stop();
   NativeWorker::DropReplies(GetHandle());

@@ -38,6 +38,13 @@ class FlutterWindow : public Win32Window {
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> forms_channel_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> power_channel_;
 
+  // "app.sotto/bridge": the browser extension's named pipe (native/bridge.h).
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> bridge_channel_;
+  void HandleBridgeCall(const flutter::MethodCall<flutter::EncodableValue>& call,
+                        std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  // Runs on a bridge thread: posts the event to the platform thread.
+  static void OnBridgeEvent(void* context, int conn, int event, const uint8_t* data, size_t size);
+
   // UI Automation (one thread: its element cache is not shared) and screen
   // capture run off the platform thread; replies come back as messages.
   NativeWorker forms_worker_;
