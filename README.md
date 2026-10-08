@@ -148,6 +148,47 @@ English. Dates, times, numbers and plurals follow the chosen language ("hace 4 h
 - Answers are drafted in the language of the question by default (Settings → Answers → Language).
 - Content you write is never translated. Scripts keep the language they were written in.
 
+## Browser extension
+
+**Sotto Bridge** (`extension/`, one Manifest V3 codebase for Chrome, Edge and Firefox) lets Sotto read
+the form in your active tab from the page itself, instead of guessing from pixels: text fields, text
+areas, drop-downs, radio and checkbox groups with their labels and options, options written as
+"A. … / B. …", and where each one sits on screen. It fills them the way typing would — the value is set
+and real `input` / `change` events fire; radios and checkboxes get a real click — so React, Vue and
+Angular forms notice.
+
+**Install it** from Settings → Forms → *Browser integration* (or the welcome dialog): *Install extension*
+opens the store page for Chrome, Edge or Firefox. Sotto registers its native messaging host for your user
+on every start (Windows: `HKCU\Software\{Google\Chrome, Microsoft\Edge, Mozilla}\NativeMessagingHosts`;
+macOS: each browser's `NativeMessagingHosts` folder in `~/Library/Application Support`), so no admin
+rights, terminal or browser flags are needed. The row shows *Connected* or *Not installed* per browser;
+*Reconnect* registers the host again and drops stale connections. Then click the toolbar icon once and
+choose **Allow reading pages when Sotto asks** — without that, the extension can only read a tab after
+you click its icon there (`activeTab`).
+
+**What it can see.** Only the active tab, only when Sotto asks, and only while auto-fill is on or a fill
+you started is running — it never runs in the background on its own, and Sotto never launches or
+relaunches a browser. Password, one-time-code and payment fields (by type, `autocomplete`, label, name or
+id) are reported without their value and are never filled; Sotto checks again on its side and drops any
+page that breaks this rule. *What it can't see:* other tabs, browser pages and the extension stores,
+frames from other sites, and sites you haven't allowed. Without the extension, Sotto reads the screen
+visually (and the accessibility tree where there is one), as before.
+
+**How it connects.** Permissions: `activeTab`, `scripting`, `nativeMessaging` (plus the optional site
+access above). The browser starts Sotto's own executable as the native messaging host (4-byte
+length-prefixed JSON on stdin / stdout), which relays to the running app over a named pipe
+(`\\.\pipe\sotto-bridge-<your SID>`: DACL limited to your user, remote clients refused, the client's
+process token checked; `windows/runner/native/bridge.cpp`) on Windows, or a Unix socket in a `0700`
+folder on macOS (peer user checked; `macos/Runner/AppDelegate.swift`). The host manifest allows only the
+extension's own ID (`allowed_origins` for Chrome / Edge, `allowed_extensions` for Firefox). Every
+message is validated against a schema (`lib/services/screen/bridge_protocol.dart`), every read and action
+is logged in the session record, and `Ctrl+Alt+Esc` cancels whatever the extension was about to do.
+
+**Developing it.** Load `extension/` unpacked (`chrome://extensions` → Developer mode; Firefox:
+`about:debugging` → Load Temporary Add-on). The `key` in `manifest.json` pins the Chrome / Edge ID that
+`lib/services/screen/host_manifest.dart` allows; add the store-assigned IDs there when publishing. Tests:
+`cd extension && npm install && npm test` (DOM tests with jsdom).
+
 ## Architecture
 
 ```
@@ -276,11 +317,9 @@ bar — "● Auto-fill ON" with Pause and Stop (hold 1 s; a ring counts down), "
 "Filling… 4/9 — question" with Stop now — and a scrollable log; outside a live session the window
 becomes this overlay until *Open Sotto*. `Ctrl+Alt+Esc` cancels a cycle and pauses the watcher.
 
-On Windows, when UI Automation shows fewer than two fields in Chrome or Edge, Sotto reads (and fills)
-the page's DOM through the DevTools protocol — inputs, text areas, selects, ARIA radios and checkboxes,
-and options written as "A. …" — if the browser was started with `--remote-debugging-port=9222`
-(localhost only). Without it, and in other browsers and on macOS when the AX tree shows little, the
-screenshot is the source (DeepSeek finds the questions and options on it).
+Web forms are read in this order: the **browser extension** (the page's own DOM — see
+[Browser extension](#browser-extension)), then UI Automation / AX, then the screenshot alone (DeepSeek finds
+the questions and options on it). Fields read through the extension are filled through it too.
 
 **Questionnaires on screen.** `Ctrl+Alt+F` (or the overlay button) captures the display of the window
 in front, reads its form
@@ -373,7 +412,8 @@ models is ignored.
   letter and by text, question types, password / payment gates, visual-only options clicked at their
   centre, drags); the overlay's text color (luminance of known pixel grids, the 400 ms debounce, fixed
   colors turn detection off) and geometry; chat history, dictation insertion and streaming Markdown.
-- `test/services` — DeepSeek request shapes (task profiles, JSON mode, vision, tool calls) and a guard
+- `test/services` — the browser bridge (native messaging framing with partial reads, message schema,
+  the extension → accessibility → vision order, host manifests per OS); DeepSeek request shapes (task profiles, JSON mode, vision, tool calls) and a guard
   that speech stays on-device (no cloud STT endpoint, no host but DeepSeek and GitHub).
 - `test/integration` — real speech: a sample WAV streamed through the sherpa-onnx worker, driving the
   follow engine. It runs once the light English model is installed (or with `SOTTO_MODEL_DIR`); on
@@ -391,8 +431,8 @@ models is ignored.
 
 - **Meeting chat.** "Send to chat" copies the answer to the clipboard for you to paste. Posting
   directly to Zoom/Teams needs their OAuth apps, which conflicts with running without a backend.
-- **DevTools reading of Chrome / Edge pages** (Windows) needs the browser started with
-  `--remote-debugging-port=9222`; otherwise those pages are read from the screenshot.
+- **The browser extension is optional.** Without it — or on a page it can't read (browser pages, the
+  extension stores, a site you haven't allowed) — web forms are read from accessibility and the screen.
 - **Auto-fill sends screenshots.** Each new page it fills sends a screenshot of the window in front to
   DeepSeek (never saved). It only runs while you have it on, and never on Sotto's own windows.
 - **Questions in a video call** arrive as system audio. Choose a loopback input (BlackHole on macOS,
