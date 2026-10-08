@@ -43,7 +43,7 @@ void main() {
         hosts.add(m.group(1)!.toLowerCase());
       }
     }
-    // 127.0.0.1: a browser's DevTools port on this same computer (forms).
-    expect(hosts.difference({'api.deepseek.com', 'github.com', 'api-docs.deepseek.com', '127.0.0.1'}), isEmpty);
+    // The browser extension talks over a local pipe / socket, not a URL.
+    expect(hosts.difference({'api.deepseek.com', 'github.com', 'api-docs.deepseek.com'}), isEmpty);
   });
 }

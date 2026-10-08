@@ -109,7 +109,6 @@ void main() {
         isNot(PageSignature.of(_chrome.copyTitle('Quiz 2 - Google Chrome'), const [])),
       );
       expect(_chrome.pageName, 'Quiz');
-      expect(_chrome.isChromium, isTrue);
       expect(const ForegroundWindow(id: '1', app: 'AcroRd32').mayShowQuestions, isTrue);
     });
   });
