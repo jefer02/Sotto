@@ -82,10 +82,7 @@ class _LibraryShellState extends ConsumerState<LibraryShell> {
               duration: Motion.smooth,
               curve: Motion.shiftMove,
               width: _collapsed ? Layout.sidebarCollapsed : Layout.sidebar,
-              decoration: BoxDecoration(
-                color: p.panel,
-                border: Border(right: BorderSide(color: p.hairline)),
-              ),
+              decoration: sidebarDecoration(p),
               child: ClipRect(
                 child: _Sidebar(
                   collapsed: _collapsed,
@@ -138,7 +135,16 @@ class _Sidebar extends ConsumerWidget {
           height: Layout.titleBar,
           child: Row(
             children: [
-              Expanded(child: TitleBarDragSpacer(width: collapsed ? 0 : trafficLightInset)),
+              Expanded(
+                child: collapsed
+                    ? const TitleBarDragSpacer(width: 0)
+                    : DragToMoveArea(
+                        child: Padding(
+                          padding: EdgeInsets.only(left: PlatformKeys.isMac ? trafficLightInset : 22),
+                          child: const Align(alignment: Alignment.centerLeft, child: SottoBrand()),
+                        ),
+                      ),
+              ),
               if (!(collapsed && PlatformKeys.isMac))
                 Padding(
                   padding: EdgeInsets.only(right: collapsed ? 13 : 12),
@@ -249,6 +255,33 @@ class _Sidebar extends ConsumerWidget {
             collapsed: collapsed,
             onTap: () => go('/settings/shortcuts'),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The cue mark and wordmark, the lamp lit.
+class SottoBrand extends StatelessWidget {
+  const SottoBrand({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(color: p.primary.withValues(alpha: p.isDark ? 0.28 : 0.22), blurRadius: 16)],
+          ),
+          child: CueMark(size: 22, ink: p.inkPrimary, cue: p.primary),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          context.l10n.appTitle,
+          style: withWeight(TypeScale.title3, 650).copyWith(color: p.inkPrimary, letterSpacing: -0.2, height: 1),
         ),
       ],
     );

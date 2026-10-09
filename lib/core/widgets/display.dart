@@ -485,6 +485,21 @@ class ScriptText extends StatelessWidget {
 
 // ───────────────────────────── Surfaces ─────────────────────────────
 
+/// Sidebar surface: the panel, warmed at the top where the brand sits.
+BoxDecoration sidebarDecoration(SottoPalette p) => BoxDecoration(
+  color: p.panel,
+  gradient: LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color.alphaBlend(p.primary.withValues(alpha: p.isDark ? 0.07 : 0.09), p.panel),
+      p.panel,
+    ],
+    stops: const [0, 0.4],
+  ),
+  border: Border(right: BorderSide(color: p.hairline)),
+);
+
 /// The ghost light on a dark stage: a warm pool of light falling on the
 /// content from above, so the ground isn't one flat sheet.
 class StageGlow extends StatelessWidget {

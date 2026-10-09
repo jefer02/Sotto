@@ -84,10 +84,7 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             Container(
               width: Layout.sidebar,
-              decoration: BoxDecoration(
-                color: p.panel,
-                border: Border(right: BorderSide(color: p.hairline)),
-              ),
+              decoration: sidebarDecoration(p),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
