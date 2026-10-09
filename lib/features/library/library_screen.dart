@@ -524,6 +524,7 @@ class ScriptCard extends ConsumerWidget {
     final collection = collections.firstWhereOrNull((c) => c.id == script.collectionId);
     final organizing = script.status == ScriptStatus.organizing;
     final progress = organizing ? ref.watch(organizeProgressProvider(script.id)) : null;
+    final tone = p.collectionColor(collection?.tone);
 
     return ScriptContextMenu(
       script: script,
@@ -531,6 +532,7 @@ class ScriptCard extends ConsumerWidget {
         onTap: () => context.go('/script/${script.id}'),
         builder: (context, s) => SurfaceCard(
           hovered: s.hovered,
+          accent: collection == null ? null : tone,
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -539,7 +541,7 @@ class ScriptCard extends ConsumerWidget {
                 height: 20,
                 child: Row(
                   children: [
-                    SottoIcon(SottoIcons.folder, size: 13, color: p.inkTertiary),
+                    SottoIcon(SottoIcons.folder, size: 13, color: tone),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -577,6 +579,7 @@ class ScriptCard extends ConsumerWidget {
               else
                 SectionBar(
                   weights: [for (final sec in script.sections) sec.estimatedSeconds(wpm).toDouble().clamp(1, 1e9)],
+                  trackColor: collection == null ? null : tone.withValues(alpha: p.isDark ? 0.42 : 0.45),
                 ),
               const SizedBox(height: 14),
               Row(
@@ -689,6 +692,8 @@ class ScriptRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
     final wpm = ref.watch(settingsProvider).wordsPerMinute;
+    final collections = ref.watch(collectionsProvider).value ?? const <Collection>[];
+    final collection = collections.firstWhereOrNull((c) => c.id == script.collectionId);
     return ScriptContextMenu(
       script: script,
       child: Interactive(
@@ -704,7 +709,7 @@ class ScriptRow extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              SottoIcon(SottoIcons.doc, size: 15, color: p.inkTertiary),
+              SottoIcon(SottoIcons.doc, size: 15, color: p.collectionColor(collection?.tone)),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

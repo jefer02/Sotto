@@ -70,6 +70,17 @@ class ScriptRepository {
     }
   }
 
+  /// Collections from before colors existed get one each, in name order.
+  Future<void> assignMissingTones() async {
+    final all = _store.collections.values.map(Collection.fromJson).sortedBy((c) => c.name.toLowerCase()).toList();
+    final placed = all.where((c) => c.tone != null).toList();
+    for (final c in all.where((c) => c.tone == null)) {
+      final toned = c.withTone(Collection.nextTone(placed));
+      placed.add(toned);
+      await saveCollection(toned);
+    }
+  }
+
   bool get isEmpty => _store.scripts.isEmpty;
 
   /// Refinement that was cut short by quitting leaves the quick, rule-based

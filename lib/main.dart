@@ -46,6 +46,7 @@ Future<void> main() async {
   await startup.time('scripts', () async {
     await seedIfEmpty(container.read(scriptRepositoryProvider));
     await container.read(scriptRepositoryProvider).finishInterruptedOrganizing();
+    await container.read(scriptRepositoryProvider).assignMissingTones();
   }());
 
   // First launch: listen for the presenter's own language by default.

@@ -113,6 +113,7 @@ class _Sidebar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
     final location = GoRouterState.of(context).uri.path;
     final scripts = ref.watch(scriptsProvider).value ?? const <Script>[];
     final sessions = ref.watch(sessionsProvider).value ?? const [];
@@ -226,6 +227,7 @@ class _Sidebar extends ConsumerWidget {
                 NavItem(
                   label: c.name,
                   icon: SottoIcons.folder,
+                  iconColor: p.collectionColor(c.tone),
                   trailing: '${active.where((s) => s.collectionId == c.id).length}',
                   selected: location == '/collections/${c.id}',
                   collapsed: collapsed,
@@ -296,7 +298,12 @@ class _NewCollectionState extends ConsumerState<_NewCollection> {
           onSubmitted: (name) {
             final n = name.trim();
             if (n.isNotEmpty) {
-              unawaited(ref.read(scriptRepositoryProvider).saveCollection(Collection(id: newId(), name: n)));
+              final existing = ref.read(collectionsProvider).value ?? const <Collection>[];
+              unawaited(
+                ref
+                    .read(scriptRepositoryProvider)
+                    .saveCollection(Collection(id: newId(), name: n, tone: Collection.nextTone(existing))),
+              );
             }
             setState(() => _editing = false);
           },

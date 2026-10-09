@@ -17,6 +17,7 @@ class NavItem extends StatelessWidget {
     this.trailing,
     this.collapsed = false,
     this.muted = false,
+    this.iconColor,
   });
 
   final String label;
@@ -27,6 +28,9 @@ class NavItem extends StatelessWidget {
   final bool collapsed;
   final bool muted;
 
+  /// Fixed icon color (a collection's own), kept even when selected.
+  final Color? iconColor;
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -34,7 +38,7 @@ class NavItem extends StatelessWidget {
       onTap: onTap,
       builder: (context, s) {
         final ink = selected ? p.inkPrimary : (s.hovered ? p.inkPrimary : (muted ? p.inkTertiary : p.inkSecondary));
-        final iconInk = selected ? p.primaryText : ink;
+        final iconInk = iconColor ?? (selected ? p.primaryText : ink);
         final row = AnimatedContainer(
           duration: Motion.quick,
           height: 32,

@@ -64,6 +64,7 @@ class SottoPalette {
     required this.confirmed,
     required this.hoverWash,
     required this.pressWash,
+    required this.collectionTones,
   });
 
   final Brightness brightness;
@@ -97,6 +98,13 @@ class SottoPalette {
   /// Ghost-button washes (rgba(255,244,230,.045 / .08) on dark).
   final Color hoverWash;
   final Color pressWash;
+
+  /// collection/* — tungsten, coral, sage, sky, iris, rose. Equal lightness
+  /// and muted chroma, so no collection shouts over the others.
+  final List<Color> collectionTones;
+
+  /// A collection's color; null (no collection) reads as quiet ink.
+  Color collectionColor(int? tone) => tone == null ? inkTertiary : collectionTones[tone % collectionTones.length];
 
   bool get isDark => brightness == Brightness.dark;
 
@@ -141,6 +149,14 @@ class SottoPalette {
     confirmed: Primitives.go300,
     hoverWash: Color(0x0BFFF4E6),
     pressWash: Color(0x14FFF4E6),
+    collectionTones: [
+      Color(0xFFF4B55C),
+      Color(0xFFF08B6E),
+      Color(0xFF8CC79B),
+      Color(0xFF7FB2E6),
+      Color(0xFFAE9BF0),
+      Color(0xFFE891B7),
+    ],
   );
 
   static const houseLights = SottoPalette(
@@ -165,6 +181,14 @@ class SottoPalette {
     confirmed: Primitives.goLight,
     hoverWash: Color(0x0A1C1916),
     pressWash: Color(0x141C1916),
+    collectionTones: [
+      Color(0xFFB0690C),
+      Color(0xFFC0512F),
+      Color(0xFF3D8A55),
+      Color(0xFF2F70B5),
+      Color(0xFF7053C2),
+      Color(0xFFB04E7F),
+    ],
   );
 }
 

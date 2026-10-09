@@ -332,6 +332,7 @@ class SectionBar extends StatelessWidget {
     this.labels,
     this.highlight,
     this.progressColor,
+    this.trackColor,
     this.filled = 0,
     this.height = 3,
     this.gap = 3,
@@ -341,6 +342,9 @@ class SectionBar extends StatelessWidget {
   final List<String>? labels;
   final int? highlight;
   final Color? progressColor;
+
+  /// Unplayed segments; defaults to the tungsten track.
+  final Color? trackColor;
 
   /// Segments before this index draw as done.
   final int filled;
@@ -371,7 +375,7 @@ class SectionBar extends StatelessWidget {
                           ? (progressColor ?? p.cueFill)
                           : i < filled
                           ? p.inkTertiary
-                          : p.primaryTrack,
+                          : (trackColor ?? p.primaryTrack),
                     ),
                   ),
                   if (labels != null) ...[
@@ -516,6 +520,7 @@ class SurfaceCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(16),
     this.color,
     this.hovered = false,
+    this.accent,
   });
 
   final Widget child;
@@ -523,21 +528,27 @@ class SurfaceCard extends StatelessWidget {
   final Color? color;
   final bool hovered;
 
+  /// A collection's color: a fading line along the top edge, a faint tint,
+  /// and the hover glow. Defaults to tungsten for the glow only.
+  final Color? accent;
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final glow = accent ?? p.primary;
     final base = color ?? (hovered ? p.raised : p.panel);
     // Top edge a step lighter than the bottom: the light comes from above.
-    final top = color ?? (p.isDark ? (hovered ? p.float : p.raised) : p.raised);
-    return AnimatedContainer(
+    var top = color ?? (p.isDark ? (hovered ? p.float : p.raised) : p.raised);
+    if (accent != null && color == null) top = Color.alphaBlend(accent!.withValues(alpha: p.isDark ? 0.07 : 0.06), top);
+    final card = AnimatedContainer(
       duration: Motion.quick,
       padding: padding,
       decoration: BoxDecoration(
         gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [top, base]),
         borderRadius: Radii.rL,
-        border: Border.all(color: hovered ? p.primary.withValues(alpha: 0.38) : p.hairline),
+        border: Border.all(color: hovered ? glow.withValues(alpha: 0.42) : p.hairline),
         boxShadow: [
-          if (hovered) BoxShadow(color: p.primary.withValues(alpha: p.isDark ? 0.10 : 0.16), blurRadius: 24),
+          if (hovered) BoxShadow(color: glow.withValues(alpha: p.isDark ? 0.12 : 0.18), blurRadius: 24),
           BoxShadow(
             color: Color(p.isDark ? 0x66000000 : 0x141C1916),
             offset: const Offset(0, 6),
@@ -547,6 +558,33 @@ class SurfaceCard extends StatelessWidget {
         ],
       ),
       child: child,
+    );
+    if (accent == null) return card;
+    return Stack(
+      children: [
+        card,
+        Positioned(
+          top: 0,
+          left: 12,
+          right: 12,
+          child: IgnorePointer(
+            child: Container(
+              height: 2,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(1),
+                gradient: LinearGradient(
+                  colors: [
+                    accent!,
+                    accent!.withValues(alpha: hovered ? 0.5 : 0.15),
+                    accent!.withValues(alpha: 0),
+                  ],
+                  stops: const [0, 0.55, 1],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

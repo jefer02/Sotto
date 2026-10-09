@@ -12,15 +12,15 @@ Future<void> seedIfEmpty(ScriptRepository repo) async {
   final spanish = L10n.current.localeName == 'es';
   String t(String en, String es) => spanish ? es : en;
 
-  final board = Collection(id: newId(), name: t('Board & investors', 'Consejo e inversores'));
-  final webinars = Collection(id: newId(), name: 'Webinars');
-  final talks = Collection(id: newId(), name: t('Conference talks', 'Conferencias'));
+  final board = Collection(id: newId(), name: t('Board & investors', 'Consejo e inversores'), tone: 3);
+  final webinars = Collection(id: newId(), name: 'Webinars', tone: 4);
+  final talks = Collection(id: newId(), name: t('Conference talks', 'Conferencias'), tone: 1);
   for (final c in [
     board,
     webinars,
     talks,
-    Collection(id: newId(), name: t('Sales demos', 'Demos de ventas')),
-    Collection(id: newId(), name: t('Training', 'Formación')),
+    Collection(id: newId(), name: t('Sales demos', 'Demos de ventas'), tone: 2),
+    Collection(id: newId(), name: t('Training', 'Formación'), tone: 5),
   ]) {
     await repo.saveCollection(c);
   }
@@ -132,10 +132,7 @@ Future<void> seedIfEmpty(ScriptRepository repo) async {
           'First, finish the regional consolidation, which takes another point out of freight cost.',
           'Primero, terminar la consolidación regional, que recorta otro punto del costo de flete.',
         ),
-        t(
-          'Second, launch Atlas 2.0 to the enterprise segment.',
-          'Segundo, lanzar Atlas 2.0 al segmento corporativo.',
-        ),
+        t('Second, launch Atlas 2.0 to the enterprise segment.', 'Segundo, lanzar Atlas 2.0 al segmento corporativo.'),
         t(
           'Third, hire the two senior sales leaders we discussed in July.',
           'Tercero, contratar a los dos líderes de ventas que hablamos en julio.',

@@ -334,12 +334,34 @@ class Script {
 }
 
 class Collection {
-  const Collection({required this.id, required this.name});
+  const Collection({required this.id, required this.name, this.tone});
+
+  /// How many collection colors the palette offers.
+  static const toneCount = 6;
 
   final String id;
   final String name;
 
-  Map<String, Object?> toJson() => {'id': id, 'name': name};
+  /// Index into the palette's collection colors; null until assigned.
+  final int? tone;
 
-  factory Collection.fromJson(Map<dynamic, dynamic> j) => Collection(id: j['id'] as String, name: j['name'] as String);
+  Collection withTone(int tone) => Collection(id: id, name: name, tone: tone);
+
+  /// The least-used color among [existing], so neighbors rarely match.
+  static int nextTone(Iterable<Collection> existing) {
+    final used = List.filled(toneCount, 0);
+    for (final c in existing) {
+      if (c.tone != null) used[c.tone! % toneCount]++;
+    }
+    var best = 0;
+    for (var i = 1; i < toneCount; i++) {
+      if (used[i] < used[best]) best = i;
+    }
+    return best;
+  }
+
+  Map<String, Object?> toJson() => {'id': id, 'name': name, 'tone': ?tone};
+
+  factory Collection.fromJson(Map<dynamic, dynamic> j) =>
+      Collection(id: j['id'] as String, name: j['name'] as String, tone: (j['tone'] as num?)?.toInt());
 }
