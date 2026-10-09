@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../l10n/l10n.dart';
 
@@ -154,6 +155,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(40, 32, 40, 40),
               children: [
+                _Greeting(scripts: scripts),
+                const SizedBox(height: 32),
                 if (next != null) ...[
                   Align(alignment: Alignment.centerLeft, child: SectionHeading(context.l10n.upNext)),
                   const SizedBox(height: 12),
@@ -212,6 +215,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// "Good afternoon" over today's date and a one-line read of the library,
+/// its figures lit in tungsten.
+class _Greeting extends ConsumerWidget {
+  const _Greeting({required this.scripts});
+  final List<Script> scripts;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
+    final l = context.l10n;
+    final wpm = ref.watch(settingsProvider).wordsPerMinute;
+    final now = DateTime.now();
+    final active = scripts.where((s) => !s.archived).toList();
+    final ready = active
+        .where((s) => (s.status == ScriptStatus.structured || s.status == ScriptStatus.ready) && s.wordCount > 0)
+        .length;
+    final minutes = (active.fold<int>(0, (a, s) => a + s.estimatedSeconds(wpm)) / 60).round();
+    final greeting = now.hour < 12
+        ? l.greetingMorning
+        : now.hour < 19
+        ? l.greetingAfternoon
+        : l.greetingEvening;
+
+    final figure = TypeScale.bodyStrong.copyWith(color: p.primaryText);
+    final words = TypeScale.body.copyWith(color: p.inkSecondary);
+    final dot = TextSpan(
+      text: '   ·   ',
+      style: words.copyWith(color: p.inkTertiary),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          toBeginningOfSentenceCase(DateFormat.MMMMEEEEd(l.localeName).format(now)),
+          style: TypeScale.mono.copyWith(color: p.inkTertiary),
+        ),
+        const SizedBox(height: 8),
+        Text(greeting, style: TypeScale.display.copyWith(color: p.inkPrimary)),
+        const SizedBox(height: 10),
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: '${active.length} ', style: figure),
+              TextSpan(text: l.homeStatScripts(active.length), style: words),
+              dot,
+              TextSpan(text: '$ready ', style: figure),
+              TextSpan(text: l.homeStatReady(ready), style: words),
+              dot,
+              TextSpan(text: '$minutes ', style: figure),
+              TextSpan(text: l.homeStatMinutes, style: words),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -449,12 +511,31 @@ class _ScriptListScreenState extends ConsumerState<ScriptListScreen> {
                     padding: const EdgeInsets.fromLTRB(40, 28, 40, 40),
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(
-                            context.l10n.scriptsCount(scripts.length),
-                            style: TypeScale.body.copyWith(color: context.palette.inkTertiary),
+                          if (collection != null) ...[
+                            _ToneDot(color: context.palette.collectionColor(collection.tone)),
+                            const SizedBox(width: 12),
+                          ],
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TypeScale.display.copyWith(fontSize: 26, color: context.palette.inkPrimary),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Text(
+                                  context.l10n.scriptsCount(scripts.length),
+                                  style: TypeScale.mono.copyWith(color: context.palette.inkTertiary),
+                                ),
+                              ],
+                            ),
                           ),
-                          const Spacer(),
                           SottoIconButton(
                             icon: SottoIcons.layers,
                             tooltip: context.l10n.gridView,
@@ -469,7 +550,7 @@ class _ScriptListScreenState extends ConsumerState<ScriptListScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 22),
                       ScriptCollectionView(scripts: scripts, grid: _grid),
                     ],
                   ),
@@ -478,6 +559,23 @@ class _ScriptListScreenState extends ConsumerState<ScriptListScreen> {
       ),
     );
   }
+}
+
+/// A collection's color as a small lit lamp beside its title.
+class _ToneDot extends StatelessWidget {
+  const _ToneDot({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 10,
+    height: 10,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: color,
+      boxShadow: [BoxShadow(color: color.withValues(alpha: 0.55), blurRadius: 10)],
+    ),
+  );
 }
 
 class ScriptCollectionView extends StatelessWidget {

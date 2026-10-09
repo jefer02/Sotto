@@ -295,6 +295,26 @@
   "newScript": "New script",
   "upNext": "Up next",
   "recentScripts": "Recent scripts",
+  "greetingMorning": "Good morning",
+  "greetingAfternoon": "Good afternoon",
+  "greetingEvening": "Good evening",
+  "homeStatScripts": "{count, plural, =1{script} other{scripts}}",
+  "@homeStatScripts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeStatReady": "{count, plural, =1{ready to go live} other{ready to go live}}",
+  "@homeStatReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeStatMinutes": "min of material",
   "filterAll": "All",
   "filterDrafts": "Drafts",
   "filterReady": "Ready",

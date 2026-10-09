@@ -457,6 +457,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recentScripts => 'Recent scripts';
 
   @override
+  String get greetingMorning => 'Good morning';
+
+  @override
+  String get greetingAfternoon => 'Good afternoon';
+
+  @override
+  String get greetingEvening => 'Good evening';
+
+  @override
+  String homeStatScripts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'scripts', one: 'script');
+    return '$_temp0';
+  }
+
+  @override
+  String homeStatReady(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ready to go live',
+      one: 'ready to go live',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeStatMinutes => 'min of material';
+
+  @override
   String get filterAll => 'All';
 
   @override

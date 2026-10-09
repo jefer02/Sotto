@@ -884,6 +884,42 @@ abstract class AppLocalizations {
   /// **'Recent scripts'**
   String get recentScripts;
 
+  /// No description provided for @greetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning'**
+  String get greetingMorning;
+
+  /// No description provided for @greetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon'**
+  String get greetingAfternoon;
+
+  /// No description provided for @greetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening'**
+  String get greetingEvening;
+
+  /// No description provided for @homeStatScripts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{script} other{scripts}}'**
+  String homeStatScripts(int count);
+
+  /// No description provided for @homeStatReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{ready to go live} other{ready to go live}}'**
+  String homeStatReady(int count);
+
+  /// No description provided for @homeStatMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'min of material'**
+  String get homeStatMinutes;
+
   /// No description provided for @filterAll.
   ///
   /// In en, this message translates to:
