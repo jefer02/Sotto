@@ -95,7 +95,7 @@ class _LibraryShellState extends ConsumerState<LibraryShell> {
                 ),
               ),
             ),
-            Expanded(child: widget.child),
+            Expanded(child: StageGlow(child: widget.child)),
           ],
         ),
       ),

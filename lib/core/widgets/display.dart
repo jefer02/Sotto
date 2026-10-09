@@ -203,6 +203,35 @@ class SectionLabel extends StatelessWidget {
   }
 }
 
+/// Section heading led by a small tungsten dot — a lamp on the marker.
+class SectionHeading extends StatelessWidget {
+  const SectionHeading(this.title, {super.key, this.color});
+
+  final String title;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: p.primary,
+            boxShadow: [BoxShadow(color: p.primary.withValues(alpha: 0.5), blurRadius: 6)],
+          ),
+        ),
+        const SizedBox(width: 9),
+        Text(title, style: TypeScale.bodyStrong.copyWith(color: color ?? p.inkPrimary)),
+      ],
+    );
+  }
+}
+
 /// A grouped card of rows separated by hairlines (Settings).
 class SettingsGroup extends StatelessWidget {
   const SettingsGroup({super.key, required this.children, this.title, this.footer});
@@ -220,11 +249,15 @@ class SettingsGroup extends StatelessWidget {
         if (title != null)
           Padding(
             padding: const EdgeInsets.only(left: 2, bottom: 10),
-            child: Text(title!, style: TypeScale.bodyStrong.copyWith(color: p.inkSecondary)),
+            child: SectionHeading(title!, color: p.inkSecondary),
           ),
         Container(
           decoration: BoxDecoration(
-            color: p.panel,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [p.raised, p.panel],
+            ),
             borderRadius: Radii.rL,
             border: Border.all(color: p.hairline),
           ),
@@ -338,7 +371,7 @@ class SectionBar extends StatelessWidget {
                           ? (progressColor ?? p.cueFill)
                           : i < filled
                           ? p.inkTertiary
-                          : p.control,
+                          : p.primaryTrack,
                     ),
                   ),
                   if (labels != null) ...[
@@ -448,7 +481,34 @@ class ScriptText extends StatelessWidget {
 
 // ───────────────────────────── Surfaces ─────────────────────────────
 
-/// e1 · card — flat, hairline-bordered, radius 12.
+/// The ghost light on a dark stage: a warm pool of light falling on the
+/// content from above, so the ground isn't one flat sheet.
+class StageGlow extends StatelessWidget {
+  const StageGlow({super.key, required this.child, this.alignment = const Alignment(-0.35, -1.25)});
+
+  final Widget child;
+  final Alignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: p.ground,
+        gradient: RadialGradient(
+          center: alignment,
+          radius: 1.15,
+          colors: [p.stageGlow, p.stageGlow.withValues(alpha: 0)],
+          stops: const [0, 1],
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// e1 · card — hairline-bordered, radius 12, lit from above; on hover the
+/// edge catches the tungsten light.
 class SurfaceCard extends StatelessWidget {
   const SurfaceCard({
     super.key,
@@ -466,13 +526,25 @@ class SurfaceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final base = color ?? (hovered ? p.raised : p.panel);
+    // Top edge a step lighter than the bottom: the light comes from above.
+    final top = color ?? (p.isDark ? (hovered ? p.float : p.raised) : p.raised);
     return AnimatedContainer(
       duration: Motion.quick,
       padding: padding,
       decoration: BoxDecoration(
-        color: color ?? (hovered ? p.raised : p.panel),
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [top, base]),
         borderRadius: Radii.rL,
-        border: Border.all(color: hovered ? p.control : p.hairline),
+        border: Border.all(color: hovered ? p.primary.withValues(alpha: 0.38) : p.hairline),
+        boxShadow: [
+          if (hovered) BoxShadow(color: p.primary.withValues(alpha: p.isDark ? 0.10 : 0.16), blurRadius: 24),
+          BoxShadow(
+            color: Color(p.isDark ? 0x66000000 : 0x141C1916),
+            offset: const Offset(0, 6),
+            blurRadius: 16,
+            spreadRadius: -8,
+          ),
+        ],
       ),
       child: child,
     );
@@ -512,7 +584,8 @@ String relativeTime(DateTime t, {DateTime? now, bool edited = false}) {
 }
 
 /// "Sep 23 · 14:04" in the active language.
-String shortDateTime(DateTime t) => '${DateFormat.MMMd(L10n.current.localeName).format(t)} · ${DateFormat.Hm().format(t)}';
+String shortDateTime(DateTime t) =>
+    '${DateFormat.MMMd(L10n.current.localeName).format(t)} · ${DateFormat.Hm().format(t)}';
 
 /// "3:00 PM" / "15:00" as the active language writes it.
 String clockTime(DateTime t) => DateFormat.jm(L10n.current.localeName).format(t);

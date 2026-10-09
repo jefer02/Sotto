@@ -11,6 +11,7 @@ import '../../core/design/typography.dart';
 import '../../core/platform/platform_keys.dart';
 import '../../core/widgets/buttons.dart';
 import '../../core/widgets/controls.dart';
+import '../../core/widgets/display.dart';
 import '../../core/widgets/nav.dart';
 import '../../core/widgets/window_chrome.dart';
 import '../library/library_shell.dart' show TitleBarDragSpacer;
@@ -76,103 +77,107 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
     return Scaffold(
-      body: Row(
-        children: [
-          Container(
-            width: Layout.sidebar,
-            decoration: BoxDecoration(
-              color: p.panel,
-              border: Border(right: BorderSide(color: p.hairline)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  height: Layout.titleBar,
-                  child: TitleBarDragSpacer(width: trafficLightInset),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 0, 12, 0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: BackLink(label: context.l10n.backToLibrary, onTap: () => context.go('/')),
+      // The sidebar is opaque; the light falls on the page beside it.
+      body: StageGlow(
+        alignment: const Alignment(0.1, -1.25),
+        child: Row(
+          children: [
+            Container(
+              width: Layout.sidebar,
+              decoration: BoxDecoration(
+                color: p.panel,
+                border: Border(right: BorderSide(color: p.hairline)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    height: Layout.titleBar,
+                    child: TitleBarDragSpacer(width: trafficLightInset),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 18, 12, 4),
-                  child: Text(context.l10n.settings, style: TypeScale.title2.copyWith(color: p.inkPrimary)),
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    children: [
-                      NavHeading(context.l10n.groupLive),
-                      for (final pg in SettingsPage.values.where((x) => x.isLive)) ...[
-                        NavItem(
-                          label: pg.title,
-                          icon: pg.icon,
-                          selected: pg == page,
-                          onTap: () => context.go('/settings/${pg.name}'),
-                        ),
-                        const SizedBox(height: 2),
-                      ],
-                      NavHeading(context.l10n.groupApp),
-                      for (final pg in SettingsPage.values.where((x) => !x.isLive)) ...[
-                        NavItem(
-                          label: pg.title,
-                          icon: pg.icon,
-                          selected: pg == page,
-                          onTap: () => context.go('/settings/${pg.name}'),
-                        ),
-                        const SizedBox(height: 2),
-                      ],
-                    ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 12, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: BackLink(label: context.l10n.backToLibrary, onTap: () => context.go('/')),
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 8, 12, 20),
-                  child: Text(context.l10n.versionBuild, style: TypeScale.monoSmall.copyWith(color: p.inkTertiary)),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                TitleBarArea(
-                  showCaptionButtons: true,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 48, right: 12),
-                    child: Row(
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 18, 12, 4),
+                    child: Text(context.l10n.settings, style: TypeScale.title2.copyWith(color: p.inkPrimary)),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       children: [
-                        Text(context.l10n.settings, style: TypeScale.body.copyWith(color: p.inkTertiary)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: Text('›', style: TypeScale.body.copyWith(color: p.inkTertiary)),
-                        ),
-                        Text(page.title, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
-                        const Spacer(),
-                        _SettingsSearch(current: page),
+                        NavHeading(context.l10n.groupLive),
+                        for (final pg in SettingsPage.values.where((x) => x.isLive)) ...[
+                          NavItem(
+                            label: pg.title,
+                            icon: pg.icon,
+                            selected: pg == page,
+                            onTap: () => context.go('/settings/${pg.name}'),
+                          ),
+                          const SizedBox(height: 2),
+                        ],
+                        NavHeading(context.l10n.groupApp),
+                        for (final pg in SettingsPage.values.where((x) => !x.isLive)) ...[
+                          NavItem(
+                            label: pg.title,
+                            icon: pg.icon,
+                            selected: pg == page,
+                            onTap: () => context.go('/settings/${pg.name}'),
+                          ),
+                          const SizedBox(height: 2),
+                        ],
                       ],
                     ),
                   ),
-                ),
-                Expanded(
-                  child: switch (page) {
-                    SettingsPage.shortcuts => const ShortcutsPage(),
-                    SettingsPage.appearance => const AppearancePage(),
-                    SettingsPage.voice => const VoicePage(),
-                    SettingsPage.answers => const AnswersPage(),
-                    SettingsPage.forms => const FormsSettingsPage(),
-                    SettingsPage.general => const GeneralPage(),
-                    SettingsPage.integrations => const IntegrationsPage(),
-                    SettingsPage.privacy => const PrivacyPage(),
-                  },
-                ),
-              ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 8, 12, 20),
+                    child: Text(context.l10n.versionBuild, style: TypeScale.monoSmall.copyWith(color: p.inkTertiary)),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Column(
+                children: [
+                  TitleBarArea(
+                    showCaptionButtons: true,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 48, right: 12),
+                      child: Row(
+                        children: [
+                          Text(context.l10n.settings, style: TypeScale.body.copyWith(color: p.inkTertiary)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Text('›', style: TypeScale.body.copyWith(color: p.inkTertiary)),
+                          ),
+                          Text(page.title, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
+                          const Spacer(),
+                          _SettingsSearch(current: page),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: switch (page) {
+                      SettingsPage.shortcuts => const ShortcutsPage(),
+                      SettingsPage.appearance => const AppearancePage(),
+                      SettingsPage.voice => const VoicePage(),
+                      SettingsPage.answers => const AnswersPage(),
+                      SettingsPage.forms => const FormsSettingsPage(),
+                      SettingsPage.general => const GeneralPage(),
+                      SettingsPage.integrations => const IntegrationsPage(),
+                      SettingsPage.privacy => const PrivacyPage(),
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

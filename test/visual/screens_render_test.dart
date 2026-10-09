@@ -1,6 +1,6 @@
 // Renders every main-window screen to build/screens/*.png for visual review.
 // Opt-in, because it is slow and writes files:
-//   SOTTO_RENDER=1 flutter test test/visual
+//   SOTTO_RENDER=1 flutter test test/visual   (SOTTO_RENDER_THEME=light for House lights)
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -33,6 +33,7 @@ Future<void> _loadFonts() async {
 
 final _render = Platform.environment['SOTTO_RENDER'] != null;
 final _lang = Platform.environment['SOTTO_RENDER_LANG'] ?? 'es';
+final _light = Platform.environment['SOTTO_RENDER_THEME'] == 'light';
 
 void main() {
   late Directory tmp;
@@ -74,7 +75,13 @@ void main() {
       );
       container
           .read(settingsProvider.notifier)
-          .update((s) => s.copyWith(uiLanguage: _lang == 'es' ? AppLanguage.es : AppLanguage.en, onboarded: true));
+          .update(
+            (s) => s.copyWith(
+              uiLanguage: _lang == 'es' ? AppLanguage.es : AppLanguage.en,
+              onboarded: true,
+              appTheme: _light ? AppThemeMode.light : AppThemeMode.dark,
+            ),
+          );
       L10n.current = lookupAppLocalizations(Locale(_lang));
       await seedIfEmpty(container.read(scriptRepositoryProvider));
     });
@@ -102,7 +109,7 @@ void main() {
         final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
         final image = await boundary.toImage();
         final png = await image.toByteData(format: ui.ImageByteFormat.png);
-        File('build/screens/$_lang-$name.png')
+        File('build/screens/$_lang${_light ? '-light' : ''}-$name.png')
           ..createSync(recursive: true)
           ..writeAsBytesSync(png!.buffer.asUint8List());
       });

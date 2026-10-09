@@ -129,7 +129,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.palette;
     final scripts = ref.watch(scriptsProvider).value ?? const <Script>[];
     final next = upNext(scripts);
     // The global ⌃⌥L starts "Up next" from the library.
@@ -156,14 +155,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               padding: const EdgeInsets.fromLTRB(40, 32, 40, 40),
               children: [
                 if (next != null) ...[
-                  Text(context.l10n.upNext, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
+                  Align(alignment: Alignment.centerLeft, child: SectionHeading(context.l10n.upNext)),
                   const SizedBox(height: 12),
                   _UpNextCard(script: next),
                   const SizedBox(height: 36),
                 ],
                 Row(
                   children: [
-                    Text(context.l10n.recentScripts, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
+                    SectionHeading(context.l10n.recentScripts),
                     const Spacer(),
                     SegmentedControl<_StatusFilter>(
                       height: 26,
@@ -240,12 +239,30 @@ class _UpNextCard extends ConsumerWidget {
 
     final minutesAway = at?.difference(now).inMinutes;
 
+    // The featured script stands in its own spotlight.
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: p.panel,
+        gradient: RadialGradient(
+          center: const Alignment(-1, -1.4),
+          radius: 1.6,
+          colors: [
+            Color.alphaBlend(p.primary.withValues(alpha: p.isDark ? 0.13 : 0.16), p.raised),
+            p.panel,
+          ],
+        ),
         borderRadius: Radii.rL,
-        border: Border.all(color: p.hairline),
+        border: Border.all(color: p.primary.withValues(alpha: p.isDark ? 0.22 : 0.32)),
+        boxShadow: [
+          BoxShadow(color: p.primary.withValues(alpha: p.isDark ? 0.07 : 0.10), blurRadius: 40, spreadRadius: -6),
+          BoxShadow(
+            color: Color(p.isDark ? 0x80000000 : 0x1A1C1916),
+            offset: const Offset(0, 12),
+            blurRadius: 28,
+            spreadRadius: -12,
+          ),
+        ],
       ),
       child: IntrinsicHeight(
         child: Row(
@@ -257,7 +274,7 @@ class _UpNextCard extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Text(when(), style: TypeScale.mono.copyWith(color: p.inkSecondary)),
+                      Text(when(), style: TypeScale.mono.copyWith(color: p.primaryText)),
                       if (minutesAway != null && minutesAway > 0 && minutesAway < 24 * 60) ...[
                         const SizedBox(width: 10),
                         StatusChip(

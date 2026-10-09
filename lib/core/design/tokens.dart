@@ -112,6 +112,12 @@ class SottoPalette {
   /// Tungsten wash behind selected rows — color without shouting.
   Color get primaryWash => primary.withValues(alpha: isDark ? 0.12 : 0.18);
 
+  /// The ghost light: a warm pool falling on the stage from above.
+  Color get stageGlow => primary.withValues(alpha: isDark ? 0.10 : 0.14);
+
+  /// Unplayed section segments — a tungsten track rather than grey.
+  Color get primaryTrack => primary.withValues(alpha: isDark ? 0.22 : 0.30);
+
   static const stage = SottoPalette(
     brightness: Brightness.dark,
     ground: Color(0xFF0D0C0A),
@@ -121,8 +127,9 @@ class SottoPalette {
     hairline: Color(0xFF22201E),
     control: Color(0xFF2F2C29),
     emphasis: Color(0xFF423F3C),
-    inkPrimary: Color(0xFFF2EFE9),
-    inkSecondary: Color(0xFFBAB5AE),
+    // Warm cream rather than paper white, so text sits in the light.
+    inkPrimary: Color(0xFFEFE8DC),
+    inkSecondary: Color(0xFFADA69B),
     inkTertiary: Color(0xFF928D86),
     inkDisabled: Color(0xFF5B5753),
     cueFill: Primitives.tungsten300,

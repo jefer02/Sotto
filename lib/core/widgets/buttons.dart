@@ -92,8 +92,17 @@ class SottoButton extends StatelessWidget {
                 ? p.cueHover
                 : p.cueFill,
             Colors.transparent,
-            p.onCue,
-            const [BoxShadow(color: Color(0x40000000), offset: Offset(0, 1), blurRadius: 2)],
+            p.onPrimary,
+            [
+              const BoxShadow(color: Color(0x40000000), offset: Offset(0, 1), blurRadius: 2),
+              // The lamp throws a little light around itself.
+              BoxShadow(
+                color: p.primary.withValues(alpha: s.hovered ? 0.34 : 0.20),
+                offset: const Offset(0, 4),
+                blurRadius: s.hovered ? 18 : 14,
+                spreadRadius: -4,
+              ),
+            ],
           ),
           ButtonVariant.secondary => (
             s.pressed
@@ -161,6 +170,14 @@ class SottoButton extends StatelessWidget {
           padding: EdgeInsets.only(left: icon != null ? 10 : 12, right: hasKey ? 6 : 12),
           decoration: BoxDecoration(
             color: bg,
+            // Primary: brighter at the top, deeper amber at the base.
+            gradient: variant == ButtonVariant.primary
+                ? LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color.lerp(bg, const Color(0xFFFFF1D6), 0.18)!, Color.lerp(bg, p.primaryPressed, 0.6)!],
+                  )
+                : null,
             borderRadius: Radii.rControl,
             border: Border.all(color: border),
             boxShadow: shadow,
