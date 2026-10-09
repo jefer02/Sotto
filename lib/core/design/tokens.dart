@@ -23,12 +23,16 @@ abstract final class Primitives {
   static const graphite950 = Color(0xFF0D0C0A);
 
   // Tungsten · h 72° — "marks where you are"
-  static const tungsten300 = Color(0xFFF4B55C);
-  static const tungsten400 = Color(0xFFF3AA40);
-  static const tungsten700 = Color(0xFF975407);
-  static const tungsten950 = Color(0xFF251807);
-  static const tungstenHover = Color(0xFFF7C173);
-  static const tungstenPressed = Color(0xFFE79E45);
+  static const tungsten300 = Color(0xFFFFAD3B);
+  static const tungsten400 = Color(0xFFFF9E1F);
+  static const tungsten700 = Color(0xFF9A4A00);
+  static const tungsten950 = Color(0xFF2A1503);
+  static const tungstenHover = Color(0xFFFFBE5C);
+  static const tungstenPressed = Color(0xFFF59316);
+
+  // Ember · h 45° — the hot core of the lamp; gives tungsten depth.
+  static const ember400 = Color(0xFFFF7A2E);
+  static const emberLight = Color(0xFFF26A1B);
 
   // Tally · h 29° — "the mic is capturing the room"
   static const tally400 = Color(0xFFF96050);
@@ -65,6 +69,7 @@ class SottoPalette {
     required this.hoverWash,
     required this.pressWash,
     required this.collectionTones,
+    required this.ember,
   });
 
   final Brightness brightness;
@@ -99,9 +104,13 @@ class SottoPalette {
   final Color hoverWash;
   final Color pressWash;
 
-  /// collection/* — tungsten, coral, sage, sky, iris, rose. Equal lightness
-  /// and muted chroma, so no collection shouts over the others.
+  /// collection/* — tungsten, coral, green, sky, iris, rose. Equal lightness
+  /// and full chroma, so each collection is easy to tell apart.
   final List<Color> collectionTones;
+
+  /// The lamp's hot core: the deep end of tungsten gradients and the second,
+  /// lower glow on the stage.
+  final Color ember;
 
   /// A collection's color; null (no collection) reads as quiet ink.
   Color collectionColor(int? tone) => tone == null ? inkTertiary : collectionTones[tone % collectionTones.length];
@@ -118,13 +127,16 @@ class SottoPalette {
   Color get primaryPressed => cuePressed;
 
   /// Tungsten wash behind selected rows — color without shouting.
-  Color get primaryWash => primary.withValues(alpha: isDark ? 0.12 : 0.18);
+  Color get primaryWash => primary.withValues(alpha: isDark ? 0.16 : 0.20);
 
   /// The ghost light: a warm pool falling on the stage from above.
-  Color get stageGlow => primary.withValues(alpha: isDark ? 0.14 : 0.18);
+  Color get stageGlow => primary.withValues(alpha: isDark ? 0.22 : 0.20);
+
+  /// Ember spill low on the opposite side, so the ground has two lights.
+  Color get emberGlow => ember.withValues(alpha: isDark ? 0.10 : 0.08);
 
   /// Unplayed section segments — a tungsten track rather than grey.
-  Color get primaryTrack => primary.withValues(alpha: isDark ? 0.22 : 0.30);
+  Color get primaryTrack => primary.withValues(alpha: isDark ? 0.28 : 0.32);
 
   /// Card faces: lit top, settled bottom, and an edge that holds its shape
   /// against the ground.
@@ -134,13 +146,13 @@ class SottoPalette {
 
   static const stage = SottoPalette(
     brightness: Brightness.dark,
-    ground: Color(0xFF0D0C0A),
-    panel: Color(0xFF131210),
-    raised: Color(0xFF1A1816),
-    float: Color(0xFF24221F),
-    hairline: Color(0xFF22201E),
-    control: Color(0xFF2F2C29),
-    emphasis: Color(0xFF423F3C),
+    ground: Color(0xFF0E0B08),
+    panel: Color(0xFF15110D),
+    raised: Color(0xFF1E1914),
+    float: Color(0xFF29221B),
+    hairline: Color(0xFF2A231C),
+    control: Color(0xFF3A3027),
+    emphasis: Color(0xFF52463A),
     // Warm cream rather than paper white, so text sits in the light.
     inkPrimary: Color(0xFFEFE8DC),
     inkSecondary: Color(0xFFADA69B),
@@ -156,19 +168,20 @@ class SottoPalette {
     hoverWash: Color(0x0BFFF4E6),
     pressWash: Color(0x14FFF4E6),
     collectionTones: [
-      Color(0xFFF4B55C),
-      Color(0xFFF08B6E),
-      Color(0xFF8CC79B),
-      Color(0xFF7FB2E6),
-      Color(0xFFAE9BF0),
-      Color(0xFFE891B7),
+      Color(0xFFFFAD3B),
+      Color(0xFFFF7F5C),
+      Color(0xFF5FD88A),
+      Color(0xFF5AAEFF),
+      Color(0xFFA58BFF),
+      Color(0xFFFF7EB6),
     ],
+    ember: Primitives.ember400,
   );
 
   static const houseLights = SottoPalette(
     brightness: Brightness.light,
-    ground: Color(0xFFF9F7F5),
-    panel: Color(0xFFF2F0ED),
+    ground: Color(0xFFFBF7F2),
+    panel: Color(0xFFF4EEE6),
     raised: Color(0xFFFFFFFF),
     float: Color(0xFFECE9E5),
     hairline: Color(0xFFE8E6E2),
@@ -181,20 +194,21 @@ class SottoPalette {
     cueFill: Primitives.tungsten400,
     cueText: Primitives.tungsten700,
     onCue: Primitives.tungsten950,
-    cueHover: Color(0xFFF5B658),
-    cuePressed: Color(0xFFE39A33),
+    cueHover: Color(0xFFFFB14D),
+    cuePressed: Color(0xFFF08A0C),
     liveCapture: Primitives.tallyLight,
     confirmed: Primitives.goLight,
     hoverWash: Color(0x0A1C1916),
     pressWash: Color(0x141C1916),
     collectionTones: [
-      Color(0xFFB0690C),
-      Color(0xFFC0512F),
-      Color(0xFF3D8A55),
-      Color(0xFF2F70B5),
-      Color(0xFF7053C2),
-      Color(0xFFB04E7F),
+      Color(0xFFC06A00),
+      Color(0xFFD9481F),
+      Color(0xFF1F9150),
+      Color(0xFF1F6FD1),
+      Color(0xFF6B43D6),
+      Color(0xFFC93D82),
     ],
+    ember: Primitives.emberLight,
   );
 }
 

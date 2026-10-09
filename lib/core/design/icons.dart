@@ -174,7 +174,7 @@ class CueMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final i = ink ?? const Color(0xFFF2EFE9);
-    final c = cue ?? const Color(0xFFF4B55C);
+    final c = cue ?? const Color(0xFFFFAD3B);
     String hex(Color x) => '#${(x.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     final dot = hollow
         ? '<circle cx="6" cy="16" r="2.4" fill="none" stroke="${hex(c)}" stroke-width="1.2"/>'

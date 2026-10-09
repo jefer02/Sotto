@@ -310,14 +310,14 @@ class _UpNextCard extends ConsumerWidget {
           center: const Alignment(-1, -1.4),
           radius: 1.6,
           colors: [
-            Color.alphaBlend(p.primary.withValues(alpha: p.isDark ? 0.13 : 0.16), p.raised),
-            p.panel,
+            Color.alphaBlend(p.primary.withValues(alpha: p.isDark ? 0.20 : 0.18), p.raised),
+            Color.alphaBlend(p.ember.withValues(alpha: p.isDark ? 0.04 : 0.03), p.panel),
           ],
         ),
         borderRadius: Radii.rL,
-        border: Border.all(color: p.primary.withValues(alpha: p.isDark ? 0.22 : 0.32)),
+        border: Border.all(color: p.primary.withValues(alpha: p.isDark ? 0.38 : 0.40)),
         boxShadow: [
-          BoxShadow(color: p.primary.withValues(alpha: p.isDark ? 0.07 : 0.10), blurRadius: 40, spreadRadius: -6),
+          BoxShadow(color: p.primary.withValues(alpha: p.isDark ? 0.16 : 0.14), blurRadius: 48, spreadRadius: -6),
           BoxShadow(
             color: Color(p.isDark ? 0x80000000 : 0x1A1C1916),
             offset: const Offset(0, 12),

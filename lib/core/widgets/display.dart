@@ -492,10 +492,10 @@ BoxDecoration sidebarDecoration(SottoPalette p) => BoxDecoration(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
-      Color.alphaBlend(p.primary.withValues(alpha: p.isDark ? 0.07 : 0.09), p.panel),
+      Color.alphaBlend(p.primary.withValues(alpha: p.isDark ? 0.11 : 0.10), p.panel),
       p.panel,
     ],
-    stops: const [0, 0.4],
+    stops: const [0, 0.45],
   ),
   border: Border(right: BorderSide(color: p.hairline)),
 );
@@ -521,7 +521,17 @@ class StageGlow extends StatelessWidget {
           stops: const [0, 1],
         ),
       ),
-      child: child,
+      // A second, lower ember spill from the far side gives the ground depth.
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(1.1, 1.2),
+            radius: 1.0,
+            colors: [p.emberGlow, p.emberGlow.withValues(alpha: 0)],
+          ),
+        ),
+        child: child,
+      ),
     );
   }
 }
@@ -555,16 +565,16 @@ class SurfaceCard extends StatelessWidget {
     final base = color ?? Color.lerp(p.cardBottom, p.float, lift)!;
     // Top edge a step lighter than the bottom: the light comes from above.
     var top = color ?? Color.lerp(p.cardTop, p.control, lift)!;
-    if (accent != null && color == null) top = Color.alphaBlend(accent!.withValues(alpha: p.isDark ? 0.07 : 0.06), top);
+    if (accent != null && color == null) top = Color.alphaBlend(accent!.withValues(alpha: p.isDark ? 0.10 : 0.07), top);
     final card = AnimatedContainer(
       duration: Motion.quick,
       padding: padding,
       decoration: BoxDecoration(
         gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [top, base]),
         borderRadius: Radii.rL,
-        border: Border.all(color: hovered ? glow.withValues(alpha: 0.42) : p.cardEdge),
+        border: Border.all(color: hovered ? glow.withValues(alpha: 0.6) : p.cardEdge),
         boxShadow: [
-          if (hovered) BoxShadow(color: glow.withValues(alpha: p.isDark ? 0.12 : 0.18), blurRadius: 24),
+          if (hovered) BoxShadow(color: glow.withValues(alpha: p.isDark ? 0.22 : 0.22), blurRadius: 28),
           BoxShadow(
             color: Color(p.isDark ? 0x66000000 : 0x141C1916),
             offset: const Offset(0, 6),
@@ -591,7 +601,7 @@ class SurfaceCard extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     accent!,
-                    accent!.withValues(alpha: hovered ? 0.5 : 0.15),
+                    accent!.withValues(alpha: hovered ? 0.6 : 0.3),
                     accent!.withValues(alpha: 0),
                   ],
                   stops: const [0, 0.55, 1],
