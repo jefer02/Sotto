@@ -34,20 +34,21 @@ class NavItem extends StatelessWidget {
       onTap: onTap,
       builder: (context, s) {
         final ink = selected ? p.inkPrimary : (s.hovered ? p.inkPrimary : (muted ? p.inkTertiary : p.inkSecondary));
-        return AnimatedContainer(
+        final iconInk = selected ? p.primaryText : ink;
+        final row = AnimatedContainer(
           duration: Motion.quick,
           height: 32,
           padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 10),
           alignment: collapsed ? Alignment.center : null,
           decoration: BoxDecoration(
-            color: selected ? p.float : (s.hovered ? p.hoverWash : Colors.transparent),
+            color: selected ? p.primaryWash : (s.hovered ? p.hoverWash : Colors.transparent),
             borderRadius: Radii.rControl,
           ),
           child: collapsed
-              ? SottoIcon(icon ?? SottoIcons.doc, size: 16, color: ink)
+              ? SottoIcon(icon ?? SottoIcons.doc, size: 16, color: iconInk)
               : Row(
                   children: [
-                    if (icon != null) ...[SottoIcon(icon!, size: 16, color: ink), const SizedBox(width: 10)],
+                    if (icon != null) ...[SottoIcon(icon!, size: 16, color: iconInk), const SizedBox(width: 10)],
                     Expanded(
                       child: Text(
                         label,
@@ -59,6 +60,22 @@ class NavItem extends StatelessWidget {
                     if (trailing != null) Text(trailing!, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
                   ],
                 ),
+        );
+        if (!selected || collapsed) return row;
+        // A tungsten tick marks where you are, like the cue column on stage.
+        return Stack(
+          children: [
+            row,
+            Positioned(
+              left: 0,
+              top: 8,
+              bottom: 8,
+              child: Container(
+                width: 3,
+                decoration: BoxDecoration(color: p.primary, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+          ],
         );
       },
     );

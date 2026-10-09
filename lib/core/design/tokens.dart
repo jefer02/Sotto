@@ -109,6 +109,9 @@ class SottoPalette {
   Color get primaryHover => cueHover;
   Color get primaryPressed => cuePressed;
 
+  /// Tungsten wash behind selected rows — color without shouting.
+  Color get primaryWash => primary.withValues(alpha: isDark ? 0.12 : 0.18);
+
   static const stage = SottoPalette(
     brightness: Brightness.dark,
     ground: Color(0xFF0D0C0A),

@@ -172,7 +172,7 @@ class SegmentedControl<T> extends StatelessWidget {
                   focusRadius: Radii.rS,
                   builder: (context, s) {
                     final selected = seg.value == value;
-                    final ink = selected ? p.inkPrimary : (s.hovered ? p.inkSecondary : p.inkTertiary);
+                    final ink = selected ? p.primaryText : (s.hovered ? p.inkSecondary : p.inkTertiary);
                     return AnimatedContainer(
                       duration: Motion.snappy,
                       height: height - 6,
