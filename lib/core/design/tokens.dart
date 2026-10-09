@@ -102,6 +102,13 @@ class SottoPalette {
 
   Color get focusRing => cueFill.withValues(alpha: 0.9);
 
+  // brand/primary — the tungsten cue is the brand color; these name it.
+  Color get primary => cueFill;
+  Color get primaryText => cueText;
+  Color get onPrimary => onCue;
+  Color get primaryHover => cueHover;
+  Color get primaryPressed => cuePressed;
+
   static const stage = SottoPalette(
     brightness: Brightness.dark,
     ground: Color(0xFF0D0C0A),
