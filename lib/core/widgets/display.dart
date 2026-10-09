@@ -79,7 +79,7 @@ class StatusChip extends StatelessWidget {
         icon: SottoIcons.check,
       ),
       _ when s.rehearsalCount == 1 => StatusChip(l.statusRehearsed, tone: ChipTone.confirmed, icon: SottoIcons.check),
-      ScriptStatus.structured || ScriptStatus.ready => StatusChip(l.statusStructured),
+      ScriptStatus.structured || ScriptStatus.ready => StatusChip(l.statusStructured, tone: ChipTone.cue, dot: true),
       ScriptStatus.draft => StatusChip(l.statusDraft, tone: ChipTone.outline),
     };
   }
@@ -256,10 +256,10 @@ class SettingsGroup extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [p.raised, p.panel],
+              colors: [p.cardTop, p.cardBottom],
             ),
             borderRadius: Radii.rL,
-            border: Border.all(color: p.hairline),
+            border: Border.all(color: p.cardEdge),
           ),
           child: Column(
             children: [
@@ -536,9 +536,10 @@ class SurfaceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final glow = accent ?? p.primary;
-    final base = color ?? (hovered ? p.raised : p.panel);
+    final lift = hovered && p.isDark ? 0.35 : 0.0;
+    final base = color ?? Color.lerp(p.cardBottom, p.float, lift)!;
     // Top edge a step lighter than the bottom: the light comes from above.
-    var top = color ?? (p.isDark ? (hovered ? p.float : p.raised) : p.raised);
+    var top = color ?? Color.lerp(p.cardTop, p.control, lift)!;
     if (accent != null && color == null) top = Color.alphaBlend(accent!.withValues(alpha: p.isDark ? 0.07 : 0.06), top);
     final card = AnimatedContainer(
       duration: Motion.quick,
@@ -546,7 +547,7 @@ class SurfaceCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [top, base]),
         borderRadius: Radii.rL,
-        border: Border.all(color: hovered ? glow.withValues(alpha: 0.42) : p.hairline),
+        border: Border.all(color: hovered ? glow.withValues(alpha: 0.42) : p.cardEdge),
         boxShadow: [
           if (hovered) BoxShadow(color: glow.withValues(alpha: p.isDark ? 0.12 : 0.18), blurRadius: 24),
           BoxShadow(

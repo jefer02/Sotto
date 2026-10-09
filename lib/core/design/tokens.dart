@@ -121,10 +121,16 @@ class SottoPalette {
   Color get primaryWash => primary.withValues(alpha: isDark ? 0.12 : 0.18);
 
   /// The ghost light: a warm pool falling on the stage from above.
-  Color get stageGlow => primary.withValues(alpha: isDark ? 0.10 : 0.14);
+  Color get stageGlow => primary.withValues(alpha: isDark ? 0.14 : 0.18);
 
   /// Unplayed section segments — a tungsten track rather than grey.
   Color get primaryTrack => primary.withValues(alpha: isDark ? 0.22 : 0.30);
+
+  /// Card faces: lit top, settled bottom, and an edge that holds its shape
+  /// against the ground.
+  Color get cardTop => isDark ? float : raised;
+  Color get cardBottom => isDark ? raised : panel;
+  Color get cardEdge => isDark ? Color.lerp(hairline, control, 0.55)! : hairline;
 
   static const stage = SottoPalette(
     brightness: Brightness.dark,
