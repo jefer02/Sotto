@@ -15,6 +15,7 @@ import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
 import '../../core/design/typography.dart';
 import '../../core/platform/window_service.dart';
+import '../../core/widgets/stage_transitions.dart';
 import '../../data/models/settings.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
@@ -448,67 +449,77 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: MouseRegion(
-        onEnter: (_) => _onEnter(),
-        onExit: (_) => _onExit(),
-        // Text only: every glyph below carries the outline + soft shadow.
-        child: DefaultTextStyle.merge(
-          style: TextStyle(shadows: o.textShadows(1, true)),
-          child: Stack(
-            children: [
-              Positioned.fill(child: surface),
-              // Hairline edge + lit top edge (inset 0 1px 0 rgba(255,255,255,.05)).
-              if (!textOnly)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: Radii.rXl,
-                        border: Border.all(color: o.edge),
-                      ),
-                    ),
-                  ),
-                ),
-              if (!textOnly)
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  top: 0.5,
-                  child: IgnorePointer(child: Container(height: 1, color: o.innerHighlight)),
-                ),
-              if (s.phase != LivePhase.answer)
-                Positioned(
-                  left: 0,
-                  right: s.historyOpen ? _historyWidth : 0,
-                  top: _panelAtTop ? _metaHeight + 2 : null,
-                  bottom: _panelAtTop ? null : 10,
-                  child: Center(
-                    child: IgnorePointer(
-                      ignoring: !panelShown,
-                      child: AnimatedOpacity(
-                        duration: panelShown ? Motion.quick : Motion.smooth,
-                        opacity: panelShown ? 1 : 0,
-                        child: OverlayControls(state: s, onEnd: () => unawaited(_end())),
-                      ),
-                    ),
-                  ),
-                ),
-              // Always visible while a screenshot is taken: nothing is captured silently.
-              if (s.capturingScreen)
-                Positioned(
-                  right: 10,
-                  top: 8,
-                  child: _Badge(palette: o, icon: SottoIcons.display, label: context.l10n.capturingScreen, alert: true),
-                ),
-              if (s.clickThrough) ...[
-                if (_showClickThroughEdge)
+      // Out of the dark of going live, the overlay comes into focus.
+      body: OverlayEntrance(
+        enabled: !reduceMotion,
+        sweep: textOnly ? null : o.cue,
+        child: MouseRegion(
+          onEnter: (_) => _onEnter(),
+          onExit: (_) => _onExit(),
+          // Text only: every glyph below carries the outline + soft shadow.
+          child: DefaultTextStyle.merge(
+            style: TextStyle(shadows: o.textShadows(1, true)),
+            child: Stack(
+              children: [
+                Positioned.fill(child: surface),
+                // Hairline edge + lit top edge (inset 0 1px 0 rgba(255,255,255,.05)).
+                if (!textOnly)
                   Positioned.fill(
-                    child: IgnorePointer(child: CustomPaint(painter: _DottedEdge(o.inkAt(0.5)))),
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: Radii.rXl,
+                          border: Border.all(color: o.edge),
+                        ),
+                      ),
+                    ),
                   ),
-                Positioned(right: 10, bottom: 8, child: _ClickThroughBadge(palette: o)),
+                if (!textOnly)
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    top: 0.5,
+                    child: IgnorePointer(child: Container(height: 1, color: o.innerHighlight)),
+                  ),
+                if (s.phase != LivePhase.answer)
+                  Positioned(
+                    left: 0,
+                    right: s.historyOpen ? _historyWidth : 0,
+                    top: _panelAtTop ? _metaHeight + 2 : null,
+                    bottom: _panelAtTop ? null : 10,
+                    child: Center(
+                      child: IgnorePointer(
+                        ignoring: !panelShown,
+                        child: AnimatedOpacity(
+                          duration: panelShown ? Motion.quick : Motion.smooth,
+                          opacity: panelShown ? 1 : 0,
+                          child: OverlayControls(state: s, onEnd: () => unawaited(_end())),
+                        ),
+                      ),
+                    ),
+                  ),
+                // Always visible while a screenshot is taken: nothing is captured silently.
+                if (s.capturingScreen)
+                  Positioned(
+                    right: 10,
+                    top: 8,
+                    child: _Badge(
+                      palette: o,
+                      icon: SottoIcons.display,
+                      label: context.l10n.capturingScreen,
+                      alert: true,
+                    ),
+                  ),
+                if (s.clickThrough) ...[
+                  if (_showClickThroughEdge)
+                    Positioned.fill(
+                      child: IgnorePointer(child: CustomPaint(painter: _DottedEdge(o.inkAt(0.5)))),
+                    ),
+                  Positioned(right: 10, bottom: 8, child: _ClickThroughBadge(palette: o)),
+                ],
+                if (!Platform.isMacOS) ..._resizeEdges(),
               ],
-              if (!Platform.isMacOS) ..._resizeEdges(),
-            ],
+            ),
           ),
         ),
       ),

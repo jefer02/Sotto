@@ -16,6 +16,7 @@ import '../../core/widgets/interactive.dart';
 import '../../data/models/session_record.dart';
 import '../../data/repositories.dart';
 import 'library_shell.dart';
+import 'practice_bars.dart';
 
 class SessionsScreen extends ConsumerWidget {
   const SessionsScreen({super.key});
@@ -36,9 +37,10 @@ class SessionsScreen extends ConsumerWidget {
                 )
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(40, 28, 40, 40),
-                  itemCount: sessions.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
-                  itemBuilder: (context, i) => SessionTile(record: sessions[i]),
+                  itemCount: sessions.length + 1,
+                  separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 20 : 8),
+                  itemBuilder: (context, i) =>
+                      i == 0 ? PracticeBars(sessions: sessions) : SessionTile(record: sessions[i - 1]),
                 ),
         ),
       ],

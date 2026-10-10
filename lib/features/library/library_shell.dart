@@ -19,6 +19,7 @@ import '../../core/widgets/controls.dart';
 import '../../core/widgets/display.dart';
 import '../../core/widgets/interactive.dart';
 import '../../core/widgets/nav.dart';
+import '../../core/widgets/stage_light.dart';
 import '../../core/widgets/window_chrome.dart';
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
@@ -403,7 +404,7 @@ class _ReadinessCard extends ConsumerWidget {
         height: 6,
         decoration: BoxDecoration(shape: BoxShape.circle, color: p.confirmed),
       ),
-      CheckLevel.warn => SottoIcon(SottoIcons.alert, size: 13, color: p.cueText),
+      CheckLevel.warn => SottoIcon(SottoIcons.alert, size: 13, color: p.caution),
       CheckLevel.missing => SottoIcon(SottoIcons.alert, size: 13, color: p.inkTertiary),
     };
     return Tooltip(
