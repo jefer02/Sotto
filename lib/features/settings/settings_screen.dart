@@ -13,6 +13,7 @@ import '../../core/widgets/buttons.dart';
 import '../../core/widgets/controls.dart';
 import '../../core/widgets/display.dart';
 import '../../core/widgets/nav.dart';
+import '../../core/widgets/stage_light.dart';
 import '../../core/widgets/window_chrome.dart';
 import '../library/library_shell.dart' show TitleBarDragSpacer;
 import 'pages/answers_page.dart';

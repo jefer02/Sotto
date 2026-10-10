@@ -3054,4 +3054,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hoverEndSessionHold => 'Hold 1 s to end session';
+
+  @override
+  String practiceBarsTitle(int days) {
+    return 'Last $days days';
+  }
+
+  @override
+  String practiceDaysCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days practiced',
+      one: '1 day practiced',
+      zero: 'No practice yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String practiceRangeStart(int days) {
+    return '$days days ago';
+  }
+
+  @override
+  String get practiceToday => 'Today';
+
+  @override
+  String get practiceDayEmpty => 'No practice';
+
+  @override
+  String practiceDayRehearsals(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count rehearsals', one: '1 rehearsal');
+    return '$_temp0';
+  }
+
+  @override
+  String practiceDayLive(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count live runs', one: '1 live run');
+    return '$_temp0';
+  }
+
+  @override
+  String get practiceLegendRehearsal => 'Rehearsal';
+
+  @override
+  String get practiceLegendLive => 'Live';
 }

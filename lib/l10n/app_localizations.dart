@@ -5485,6 +5485,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hold 1 s to end session'**
   String get hoverEndSessionHold;
+
+  /// No description provided for @practiceBarsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Last {days} days'**
+  String practiceBarsTitle(int days);
+
+  /// No description provided for @practiceDaysCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No practice yet} =1{1 day practiced} other{{count} days practiced}}'**
+  String practiceDaysCount(int count);
+
+  /// No description provided for @practiceRangeStart.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days ago'**
+  String practiceRangeStart(int days);
+
+  /// No description provided for @practiceToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get practiceToday;
+
+  /// No description provided for @practiceDayEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No practice'**
+  String get practiceDayEmpty;
+
+  /// No description provided for @practiceDayRehearsals.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 rehearsal} other{{count} rehearsals}}'**
+  String practiceDayRehearsals(int count);
+
+  /// No description provided for @practiceDayLive.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 live run} other{{count} live runs}}'**
+  String practiceDayLive(int count);
+
+  /// No description provided for @practiceLegendRehearsal.
+  ///
+  /// In en, this message translates to:
+  /// **'Rehearsal'**
+  String get practiceLegendRehearsal;
+
+  /// No description provided for @practiceLegendLive.
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get practiceLegendLive;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

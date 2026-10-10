@@ -15,6 +15,7 @@ import '../../../core/design/typography.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/controls.dart';
 import '../../../core/widgets/display.dart';
+import '../../../core/widgets/ping_dot.dart';
 import '../../../data/models/settings.dart';
 import '../../../data/repositories.dart';
 import '../../../domain/following/follow_engine.dart';
@@ -497,7 +498,10 @@ class _LiveCheckState extends ConsumerState<_LiveCheck> {
                 children: [
                   Text(context.l10n.whatSottoHears, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
                   const Spacer(),
-                  SottoIcon(SottoIcons.wave, size: 12, color: p.inkTertiary),
+                  if (widget.active)
+                    PingDot(color: p.confirmed, size: 6, active: !ref.watch(settingsProvider).reduceMotion)
+                  else
+                    SottoIcon(SottoIcons.wave, size: 12, color: p.inkTertiary),
                   const SizedBox(width: 6),
                   Text(
                     widget.active

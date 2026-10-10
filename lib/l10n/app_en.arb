@@ -1752,5 +1752,49 @@
   "hoverAutoFillOff": "Auto-fill is off — turn on",
   "hoverOpenChat": "Open chat",
   "hoverCloseChat": "Close chat",
-  "hoverEndSessionHold": "Hold 1 s to end session"
+  "hoverEndSessionHold": "Hold 1 s to end session",
+  "practiceBarsTitle": "Last {days} days",
+  "@practiceBarsTitle": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceDaysCount": "{count, plural, =0{No practice yet} =1{1 day practiced} other{{count} days practiced}}",
+  "@practiceDaysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceRangeStart": "{days} days ago",
+  "@practiceRangeStart": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceToday": "Today",
+  "practiceDayEmpty": "No practice",
+  "practiceDayRehearsals": "{count, plural, =1{1 rehearsal} other{{count} rehearsals}}",
+  "@practiceDayRehearsals": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceDayLive": "{count, plural, =1{1 live run} other{{count} live runs}}",
+  "@practiceDayLive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceLegendRehearsal": "Rehearsal",
+  "practiceLegendLive": "Live"
 }

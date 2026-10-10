@@ -898,5 +898,14 @@
   "hoverAutoFillOff": "El autocompletado está desactivado — activar",
   "hoverOpenChat": "Abrir chat",
   "hoverCloseChat": "Cerrar chat",
-  "hoverEndSessionHold": "Mantén 1 s para terminar la sesión"
+  "hoverEndSessionHold": "Mantén 1 s para terminar la sesión",
+  "practiceBarsTitle": "Últimos {days} días",
+  "practiceDaysCount": "{count, plural, =0{Aún sin práctica} =1{1 día de práctica} other{{count} días de práctica}}",
+  "practiceRangeStart": "Hace {days} días",
+  "practiceToday": "Hoy",
+  "practiceDayEmpty": "Sin práctica",
+  "practiceDayRehearsals": "{count, plural, =1{1 ensayo} other{{count} ensayos}}",
+  "practiceDayLive": "{count, plural, =1{1 sesión en vivo} other{{count} sesiones en vivo}}",
+  "practiceLegendRehearsal": "Ensayo",
+  "practiceLegendLive": "En vivo"
 }
