@@ -45,7 +45,16 @@ class NavItem extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 10),
           alignment: collapsed ? Alignment.center : null,
           decoration: BoxDecoration(
-            color: selected ? p.primaryWash : (s.hovered ? p.hoverWash : Colors.transparent),
+            color: selected ? null : (s.hovered ? p.hoverWash : Colors.transparent),
+            // Selected: the cue light pools at the tick and falls off.
+            gradient: selected
+                ? LinearGradient(
+                    colors: [
+                      p.primary.withValues(alpha: p.isDark ? 0.26 : 0.28),
+                      p.primaryWash,
+                    ],
+                  )
+                : null,
             borderRadius: Radii.rControl,
           ),
           child: collapsed
@@ -66,7 +75,7 @@ class NavItem extends StatelessWidget {
                 ),
         );
         if (!selected || collapsed) return row;
-        // A tungsten tick marks where you are, like the cue column on stage.
+        // A cue tick marks where you are, like the cue column on stage.
         return Stack(
           children: [
             row,

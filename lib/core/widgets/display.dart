@@ -130,7 +130,7 @@ class SourceChip extends StatelessWidget {
   }
 }
 
-/// Stage cue: mono caps in a tungsten outline — impossible to read aloud by
+/// Stage cue: mono caps in a cue outline — impossible to read aloud by
 /// accident.
 class CueChip extends StatelessWidget {
   const CueChip(this.cue, {super.key, this.color, this.dimmed = false});
@@ -203,7 +203,7 @@ class SectionLabel extends StatelessWidget {
   }
 }
 
-/// Section heading led by a small tungsten dot — a lamp on the marker.
+/// Section heading led by a small cue dot — a lamp on the marker.
 class SectionHeading extends StatelessWidget {
   const SectionHeading(this.title, {super.key, this.color});
 
@@ -343,7 +343,7 @@ class SectionBar extends StatelessWidget {
   final int? highlight;
   final Color? progressColor;
 
-  /// Unplayed segments; defaults to the tungsten track.
+  /// Unplayed segments; defaults to the cue track.
   final Color? trackColor;
 
   /// Segments before this index draw as done.
@@ -500,44 +500,8 @@ BoxDecoration sidebarDecoration(SottoPalette p) => BoxDecoration(
   border: Border(right: BorderSide(color: p.hairline)),
 );
 
-/// The ghost light on a dark stage: a warm pool of light falling on the
-/// content from above, so the ground isn't one flat sheet.
-class StageGlow extends StatelessWidget {
-  const StageGlow({super.key, required this.child, this.alignment = const Alignment(-0.35, -1.25)});
-
-  final Widget child;
-  final Alignment alignment;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: p.ground,
-        gradient: RadialGradient(
-          center: alignment,
-          radius: 1.15,
-          colors: [p.stageGlow, p.stageGlow.withValues(alpha: 0)],
-          stops: const [0, 1],
-        ),
-      ),
-      // A second, lower ember spill from the far side gives the ground depth.
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: const Alignment(1.1, 1.2),
-            radius: 1.0,
-            colors: [p.emberGlow, p.emberGlow.withValues(alpha: 0)],
-          ),
-        ),
-        child: child,
-      ),
-    );
-  }
-}
-
 /// e1 · card — hairline-bordered, radius 12, lit from above; on hover the
-/// edge catches the tungsten light.
+/// edge catches the cue light.
 class SurfaceCard extends StatelessWidget {
   const SurfaceCard({
     super.key,
@@ -554,7 +518,7 @@ class SurfaceCard extends StatelessWidget {
   final bool hovered;
 
   /// A collection's color: a fading line along the top edge, a faint tint,
-  /// and the hover glow. Defaults to tungsten for the glow only.
+  /// and the hover glow. Defaults to cue for the glow only.
   final Color? accent;
 
   @override
@@ -564,13 +528,23 @@ class SurfaceCard extends StatelessWidget {
     final lift = hovered && p.isDark ? 0.35 : 0.0;
     final base = color ?? Color.lerp(p.cardBottom, p.float, lift)!;
     // Top edge a step lighter than the bottom: the light comes from above.
-    var top = color ?? Color.lerp(p.cardTop, p.control, lift)!;
-    if (accent != null && color == null) top = Color.alphaBlend(accent!.withValues(alpha: p.isDark ? 0.10 : 0.07), top);
+    final top = color ?? Color.lerp(p.cardTop, p.control, lift)!;
+    // A collection owns the top of its card: its color pools there and fades
+    // out before the text, so the card reads as that collection at a glance.
+    final tinted = accent != null && color == null;
+    final wash = tinted
+        ? Color.alphaBlend(accent!.withValues(alpha: (p.isDark ? 0.16 : 0.11) + (hovered ? 0.05 : 0)), top)
+        : top;
     final card = AnimatedContainer(
       duration: Motion.quick,
       padding: padding,
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [top, base]),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [wash, top, base],
+          stops: [0, tinted ? 0.55 : 0.0, 1],
+        ),
         borderRadius: Radii.rL,
         border: Border.all(color: hovered ? glow.withValues(alpha: 0.6) : p.cardEdge),
         boxShadow: [
@@ -601,7 +575,7 @@ class SurfaceCard extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     accent!,
-                    accent!.withValues(alpha: hovered ? 0.6 : 0.3),
+                    accent!.withValues(alpha: hovered ? 0.7 : 0.45),
                     accent!.withValues(alpha: 0),
                   ],
                   stops: const [0, 0.55, 1],
