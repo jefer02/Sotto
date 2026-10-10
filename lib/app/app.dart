@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../core/design/theme.dart';
 import '../core/design/tokens.dart';
 import '../core/platform/window_service.dart';
+import '../core/widgets/stage_transitions.dart';
 import '../data/models/settings.dart';
 import '../data/models/shortcut.dart';
 import '../data/repositories.dart';
@@ -189,7 +190,16 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       darkTheme: buildSottoTheme(SottoPalette.stage),
       themeMode: themeMode,
       routerConfig: ref.watch(routerProvider),
-      builder: (context, child) => _GlobalShortcuts(child: child ?? const SizedBox.shrink()),
+      // "Reduce motion" (Settings › Appearance) calms the main window too,
+      // not only the overlay: every effect checks disableAnimations.
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(disableAnimations: media.disableAnimations || settings.reduceMotion),
+          // The curtain rises on launch; the house lights come up after a show.
+          child: LaunchCurtain(child: _GlobalShortcuts(child: child ?? const SizedBox.shrink())),
+        );
+      },
     );
   }
 }

@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 /// Sotto icon set · 16-point grid, 1.5 px stroke, round caps and joins.
 /// Geometry extracted verbatim from the Iconography board. Icons inherit
-/// ink; tungsten only when active. Sizes: 14 in buttons, 16 in nav, 20 in
+/// ink; electric only when active. Sizes: 14 in buttons, 16 in nav, 20 in
 /// empty states.
 enum SottoIcons {
   home('<path d="M2.75 6.9 8 2.6l5.25 4.3v6.35H2.75z"></path><path d="M6.4 13.25V9.75h3.2v3.5"></path>'),
@@ -160,7 +160,7 @@ class SottoIcon extends StatelessWidget {
   }
 }
 
-/// The cue mark: a tungsten dot beside three bars — the brand glyph.
+/// The cue mark: an electric dot beside three bars — the brand glyph.
 class CueMark extends StatelessWidget {
   const CueMark({super.key, this.size = 20, this.ink, this.cue, this.hollow = false});
 
@@ -174,7 +174,7 @@ class CueMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final i = ink ?? const Color(0xFFF2EFE9);
-    final c = cue ?? const Color(0xFFFFAD3B);
+    final c = cue ?? const Color(0xFF2F6BFF);
     String hex(Color x) => '#${(x.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     final dot = hollow
         ? '<circle cx="6" cy="16" r="2.4" fill="none" stroke="${hex(c)}" stroke-width="1.2"/>'
