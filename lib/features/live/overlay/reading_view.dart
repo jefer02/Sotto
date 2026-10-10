@@ -422,7 +422,7 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
                   },
                 ),
               ),
-              // After Dismiss: a 300 ms tungsten sweep re-anchors the eye.
+              // After Dismiss: a 300 ms cue sweep re-anchors the eye.
               Positioned(
                 left: widget.leftInset,
                 right: widget.rightInset,

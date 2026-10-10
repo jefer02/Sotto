@@ -103,7 +103,7 @@ class MetaStrip extends ConsumerWidget {
 }
 
 /// Seven 10 × 3 hairlines: done sections bright, the current one with a
-/// tungsten fill for how far into it you are.
+/// cue fill for how far into it you are.
 class SectionProgress extends StatelessWidget {
   const SectionProgress({super.key, required this.state, this.vertical = false});
 

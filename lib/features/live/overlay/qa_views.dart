@@ -14,6 +14,7 @@ import '../../../core/design/typography.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/display.dart';
 import '../../../core/widgets/keycap.dart';
+import '../../../core/widgets/ping_dot.dart';
 import '../../../data/models/qa_entry.dart';
 import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
@@ -42,7 +43,7 @@ class ListeningView extends ConsumerWidget {
             height: 20,
             child: Row(
               children: [
-                _TallyDot(silence: q?.silence ?? 0),
+                _TallyDot(silence: q?.silence ?? 0, ping: !settings.reduceMotion),
                 const SizedBox(width: 10),
                 Text(
                   state.listeningForTask ? context.l10n.agentListening : context.l10n.listening,
@@ -121,9 +122,12 @@ class _KeyAction extends StatelessWidget {
 
 /// Tally dot with the silence ring: after speech stops, a ring fills around
 /// the dot; talking again resets it.
+/// Pings while the room is talking; once it goes quiet, the ring counts
+/// down the silence that ends the question.
 class _TallyDot extends StatelessWidget {
-  const _TallyDot({required this.silence});
+  const _TallyDot({required this.silence, this.ping = true});
   final double silence;
+  final bool ping;
 
   @override
   Widget build(BuildContext context) {
@@ -134,15 +138,7 @@ class _TallyDot extends StatelessWidget {
       child: CustomPaint(
         painter: _RingPainter(progress: silence, color: o.capture, track: o.capture.withValues(alpha: 0.18)),
         child: Center(
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: o.capture,
-              boxShadow: [BoxShadow(color: o.capture.withValues(alpha: 0.14), spreadRadius: 3)],
-            ),
-          ),
+          child: PingDot(color: o.capture, active: ping && silence <= 0),
         ),
       ),
     );

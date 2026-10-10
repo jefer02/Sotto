@@ -86,7 +86,7 @@ class LiveState {
   /// Drives the cue-dot pulse, which plays on advance only.
   final DateTime? lastAdvanceAt;
 
-  /// Drives the 300 ms tungsten sweep that re-anchors the eye after Dismiss.
+  /// Drives the 300 ms cue sweep that re-anchors the eye after Dismiss.
   final DateTime? resumedAt;
 
   /// Hold-to-send ring progress, 0..1.
