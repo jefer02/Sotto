@@ -170,12 +170,12 @@ class SottoButton extends StatelessWidget {
           padding: EdgeInsets.only(left: icon != null ? 10 : 12, right: hasKey ? 6 : 12),
           decoration: BoxDecoration(
             color: bg,
-            // Primary: brighter at the top, burning toward ember at the base.
+            // Primary: brighter at the top, deepening toward indigo at the base.
             gradient: variant == ButtonVariant.primary
                 ? LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Color.lerp(bg, const Color(0xFFFFF1D6), 0.16)!, Color.lerp(bg, p.ember, 0.45)!],
+                    colors: [Color.lerp(bg, const Color(0xFFFFFFFF), 0.08)!, Color.lerp(bg, p.cueDeep, 0.35)!],
                   )
                 : null,
             borderRadius: Radii.rControl,
@@ -282,7 +282,7 @@ class SottoIconButton extends StatelessWidget {
   }
 }
 
-/// Inline text link in tungsten ("Add", "Reset to defaults").
+/// Inline text link in cue ("Add", "Reset to defaults").
 class TextLink extends StatelessWidget {
   const TextLink(this.label, {super.key, this.onTap, this.muted = false});
 

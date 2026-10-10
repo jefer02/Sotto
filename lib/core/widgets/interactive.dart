@@ -5,8 +5,8 @@ import '../design/theme.dart';
 import '../design/tokens.dart';
 
 /// Hover / pressed / focused state for custom controls, plus keyboard
-/// activation (Enter / Space). Focus paints the tungsten ring, which is the
-/// one place tungsten appears on every control.
+/// activation (Enter / Space). Focus paints the cue ring, which is the
+/// one place cue appears on every control.
 class Interactive extends StatefulWidget {
   const Interactive({
     super.key,
