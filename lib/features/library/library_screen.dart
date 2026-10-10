@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
 import 'package:desktop_drop/desktop_drop.dart';
@@ -22,6 +23,7 @@ import '../../core/widgets/buttons.dart';
 import '../../core/widgets/controls.dart';
 import '../../core/widgets/display.dart';
 import '../../core/widgets/interactive.dart';
+import '../../core/widgets/motion_effects.dart';
 import '../../data/models/script.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
@@ -114,9 +116,22 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
+/// The home's entrance plays once per launch; coming back to it, or
+/// changing a filter, shows everything at once.
+bool _homeIntroPlayed = false;
+
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   _StatusFilter _filter = _StatusFilter.all;
   bool _grid = true;
+  bool _intro = !_homeIntroPlayed;
+
+  @override
+  void initState() {
+    super.initState();
+    _homeIntroPlayed = true;
+    // Only what's on screen at launch enters; anything mounted later is instant.
+    if (_intro) WidgetsBinding.instance.addPostFrameCallback((_) => mounted ? setState(() => _intro = false) : null);
+  }
 
   static Script? upNext(List<Script> scripts) {
     final now = DateTime.now();
@@ -155,12 +170,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(40, 32, 40, 40),
               children: [
-                _Greeting(scripts: scripts),
+                _Greeting(scripts: scripts, intro: _intro),
                 const SizedBox(height: 32),
                 if (next != null) ...[
                   Align(alignment: Alignment.centerLeft, child: SectionHeading(context.l10n.upNext)),
                   const SizedBox(height: 12),
-                  _UpNextCard(script: next),
+                  Reveal(
+                    enabled: _intro,
+                    delay: const Duration(milliseconds: 120),
+                    duration: Motion.glide,
+                    child: _UpNextCard(script: next),
+                  ),
                   const SizedBox(height: 36),
                 ],
                 Row(
@@ -204,7 +224,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   )
                 else
-                  ScriptCollectionView(scripts: recent.take(9).toList(), grid: _grid),
+                  ScriptCollectionView(scripts: recent.take(9).toList(), grid: _grid, intro: _intro),
                 const SizedBox(height: 20),
                 ImportDropHint(
                   active: _DraggingScope.of(context),
@@ -220,10 +240,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 /// "Good afternoon" over today's date and a one-line read of the library,
-/// its figures lit in tungsten.
+/// its figures lit in cue.
 class _Greeting extends ConsumerWidget {
-  const _Greeting({required this.scripts});
+  const _Greeting({required this.scripts, this.intro = false});
   final List<Script> scripts;
+  final bool intro;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -252,25 +273,40 @@ class _Greeting extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          toBeginningOfSentenceCase(DateFormat.MMMMEEEEd(l.localeName).format(now)),
-          style: TypeScale.mono.copyWith(color: p.inkTertiary),
+        Reveal(
+          enabled: intro,
+          blur: 0,
+          rise: 6,
+          child: Text(
+            toBeginningOfSentenceCase(DateFormat.MMMMEEEEd(l.localeName).format(now)),
+            style: TypeScale.mono.copyWith(color: p.inkTertiary),
+          ),
         ),
         const SizedBox(height: 8),
-        Text(greeting, style: TypeScale.display.copyWith(color: p.inkPrimary)),
+        RevealWords(
+          greeting,
+          enabled: intro,
+          delay: const Duration(milliseconds: 60),
+          style: TypeScale.display.copyWith(color: p.inkPrimary),
+        ),
         const SizedBox(height: 10),
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(text: '${active.length} ', style: figure),
-              TextSpan(text: l.homeStatScripts(active.length), style: words),
-              dot,
-              TextSpan(text: '$ready ', style: figure),
-              TextSpan(text: l.homeStatReady(ready), style: words),
-              dot,
-              TextSpan(text: '$minutes ', style: figure),
-              TextSpan(text: l.homeStatMinutes, style: words),
-            ],
+        Reveal(
+          enabled: intro,
+          delay: const Duration(milliseconds: 180),
+          blur: 4,
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: '${active.length} ', style: figure),
+                TextSpan(text: l.homeStatScripts(active.length), style: words),
+                dot,
+                TextSpan(text: '$ready ', style: figure),
+                TextSpan(text: l.homeStatReady(ready), style: words),
+                dot,
+                TextSpan(text: '$minutes ', style: figure),
+                TextSpan(text: l.homeStatMinutes, style: words),
+              ],
+            ),
           ),
         ),
       ],
@@ -301,120 +337,130 @@ class _UpNextCard extends ConsumerWidget {
 
     final minutesAway = at?.difference(now).inMinutes;
 
-    // The featured script stands in its own spotlight.
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: p.panel,
-        gradient: RadialGradient(
-          center: const Alignment(-1, -1.4),
-          radius: 1.6,
-          colors: [
-            Color.alphaBlend(p.primary.withValues(alpha: p.isDark ? 0.20 : 0.18), p.raised),
-            Color.alphaBlend(p.ember.withValues(alpha: p.isDark ? 0.04 : 0.03), p.panel),
-          ],
-        ),
-        borderRadius: Radii.rL,
-        border: Border.all(color: p.primary.withValues(alpha: p.isDark ? 0.38 : 0.40)),
-        boxShadow: [
-          BoxShadow(color: p.primary.withValues(alpha: p.isDark ? 0.16 : 0.14), blurRadius: 48, spreadRadius: -6),
-          BoxShadow(
-            color: Color(p.isDark ? 0x80000000 : 0x1A1C1916),
-            offset: const Offset(0, 12),
-            blurRadius: 28,
-            spreadRadius: -12,
+    // The featured script stands in its own spotlight; a beam of cue runs
+    // its border, and the card catches the light where you point.
+    return BorderBeam(
+      color: p.primary,
+      child: CursorSpotlight(
+        color: p.primary.withValues(alpha: p.isDark ? 0.10 : 0.07),
+        radius: 320,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: p.panel,
+            gradient: RadialGradient(
+              center: const Alignment(-1, -1.4),
+              radius: 1.6,
+              colors: [
+                Color.alphaBlend(p.primary.withValues(alpha: p.isDark ? 0.26 : 0.22), p.raised),
+                Color.alphaBlend(p.cueDeep.withValues(alpha: p.isDark ? 0.07 : 0.05), p.panel),
+              ],
+            ),
+            borderRadius: Radii.rL,
+            border: Border.all(color: p.primary.withValues(alpha: p.isDark ? 0.38 : 0.40)),
+            boxShadow: [
+              BoxShadow(color: p.primary.withValues(alpha: p.isDark ? 0.16 : 0.14), blurRadius: 48, spreadRadius: -6),
+              BoxShadow(
+                color: Color(p.isDark ? 0x80000000 : 0x1A1C1916),
+                offset: const Offset(0, 12),
+                blurRadius: 28,
+                spreadRadius: -12,
+              ),
+            ],
           ),
-        ],
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(when(), style: TypeScale.mono.copyWith(color: p.primaryText)),
-                      if (minutesAway != null && minutesAway > 0 && minutesAway < 24 * 60) ...[
-                        const SizedBox(width: 10),
-                        StatusChip(
-                          minutesAway < 60
-                              ? context.l10n.inMinutes(minutesAway)
-                              : context.l10n.inHours((minutesAway / 60).round()),
-                          tone: ChipTone.cue,
+                      Row(
+                        children: [
+                          Text(when(), style: TypeScale.mono.copyWith(color: p.primaryText)),
+                          if (minutesAway != null && minutesAway > 0 && minutesAway < 24 * 60) ...[
+                            const SizedBox(width: 10),
+                            StatusChip(
+                              minutesAway < 60
+                                  ? context.l10n.inMinutes(minutesAway)
+                                  : context.l10n.inHours((minutesAway / 60).round()),
+                              tone: ChipTone.cue,
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Interactive(
+                        onTap: () => context.go('/script/${script.id}'),
+                        builder: (context, s) => Text(
+                          script.title,
+                          style: TypeScale.title1.copyWith(color: s.hovered ? p.cueText : p.inkPrimary),
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        [
+                          context.l10n.sectionsCount(script.sections.length),
+                          context.l10n.atYourPace(formatMinutes(total), wpm),
+                          if (script.rehearsalCount > 0) context.l10n.rehearsedTimes(script.rehearsalCount),
+                          if (script.prepDocs.isNotEmpty) context.l10n.prepDocsCount(script.prepDocs.length),
+                        ].join(' · '),
+                        style: TypeScale.body.copyWith(color: p.inkSecondary),
+                      ),
+                      const SizedBox(height: 22),
+                      SectionBar(
+                        weights: [for (final s in script.sections) s.estimatedSeconds(wpm).toDouble().clamp(1, 1e9)],
+                        labels: [for (final s in script.sections) s.title],
+                        height: 4,
+                        // The next script's sections are lit: this is the one going on stage.
+                        trackColor: p.isDark ? p.cueText.withValues(alpha: 0.75) : p.primary.withValues(alpha: 0.55),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  Interactive(
-                    onTap: () => context.go('/script/${script.id}'),
-                    builder: (context, s) => Text(
-                      script.title,
-                      style: TypeScale.title1.copyWith(color: s.hovered ? p.cueText : p.inkPrimary),
-                    ),
+                ),
+                const SizedBox(width: 24),
+                VerticalDivider(width: 1, thickness: 1, color: p.hairline),
+                const SizedBox(width: 32),
+                SizedBox(
+                  width: 212,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SottoButton.primary(
+                        label: context.l10n.goLive,
+                        icon: SottoIcons.play,
+                        size: ButtonSize.large,
+                        expand: true,
+                        shortcut: settings.shortcutFor(LiveAction.goLive),
+                        onPressed: () => unawaited(showPreflight(context, ref, script.id)),
+                      ),
+                      const SizedBox(height: 10),
+                      SottoButton(
+                        label: context.l10n.rehearse,
+                        icon: SottoIcons.rehearse,
+                        size: ButtonSize.large,
+                        expand: true,
+                        onPressed: () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        last == null
+                            ? context.l10n.notRehearsedYet
+                            : context.l10n.lastRehearsal(formatDuration(last.durationSeconds)) +
+                                  (last.plannedSeconds == null
+                                      ? ''
+                                      : ' · ${last.durationSeconds >= last.plannedSeconds! ? '+' : '−'}${formatDuration((last.durationSeconds - last.plannedSeconds!).abs())}'),
+                        textAlign: TextAlign.center,
+                        style: TypeScale.caption.copyWith(color: p.inkTertiary),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    [
-                      context.l10n.sectionsCount(script.sections.length),
-                      context.l10n.atYourPace(formatMinutes(total), wpm),
-                      if (script.rehearsalCount > 0) context.l10n.rehearsedTimes(script.rehearsalCount),
-                      if (script.prepDocs.isNotEmpty) context.l10n.prepDocsCount(script.prepDocs.length),
-                    ].join(' · '),
-                    style: TypeScale.body.copyWith(color: p.inkSecondary),
-                  ),
-                  const SizedBox(height: 22),
-                  SectionBar(
-                    weights: [for (final s in script.sections) s.estimatedSeconds(wpm).toDouble().clamp(1, 1e9)],
-                    labels: [for (final s in script.sections) s.title],
-                    height: 3,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(width: 24),
-            VerticalDivider(width: 1, thickness: 1, color: p.hairline),
-            const SizedBox(width: 32),
-            SizedBox(
-              width: 212,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SottoButton.primary(
-                    label: context.l10n.goLive,
-                    icon: SottoIcons.play,
-                    size: ButtonSize.large,
-                    expand: true,
-                    shortcut: settings.shortcutFor(LiveAction.goLive),
-                    onPressed: () => unawaited(showPreflight(context, ref, script.id)),
-                  ),
-                  const SizedBox(height: 10),
-                  SottoButton(
-                    label: context.l10n.rehearse,
-                    icon: SottoIcons.rehearse,
-                    size: ButtonSize.large,
-                    expand: true,
-                    onPressed: () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    last == null
-                        ? context.l10n.notRehearsedYet
-                        : context.l10n.lastRehearsal(formatDuration(last.durationSeconds)) +
-                              (last.plannedSeconds == null
-                                  ? ''
-                                  : ' · ${last.durationSeconds >= last.plannedSeconds! ? '+' : '−'}${formatDuration((last.durationSeconds - last.plannedSeconds!).abs())}'),
-                    textAlign: TextAlign.center,
-                    style: TypeScale.caption.copyWith(color: p.inkTertiary),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -579,10 +625,13 @@ class _ToneDot extends StatelessWidget {
 }
 
 class ScriptCollectionView extends StatelessWidget {
-  const ScriptCollectionView({super.key, required this.scripts, required this.grid});
+  const ScriptCollectionView({super.key, required this.scripts, required this.grid, this.intro = false});
 
   final List<Script> scripts;
   final bool grid;
+
+  /// Cards rise in one after another — only the home's first look.
+  final bool intro;
 
   @override
   Widget build(BuildContext context) {
@@ -598,10 +647,17 @@ class ScriptCollectionView extends StatelessWidget {
           spacing: gap,
           runSpacing: gap,
           children: [
-            for (final s in scripts)
+            for (final (i, s) in scripts.indexed)
               SizedBox(
+                key: ValueKey(s.id),
                 width: w,
-                child: ScriptCard(script: s),
+                child: Reveal(
+                  enabled: intro,
+                  delay: Duration(milliseconds: 160 + 35 * math.min(i, 6)),
+                  duration: Motion.glide,
+                  blur: 0,
+                  child: ScriptCard(script: s),
+                ),
               ),
           ],
         );
@@ -628,76 +684,87 @@ class ScriptCard extends ConsumerWidget {
       script: script,
       child: Interactive(
         onTap: () => context.go('/script/${script.id}'),
-        builder: (context, s) => SurfaceCard(
-          hovered: s.hovered,
-          accent: collection == null ? null : tone,
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: 20,
-                child: Row(
-                  children: [
-                    SottoIcon(SottoIcons.folder, size: 13, color: tone),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        collection?.name ?? context.l10n.noCollection,
-                        overflow: TextOverflow.ellipsis,
+        builder: (context, s) => HoverLift(
+          lifted: s.hovered,
+          child: CursorSpotlight(
+            color: (collection == null ? p.primary : tone).withValues(alpha: p.isDark ? 0.09 : 0.07),
+            child: SurfaceCard(
+              hovered: s.hovered,
+              accent: collection == null ? null : tone,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 20,
+                    child: Row(
+                      children: [
+                        SottoIcon(SottoIcons.folder, size: 13, color: tone),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            collection?.name ?? context.l10n.noCollection,
+                            overflow: TextOverflow.ellipsis,
+                            // The collection's name in its own color: wayfinding, not decoration.
+                            style: TypeScale.caption.copyWith(
+                              color: collection == null
+                                  ? p.inkTertiary
+                                  : Color.lerp(tone, p.inkPrimary, p.isDark ? 0.15 : 0.35),
+                            ),
+                          ),
+                        ),
+                        StatusChip.forScript(context, script),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    script.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TypeScale.title3.copyWith(color: p.inkPrimary),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 40,
+                    child: Text(
+                      organizing && script.excerpt.isEmpty
+                          ? context.l10n.importedFinding(script.sourceName ?? context.l10n.importedFromText)
+                          : (script.excerpt.isEmpty ? context.l10n.emptyScript : script.excerpt),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TypeScale.body.copyWith(color: p.inkSecondary),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (organizing)
+                    progress == null ? const _OrganizingBar() : RefineProgressBar(fraction: progress.fraction)
+                  else
+                    SectionBar(
+                      weights: [for (final sec in script.sections) sec.estimatedSeconds(wpm).toDouble().clamp(1, 1e9)],
+                      trackColor: collection == null ? null : tone.withValues(alpha: p.isDark ? 0.7 : 0.6),
+                    ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Text(
+                        organizing
+                            ? (progress == null
+                                  ? context.l10n.statusOrganizing
+                                  : context.l10n.refiningProgress(progress.done, progress.total))
+                            : '${formatMinutes(script.estimatedSeconds(wpm))} · ${context.l10n.sectionsCount(script.sections.length)}',
+                        style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
+                      ),
+                      const Spacer(),
+                      Text(
+                        organizing ? context.l10n.timeJustNow : relativeTime(script.updatedAt),
                         style: TypeScale.caption.copyWith(color: p.inkTertiary),
                       ),
-                    ),
-                    StatusChip.forScript(context, script),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                script.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TypeScale.title3.copyWith(color: p.inkPrimary),
-              ),
-              const SizedBox(height: 6),
-              SizedBox(
-                height: 40,
-                child: Text(
-                  organizing && script.excerpt.isEmpty
-                      ? context.l10n.importedFinding(script.sourceName ?? context.l10n.importedFromText)
-                      : (script.excerpt.isEmpty ? context.l10n.emptyScript : script.excerpt),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TypeScale.body.copyWith(color: p.inkSecondary),
-                ),
-              ),
-              const SizedBox(height: 14),
-              if (organizing)
-                progress == null ? const _OrganizingBar() : RefineProgressBar(fraction: progress.fraction)
-              else
-                SectionBar(
-                  weights: [for (final sec in script.sections) sec.estimatedSeconds(wpm).toDouble().clamp(1, 1e9)],
-                  trackColor: collection == null ? null : tone.withValues(alpha: p.isDark ? 0.42 : 0.45),
-                ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Text(
-                    organizing
-                        ? (progress == null
-                              ? context.l10n.statusOrganizing
-                              : context.l10n.refiningProgress(progress.done, progress.total))
-                        : '${formatMinutes(script.estimatedSeconds(wpm))} · ${context.l10n.sectionsCount(script.sections.length)}',
-                    style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
-                  ),
-                  const Spacer(),
-                  Text(
-                    organizing ? context.l10n.timeJustNow : relativeTime(script.updatedAt),
-                    style: TypeScale.caption.copyWith(color: p.inkTertiary),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -737,7 +804,7 @@ class RefineProgressBar extends StatelessWidget {
   }
 }
 
-/// Animated tungsten segments while a script is being organized.
+/// Animated cue segments while a script is being organized.
 class _OrganizingBar extends StatefulWidget {
   const _OrganizingBar();
 

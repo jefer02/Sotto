@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
@@ -13,6 +14,7 @@ import '../../core/widgets/display.dart';
 import '../../data/models/qa_entry.dart';
 import '../../data/models/session_record.dart';
 import '../../data/repositories.dart';
+import '../library/practice_bars.dart';
 import '../library/sessions_screen.dart';
 import '../preflight/preflight_dialog.dart';
 import 'editor_controller.dart';
@@ -103,6 +105,7 @@ class RehearsalsTab extends ConsumerWidget {
           ),
           const SizedBox(height: 32),
         ],
+        if (sessions.isNotEmpty) ...[PracticeBars(sessions: sessions), const SizedBox(height: 32)],
         Text(context.l10n.allRuns, style: TypeScale.title3.copyWith(color: p.inkPrimary)),
         const SizedBox(height: 12),
         for (final s in sessions) ...[SessionTile(record: s, showTitle: false), const SizedBox(height: 8)],
@@ -127,10 +130,7 @@ class RehearsalsTab extends ConsumerWidget {
                       Expanded(
                         child: Text(q.question, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
                       ),
-                      Text(
-                        relativeTime(q.askedAt),
-                        style: TypeScale.caption.copyWith(color: p.inkTertiary),
-                      ),
+                      Text(relativeTime(q.askedAt), style: TypeScale.caption.copyWith(color: p.inkTertiary)),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -167,7 +167,7 @@ class _SectionTiming extends StatelessWidget {
     final p = context.palette;
     final delta = actual == null ? null : actual! - planned;
     final ratio = actual == null || planned == 0 ? 0.0 : (actual! / planned).clamp(0.0, 1.6) / 1.6;
-    // Over by more than 15 %: tungsten marks where to look. Never red.
+    // Over by more than 15 %: cue marks where to look. Never red.
     final over = delta != null && delta > planned * 0.15;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -8,7 +8,7 @@ class SourceRef {
   final SourceKind kind;
   final String label;
 
-  /// Short tungsten code: "§3", "Prep".
+  /// Short cue code: "§3", "Prep".
   final String? code;
 
   Map<String, Object?> toJson() => {'kind': kind.name, 'label': label, 'code': code};
