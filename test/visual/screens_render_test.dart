@@ -1,6 +1,9 @@
-// Renders every main-window screen to build/screens/*.png for visual review.
-// Opt-in, because it is slow and writes files:
-//   SOTTO_RENDER=1 flutter test test/visual   (SOTTO_RENDER_THEME=light for House lights)
+// Renders every screen to PNG for visual review. Opt-in, because it is slow
+// and writes files:
+//   SOTTO_RENDER=1 flutter test test/visual
+// SOTTO_RENDER_LANG=es|en, SOTTO_RENDER_THEME=dark|light,
+// SOTTO_RENDER_SIZE=1920x1080 (default 1280x820), SOTTO_RENDER_OUT=folder
+// (default build/screens). Files are named <lang>-<theme>-<size>-<screen>.png.
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -18,7 +21,10 @@ import 'package:sotto/data/models/settings.dart';
 import 'package:sotto/data/repositories.dart';
 import 'package:sotto/data/seed.dart';
 import 'package:sotto/data/storage/local_store.dart';
+import 'package:sotto/features/live/live_controller.dart';
 import 'package:sotto/l10n/l10n.dart';
+
+import '../core/overlay_window_test.dart' show FakeWindowHost;
 
 Future<void> _loadFonts() async {
   for (final (family, file) in const [
@@ -34,6 +40,11 @@ Future<void> _loadFonts() async {
 final _render = Platform.environment['SOTTO_RENDER'] != null;
 final _lang = Platform.environment['SOTTO_RENDER_LANG'] ?? 'es';
 final _light = Platform.environment['SOTTO_RENDER_THEME'] == 'light';
+final _size = () {
+  final m = RegExp(r'^(\d+)x(\d+)$').firstMatch(Platform.environment['SOTTO_RENDER_SIZE'] ?? '');
+  return m == null ? const Size(1280, 820) : Size(double.parse(m[1]!), double.parse(m[2]!));
+}();
+final _out = Platform.environment['SOTTO_RENDER_OUT'] ?? 'build/screens';
 
 void main() {
   late Directory tmp;
@@ -70,7 +81,8 @@ void main() {
       container = ProviderContainer(
         overrides: [
           localStoreProvider.overrideWithValue(store),
-          windowServiceProvider.overrideWithValue(WindowService()),
+          // No native window here: the overlay renders in the test view.
+          windowServiceProvider.overrideWithValue(WindowService(host: FakeWindowHost(), supportedOverride: false)),
         ],
       );
       container
@@ -86,7 +98,7 @@ void main() {
       await seedIfEmpty(container.read(scriptRepositoryProvider));
     });
 
-    tester.view.physicalSize = const Size(1280, 820);
+    tester.view.physicalSize = _size;
     tester.view.devicePixelRatio = 1;
     final key = GlobalKey();
     await tester.pumpWidget(
@@ -109,7 +121,7 @@ void main() {
         final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
         final image = await boundary.toImage();
         final png = await image.toByteData(format: ui.ImageByteFormat.png);
-        File('build/screens/$_lang${_light ? '-light' : ''}-$name.png')
+        File('$_out/$_lang-${_light ? 'light' : 'dark'}-${_size.width.round()}x${_size.height.round()}-$name.png')
           ..createSync(recursive: true)
           ..writeAsBytesSync(png!.buffer.asUint8List());
       });
@@ -176,6 +188,29 @@ void main() {
         await shot('appearance-${style.name}-$bg');
       }
     }
+    // Pre-flight, opened from Home's "Up next".
+    router.go('/');
+    await settle();
+    await tester.tap(find.text(L10n.current.goLive).first);
+    await shot('preflight');
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await settle();
+
+    // The live overlay, in both styles, at its default size.
+    container.read(settingsProvider.notifier).update((s) => s.copyWith(advanceMode: AdvanceMode.manual));
+    final script = scripts.firstWhere((s) => s.id == id);
+    for (final style in OverlayStyle.values) {
+      container.read(settingsProvider.notifier).update((s) => s.copyWith(overlayStyle: style));
+      tester.view.physicalSize = const Size(720, 300);
+      await tester.runAsync(() => container.read(liveControllerProvider.notifier).start(script));
+      await settle();
+      await settle();
+      await shot('overlay-${style.name}');
+      await tester.runAsync(() => container.read(liveControllerProvider.notifier).end());
+      tester.view.physicalSize = _size;
+      await settle();
+    }
+
     // Leave no timers running.
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 500)));
