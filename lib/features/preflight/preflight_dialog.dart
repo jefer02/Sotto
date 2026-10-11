@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../l10n/l10n.dart';
 
+import '../../core/utils/display_title.dart';
 import '../../core/design/icons.dart';
 import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
@@ -63,7 +64,7 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
       overlay,
       rehearsal: asRehearsal,
       label: label,
-      title: widget.script.title,
+      title: displayTitle(widget.script.title),
       lamp: asRehearsal ? p.primary : p.liveCapture,
       still: still,
     );
@@ -157,7 +158,7 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
         autofocus: true,
         child: Dialog(
           backgroundColor: p.raised,
-          insetPadding: const EdgeInsets.all(40),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
           shape: RoundedRectangleBorder(
             borderRadius: Radii.rXl,
             side: BorderSide(color: p.control),
@@ -182,7 +183,7 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
                               style: TypeScale.caption.copyWith(color: p.inkSecondary),
                             ),
                             const SizedBox(height: 4),
-                            Text(s.title, style: TypeScale.title1.copyWith(color: p.inkPrimary)),
+                            Text(displayTitle(s.title), style: TypeScale.title1.copyWith(color: p.inkPrimary)),
                             const SizedBox(height: 4),
                             Text(
                               l.pfSummary(minutes, l.sectionsCount(s.sections.length)) +
@@ -200,13 +201,21 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  if (checks.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(40),
-                      child: Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
-                    )
-                  else
-                    for (final c in checks) _CheckRow(check: c),
+                  // Only the checklist scrolls: the title and the go button
+                  // stay put on short windows.
+                  Flexible(
+                    child: checks.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.all(40),
+                            child: Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+                          )
+                        : SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [for (final c in checks) _CheckRow(check: c)],
+                            ),
+                          ),
+                  ),
                   const SizedBox(height: 12),
                   Divider(height: 1, color: p.hairline),
                   const SizedBox(height: 16),
@@ -239,13 +248,13 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 18,
+                    runSpacing: 8,
                     children: [
                       _Hint(settings.shortcutFor(LiveAction.nextBeat), l.hintNextBeat),
-                      const SizedBox(width: 18),
                       _Hint(settings.shortcutFor(LiveAction.ask), l.hintAsk),
-                      const SizedBox(width: 18),
                       _Hint(settings.shortcutFor(LiveAction.hide), l.hintHide),
                     ],
                   ),
