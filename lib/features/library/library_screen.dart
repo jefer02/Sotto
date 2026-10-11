@@ -14,6 +14,7 @@ import 'package:intl/intl.dart';
 import '../../l10n/l10n.dart';
 
 import '../../app/app.dart';
+import '../../core/utils/display_title.dart';
 import '../../core/design/icons.dart';
 import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
@@ -22,6 +23,7 @@ import '../../core/platform/platform_keys.dart';
 import '../../core/widgets/buttons.dart';
 import '../../core/widgets/controls.dart';
 import '../../core/widgets/display.dart';
+import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/interactive.dart';
 import '../../core/widgets/motion_effects.dart';
 import '../../data/models/script.dart';
@@ -173,7 +175,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _Greeting(scripts: scripts, intro: _intro),
                 const SizedBox(height: 32),
                 if (next != null) ...[
-                  Align(alignment: Alignment.centerLeft, child: SectionHeading(context.l10n.upNext)),
+                  Align(alignment: Alignment.centerLeft, child: SectionHeading(context.l10n.upNext, live: true)),
                   const SizedBox(height: 12),
                   Reveal(
                     enabled: _intro,
@@ -214,14 +216,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SizedBox(height: 14),
                 if (recent.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 48),
-                    child: emptyState(
-                      context,
-                      icon: SottoIcons.doc,
-                      title: context.l10n.emptyNoScriptsHere,
-                      body: context.l10n.emptyWriteOrDrop,
-                    ),
+                  EmptyState(
+                    icon: SottoIcons.doc,
+                    title: context.l10n.emptyNoScriptsHere,
+                    body: context.l10n.emptyWriteOrDrop,
                   )
                 else
                   ScriptCollectionView(scripts: recent.take(9).toList(), grid: _grid, intro: _intro),
@@ -394,7 +392,7 @@ class _UpNextCard extends ConsumerWidget {
                       Interactive(
                         onTap: () => context.go('/script/${script.id}'),
                         builder: (context, s) => Text(
-                          script.title,
+                          displayTitle(script.title),
                           style: TypeScale.title1.copyWith(color: s.hovered ? p.cueText : p.inkPrimary),
                         ),
                       ),
@@ -519,8 +517,7 @@ class _ScriptListScreenState extends ConsumerState<ScriptListScreen> {
           ),
           Expanded(
             child: scripts.isEmpty
-                ? emptyState(
-                    context,
+                ? EmptyState(
                     icon: f.archive
                         ? SottoIcons.archive
                         : query.isEmpty
@@ -719,7 +716,7 @@ class ScriptCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    script.title,
+                    displayTitle(script.title),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TypeScale.title3.copyWith(color: p.inkPrimary),
@@ -813,7 +810,20 @@ class _OrganizingBar extends StatefulWidget {
 }
 
 class _OrganizingBarState extends State<_OrganizingBar> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat();
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
+
+  // Under reduce motion the segments hold still, half lit.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      _c
+        ..stop()
+        ..value = 0.25;
+    } else if (!_c.isAnimating) {
+      _c.repeat();
+    }
+  }
 
   @override
   void dispose() {
@@ -878,7 +888,7 @@ class ScriptRow extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  script.title,
+                  displayTitle(script.title),
                   overflow: TextOverflow.ellipsis,
                   style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary),
                 ),
@@ -1067,7 +1077,10 @@ class _ScriptContextMenuState extends ConsumerState<ScriptContextMenu> {
           borderRadius: Radii.rL,
           side: BorderSide(color: p.control),
         ),
-        title: Text(context.l10n.deleteScriptTitle(s.title), style: TypeScale.title2.copyWith(color: p.inkPrimary)),
+        title: Text(
+          context.l10n.deleteScriptTitle(displayTitle(s.title)),
+          style: TypeScale.title2.copyWith(color: p.inkPrimary),
+        ),
         content: Text(context.l10n.deleteScriptBody, style: TypeScale.body.copyWith(color: p.inkSecondary)),
         actions: [
           SottoButton.ghost(label: context.l10n.cancel, onPressed: () => Navigator.pop(context, false)),
