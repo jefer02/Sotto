@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -12,8 +13,12 @@ import '../design/tokens.dart';
 /// breathes from the far corner, and dust drifts up through the light.
 ///
 /// One loop of [period]; every motion is a whole number of cycles in it, so
-/// the wrap is seamless. Holds still under reduced motion (system or
-/// Settings › Appearance).
+/// the wrap is seamless.
+///
+/// Costs almost nothing at idle: it repaints [frame] apart from a plain
+/// timer (no per-vsync ticker), and freezes on its last frame — never
+/// blanks — while the window is hidden or unfocused, its route is offstage,
+/// or motion is reduced (system or Settings › Appearance).
 class StageGlow extends StatefulWidget {
   const StageGlow({super.key, required this.child, this.alignment = const Alignment(-0.35, -1.25)});
 
@@ -24,41 +29,68 @@ class StageGlow extends StatefulWidget {
 
   static const period = Duration(seconds: 60);
 
+  /// Everything drifts over tens of seconds, so ~15 repaints a second look
+  /// as smooth as 60 and leave the frame budget to the UI.
+  static const frame = Duration(milliseconds: 66);
+
   @override
   State<StageGlow> createState() => _StageGlowState();
 }
 
-class _StageGlowState extends State<StageGlow> with SingleTickerProviderStateMixin {
+class _StageGlowState extends State<StageGlow> {
   /// Position in the loop, 0–1.
   final _time = ValueNotifier<double>(0);
-  late final Ticker _ticker = createTicker(_tick);
-  Duration _shown = Duration.zero;
+  final _clock = Stopwatch();
+  Timer? _timer;
+  late final AppLifecycleListener _lifecycle;
+  bool _foreground = true;
+  bool _still = false;
+  bool _onstage = true;
 
-  // Everything here drifts over tens of seconds, so ~20 repaints a second
-  // look as smooth as 60 and leave the frame budget to the UI.
-  static const _frame = Duration(milliseconds: 50);
+  /// For tests: whether the light is moving.
+  @visibleForTesting
+  bool get running => _timer != null;
 
-  void _tick(Duration elapsed) {
-    if (elapsed - _shown < _frame) return;
-    _shown = elapsed;
-    _time.value = (elapsed.inMicroseconds / StageGlow.period.inMicroseconds) % 1.0;
+  @override
+  void initState() {
+    super.initState();
+    final state = SchedulerBinding.instance.lifecycleState;
+    _foreground = state == null || state == AppLifecycleState.resumed;
+    _lifecycle = AppLifecycleListener(
+      onStateChange: (s) {
+        _foreground = s == AppLifecycleState.resumed;
+        _sync();
+      },
+    );
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-    if (still) {
-      _ticker.stop();
-    } else if (!_ticker.isActive) {
-      _shown = Duration.zero;
-      _ticker.start();
+    _still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    _onstage = TickerMode.valuesOf(context).enabled;
+    _sync();
+  }
+
+  void _sync() {
+    final run = _foreground && _onstage && !_still;
+    if (run && _timer == null) {
+      _clock.start();
+      _timer = Timer.periodic(StageGlow.frame, (_) {
+        _time.value = (_clock.elapsedMicroseconds / StageGlow.period.inMicroseconds) % 1.0;
+      });
+    } else if (!run && _timer != null) {
+      // Freeze where it is; resuming carries on from the same frame.
+      _clock.stop();
+      _timer!.cancel();
+      _timer = null;
     }
   }
 
   @override
   void dispose() {
-    _ticker.dispose();
+    _timer?.cancel();
+    _lifecycle.dispose();
     _time.dispose();
     super.dispose();
   }
@@ -76,7 +108,8 @@ class _StageGlowState extends State<StageGlow> with SingleTickerProviderStateMix
             ),
           ),
         ),
-        widget.child,
+        // The page repaints on its own layer, never with the light.
+        RepaintBoundary(child: widget.child),
       ],
     );
   }
