@@ -17,7 +17,8 @@ class SottoTheme extends ThemeExtension<SottoTheme> {
   SottoTheme lerp(SottoTheme? other, double t) => other == null
       ? this
       : SottoTheme(
-          palette: t < 0.5 ? palette : other.palette,
+          // Light ↔ dark crossfades every surface rather than snapping.
+          palette: SottoPalette.lerp(palette, other.palette, t),
           // The overlay's text color crossfades when the backdrop changes.
           overlay: OverlayPalette.lerp(overlay, other.overlay, t),
         );

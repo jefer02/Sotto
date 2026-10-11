@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../core/design/theme.dart';
 import '../core/design/tokens.dart';
 import '../core/platform/window_service.dart';
+import '../core/utils/frame_stats.dart';
 import '../core/widgets/stage_transitions.dart';
 import '../data/models/settings.dart';
 import '../data/models/shortcut.dart';
@@ -74,6 +75,10 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       unawaited(_registerIdle());
     };
     WidgetsBinding.instance.addPostFrameCallback((_) => _registerIdle());
+    if (FrameStats.enabled) {
+      final router = ref.read(routerProvider);
+      router.routerDelegate.addListener(() => FrameStats.label = router.routerDelegate.currentConfiguration.uri.path);
+    }
   }
 
   Future<void> _registerIdle() => ref
@@ -143,6 +148,7 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       AppThemeMode.auto => ThemeMode.system,
     };
 
+    if (FrameStats.enabled && (isLive || agentOverlay || formOverlay || autoFillOverlay)) FrameStats.label = 'overlay';
     if (isLive || agentOverlay || formOverlay || autoFillOverlay) {
       final platformDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
       final overlayDark = switch (settings.overlayTheme) {
@@ -189,6 +195,12 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       theme: buildSottoTheme(SottoPalette.houseLights),
       darkTheme: buildSottoTheme(SottoPalette.stage),
       themeMode: themeMode,
+      // Light ↔ dark crossfades (SottoPalette.lerp); instant under reduce motion.
+      themeAnimationDuration:
+          settings.reduceMotion || WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations
+          ? Duration.zero
+          : Motion.panel,
+      themeAnimationCurve: Motion.move,
       routerConfig: ref.watch(routerProvider),
       // "Reduce motion" (Settings › Appearance) calms the main window too,
       // not only the overlay: every effect checks disableAnimations.

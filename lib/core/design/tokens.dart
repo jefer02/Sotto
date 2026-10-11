@@ -151,6 +151,43 @@ class SottoPalette {
   Color get cardBottom => isDark ? raised : panel;
   Color get cardEdge => isDark ? Color.lerp(hairline, control, 0.55)! : hairline;
 
+  /// Blends two palettes, so switching theme crossfades every surface and
+  /// ink instead of snapping halfway through.
+  static SottoPalette lerp(SottoPalette a, SottoPalette b, double t) {
+    if (t <= 0) return a;
+    if (t >= 1) return b;
+    Color c(Color x, Color y) => Color.lerp(x, y, t)!;
+    return SottoPalette(
+      brightness: t < 0.5 ? a.brightness : b.brightness,
+      ground: c(a.ground, b.ground),
+      panel: c(a.panel, b.panel),
+      raised: c(a.raised, b.raised),
+      float: c(a.float, b.float),
+      hairline: c(a.hairline, b.hairline),
+      control: c(a.control, b.control),
+      emphasis: c(a.emphasis, b.emphasis),
+      inkPrimary: c(a.inkPrimary, b.inkPrimary),
+      inkSecondary: c(a.inkSecondary, b.inkSecondary),
+      inkTertiary: c(a.inkTertiary, b.inkTertiary),
+      inkDisabled: c(a.inkDisabled, b.inkDisabled),
+      cueFill: c(a.cueFill, b.cueFill),
+      cueText: c(a.cueText, b.cueText),
+      onCue: c(a.onCue, b.onCue),
+      cueHover: c(a.cueHover, b.cueHover),
+      cuePressed: c(a.cuePressed, b.cuePressed),
+      liveCapture: c(a.liveCapture, b.liveCapture),
+      confirmed: c(a.confirmed, b.confirmed),
+      caution: c(a.caution, b.caution),
+      hoverWash: c(a.hoverWash, b.hoverWash),
+      pressWash: c(a.pressWash, b.pressWash),
+      collectionTones: [
+        for (var i = 0; i < a.collectionTones.length; i++)
+          c(a.collectionTones[i], b.collectionTones[i % b.collectionTones.length]),
+      ],
+      cueDeep: c(a.cueDeep, b.cueDeep),
+    );
+  }
+
   static const stage = SottoPalette(
     brightness: Brightness.dark,
     ground: Primitives.graphite950,
@@ -418,6 +455,20 @@ class OverlayPalette {
   );
 }
 
+/// WCAG 2 contrast thresholds and the ratio itself.
+abstract final class Contrast {
+  /// Body text (AA).
+  static const double aa = 4.5;
+
+  /// Large text and UI parts (AA).
+  static const double large = 3.0;
+
+  static double ratio(Color a, Color b) {
+    final l1 = a.computeLuminance(), l2 = b.computeLuminance();
+    return (math.max(l1, l2) + 0.05) / (math.min(l1, l2) + 0.05);
+  }
+}
+
 /// space-n = n × 4 px. 8 / 16 / 24 do 80 % of the work.
 abstract final class Space {
   static const double s0_5 = 2;
@@ -452,17 +503,49 @@ abstract final class Radii {
 }
 
 /// Motion tokens and curves from "Space, grid, depth, motion".
+///
+/// Micro-interactions (hover, press, focus, toggles) take 120–200 ms;
+/// panels and pages 250–400 ms. [glide] and [settle] are kept for the
+/// signature moments only (curtain, greeting).
 abstract final class Motion {
   static const instant = Duration.zero;
-  static const quick = Duration(milliseconds: 90);
+  static const quick = Duration(milliseconds: 120);
   static const snappy = Duration(milliseconds: 160);
   static const smooth = Duration(milliseconds: 240);
   static const glide = Duration(milliseconds: 420);
   static const settle = Duration(milliseconds: 560);
 
+  /// Hover and press.
+  static const micro = Duration(milliseconds: 120);
+
+  /// Toggles, the segment pill, the focus ring.
+  static const microOut = Duration(milliseconds: 160);
+
+  /// Panels, the sidebar pill, Settings pages.
+  static const panel = Duration(milliseconds: 280);
+
+  /// Route changes.
+  static const page = Duration(milliseconds: 320);
+
+  /// One step of a list's first-time stagger, capped at [staggerCap] items.
+  static const staggerStep = Duration(milliseconds: 30);
+  static const staggerCap = 6;
+
+  /// The delay of item [i] in a staggered list.
+  static Duration stagger(int i) => staggerStep * (i < staggerCap ? i : staggerCap);
+
   static const glideEnter = Cubic(0.22, 1, 0.36, 1);
   static const shiftMove = Cubic(0.65, 0, 0.35, 1);
   static const leaveExit = Cubic(0.55, 0, 1, 0.45);
+
+  /// Things arriving or reacting: fast out, soft landing.
+  static const standard = glideEnter;
+
+  /// Things leaving: they accelerate away.
+  static const exit = leaveExit;
+
+  /// Things moving from one place to another (pills, panels).
+  static const move = Cubic(0.4, 0, 0.2, 1);
 
   // Micro-interaction timings (Motion boards).
   static const wordDim = Duration(milliseconds: 180);
@@ -483,6 +566,12 @@ abstract final class Layout {
   static const double contentMargin = 40;
   static const double titleBar = 52;
   static const Size windowMin = Size(960, 600);
+
+  /// Settings rows are at least this tall, subtitle or not.
+  static const double rowMin = 52;
+
+  /// Below this window height the sidebar's readiness card folds to one line.
+  static const double sidebarCompactBelow = 720;
 
   // Overlay anatomy · 560 × 232 default.
   static const Size overlayDefault = Size(560, 232);
