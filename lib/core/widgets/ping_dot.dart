@@ -57,26 +57,29 @@ class _PingDotState extends State<PingDot> with SingleTickerProviderStateMixin {
     final dot = DecoratedBox(
       decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color),
     );
-    return SizedBox.square(
-      dimension: widget.size,
-      child: Stack(
-        clipBehavior: Clip.none,
-        fit: StackFit.expand,
-        children: [
-          AnimatedBuilder(
-            animation: _c,
-            builder: (context, child) {
-              if (!_c.isAnimating) return const SizedBox.shrink();
-              final t = _curve.transform(_c.value);
-              return Opacity(
-                opacity: 0.6 * (1 - t),
-                child: Transform.scale(scale: 1 + (PingDot.reach - 1) * t, child: child),
-              );
-            },
-            child: dot,
-          ),
-          dot,
-        ],
+    // The ring repaints on its own layer, not with the row it sits in.
+    return RepaintBoundary(
+      child: SizedBox.square(
+        dimension: widget.size,
+        child: Stack(
+          clipBehavior: Clip.none,
+          fit: StackFit.expand,
+          children: [
+            AnimatedBuilder(
+              animation: _c,
+              builder: (context, child) {
+                if (!_c.isAnimating) return const SizedBox.shrink();
+                final t = _curve.transform(_c.value);
+                return Opacity(
+                  opacity: 0.6 * (1 - t),
+                  child: Transform.scale(scale: 1 + (PingDot.reach - 1) * t, child: child),
+                );
+              },
+              child: dot,
+            ),
+            dot,
+          ],
+        ),
       ),
     );
   }
