@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sotto/core/design/theme.dart';
@@ -58,16 +59,56 @@ void main() {
     expect(tester.hasRunningAnimations, isFalse);
   });
 
-  testWidgets('the stage and the border beam keep moving otherwise', (tester) async {
+  testWidgets('the border beam runs its intro laps, then rests until hovered', (tester) async {
     await tester.pumpWidget(
-      _app(
-        const StageGlow(
-          child: BorderBeam(color: Color(0xFF2F6BFF), child: SizedBox(width: 100, height: 40)),
-        ),
-      ),
+      _app(const BorderBeam(color: Color(0xFF2F6BFF), laps: 2, child: SizedBox(width: 100, height: 40))),
     );
     await tester.pump(const Duration(seconds: 2));
     expect(tester.hasRunningAnimations, isTrue);
+
+    // Two 4 s laps and the fade-out, then nothing ticks.
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    expect(tester.hasRunningAnimations, isFalse);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: tester.getCenter(find.byType(SizedBox).last));
+    await tester.pump();
+    expect(tester.hasRunningAnimations, isTrue);
+    await mouse.removePointer();
+  });
+
+  testWidgets('the stage light moves on a timer, not a per-frame ticker', (tester) async {
+    await tester.pumpWidget(_app(const StageGlow(child: SizedBox(width: 100, height: 40))));
+    final glow = tester.state<State<StageGlow>>(find.byType(StageGlow)) as dynamic;
+    expect(glow.running, isTrue);
+    // No ticker asks for every vsync: idle frames only come from the timer.
+    expect(tester.hasRunningAnimations, isFalse);
+    await tester.pump(StageGlow.frame * 3);
+  });
+
+  testWidgets('the stage light freezes when the window is unfocused or hidden, and carries on', (tester) async {
+    await tester.pumpWidget(_app(const StageGlow(child: SizedBox(width: 100, height: 40))));
+    final glow = tester.state<State<StageGlow>>(find.byType(StageGlow)) as dynamic;
+    for (final s in [AppLifecycleState.inactive, AppLifecycleState.hidden]) {
+      tester.binding.handleAppLifecycleStateChanged(s);
+      await tester.pump();
+      expect(glow.running, isFalse, reason: '$s');
+    }
+    // Still painted: frozen on its last frame, never blanked.
+    expect(find.byType(CustomPaint), findsWidgets);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(glow.running, isTrue);
+  });
+
+  testWidgets('the stage light freezes offstage and under reduced motion', (tester) async {
+    await tester.pumpWidget(_app(const TickerMode(enabled: false, child: StageGlow(child: SizedBox()))));
+    expect((tester.state<State<StageGlow>>(find.byType(StageGlow)) as dynamic).running, isFalse);
+    await tester.pumpWidget(_app(const StageGlow(child: SizedBox()), still: true));
+    expect((tester.state<State<StageGlow>>(find.byType(StageGlow)) as dynamic).running, isFalse);
   });
 
   testWidgets('CursorSpotlight lets taps through to its child', (tester) async {
