@@ -49,3 +49,7 @@ app.*.map.json
 
 # Built-in API keys (see lib/core/secrets.example.dart)
 /lib/core/secrets.dart
+
+# Visual renders (local only)
+docs/screenshots/
+*.render.png

@@ -8,6 +8,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'app/app.dart';
 import 'core/platform/window_service.dart';
+import 'core/utils/frame_stats.dart';
 import 'data/repositories.dart';
 import 'data/seed.dart';
 import 'data/models/settings.dart';
@@ -70,6 +71,7 @@ Future<void> main() async {
 
   startup.mark('runApp');
   runApp(UncontrolledProviderScope(container: container, child: const SottoApp()));
+  FrameStats.start();
   unawaited(WidgetsBinding.instance.waitUntilFirstFrameRasterized.then((_) => startup.report()));
 }
 
