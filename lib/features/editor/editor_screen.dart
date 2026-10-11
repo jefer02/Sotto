@@ -13,6 +13,7 @@ import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
 import '../../core/design/typography.dart';
 import '../../core/platform/platform_keys.dart';
+import '../../core/utils/display_title.dart';
 import '../../core/widgets/buttons.dart';
 import '../../core/widgets/controls.dart';
 import '../../core/widgets/display.dart';
@@ -161,81 +162,99 @@ class _Header extends ConsumerWidget {
     return TitleBarArea(
       showCaptionButtons: true,
       child: LayoutBuilder(
-        builder: (context, c) => Padding(
-          padding: const EdgeInsets.only(left: 24, right: 12),
-          child: Row(
-            children: [
-              // The breadcrumb goes first when space is short — tabs, actions
-              // and the title stay whole in longer languages.
-              if (collection != null && c.maxWidth > 1100) ...[
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 180),
-                  child: Interactive(
-                    onTap: () => context.go('/collections/${collection.id}'),
-                    builder: (context, s) => Text(
-                      collection.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TypeScale.body.copyWith(color: s.hovered ? p.inkPrimary : p.inkTertiary),
+        builder: (context, c) {
+          // Short windows: the save state keeps only its icon and Rehearse
+          // becomes an icon button, so nothing in a longer language overflows.
+          final compact = c.maxWidth < 640;
+          return Padding(
+            padding: const EdgeInsets.only(left: 24, right: 12),
+            child: Row(
+              children: [
+                // The breadcrumb goes first when space is short — tabs, actions
+                // and the title stay whole in longer languages.
+                if (collection != null && c.maxWidth > 1100) ...[
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 180),
+                    child: Interactive(
+                      onTap: () => context.go('/collections/${collection.id}'),
+                      builder: (context, s) => Text(
+                        collection.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TypeScale.body.copyWith(color: s.hovered ? p.inkPrimary : p.inkTertiary),
+                      ),
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text('/', style: TypeScale.body.copyWith(color: p.inkDisabled)),
+                  ),
+                ],
+                Flexible(
+                  flex: 4,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 240),
+                    child: _TitleField(scriptId: scriptId, title: script.title),
+                  ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text('/', style: TypeScale.body.copyWith(color: p.inkDisabled)),
+                const SizedBox(width: 14),
+                AnimatedSwitcher(
+                  duration: Motion.snappy,
+                  child: save == SaveState.saved
+                      ? Tooltip(
+                          key: const ValueKey('saved'),
+                          message: compact ? context.l10n.saved : '',
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SottoIcon(SottoIcons.check, size: 12, color: p.inkTertiary),
+                              if (!compact) ...[
+                                const SizedBox(width: 5),
+                                Text(context.l10n.saved, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                              ],
+                            ],
+                          ),
+                        )
+                      : Text(
+                          compact ? '•' : context.l10n.editing,
+                          key: const ValueKey('dirty'),
+                          style: TypeScale.caption.copyWith(color: p.inkTertiary),
+                        ),
+                ),
+                const Spacer(),
+                SegmentedControl<EditorTab>(
+                  segments: [
+                    Segment(EditorTab.write, context.l10n.tabWrite),
+                    Segment(EditorTab.prep, context.l10n.tabQaPrep),
+                    Segment(EditorTab.rehearsals, context.l10n.tabRehearsals),
+                  ],
+                  value: tab,
+                  onChanged: onTab,
+                ),
+                const Spacer(),
+                if (compact)
+                  SottoIconButton(
+                    icon: SottoIcons.rehearse,
+                    tooltip: context.l10n.rehearse,
+                    onPressed: empty ? null : () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
+                  )
+                else
+                  SottoButton(
+                    label: context.l10n.rehearse,
+                    icon: SottoIcons.rehearse,
+                    onPressed: empty ? null : () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
+                  ),
+                const SizedBox(width: 8),
+                SottoButton.primary(
+                  label: context.l10n.goLive,
+                  icon: SottoIcons.play,
+                  shortcut: settings.shortcutFor(LiveAction.goLive),
+                  onPressed: empty ? null : () => unawaited(showPreflight(context, ref, script.id)),
                 ),
               ],
-              Flexible(
-                flex: 4,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 240),
-                  child: _TitleField(scriptId: scriptId, title: script.title),
-                ),
-              ),
-              const SizedBox(width: 14),
-              AnimatedSwitcher(
-                duration: Motion.snappy,
-                child: save == SaveState.saved
-                    ? Row(
-                        key: const ValueKey('saved'),
-                        children: [
-                          SottoIcon(SottoIcons.check, size: 12, color: p.inkTertiary),
-                          const SizedBox(width: 5),
-                          Text(context.l10n.saved, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
-                        ],
-                      )
-                    : Text(
-                        context.l10n.editing,
-                        key: const ValueKey('dirty'),
-                        style: TypeScale.caption.copyWith(color: p.inkTertiary),
-                      ),
-              ),
-              const Spacer(),
-              SegmentedControl<EditorTab>(
-                segments: [
-                  Segment(EditorTab.write, context.l10n.tabWrite),
-                  Segment(EditorTab.prep, context.l10n.tabQaPrep),
-                  Segment(EditorTab.rehearsals, context.l10n.tabRehearsals),
-                ],
-                value: tab,
-                onChanged: onTab,
-              ),
-              const Spacer(),
-              SottoButton(
-                label: context.l10n.rehearse,
-                icon: SottoIcons.rehearse,
-                onPressed: empty ? null : () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
-              ),
-              const SizedBox(width: 8),
-              SottoButton.primary(
-                label: context.l10n.goLive,
-                icon: SottoIcons.play,
-                shortcut: settings.shortcutFor(LiveAction.goLive),
-                onPressed: empty ? null : () => unawaited(showPreflight(context, ref, script.id)),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -282,16 +301,20 @@ class _TitleFieldState extends ConsumerState<_TitleField> {
     final p = context.palette;
     // At rest the title is plain text that ellipsizes; a click edits it.
     if (!_editing) {
-      return Interactive(
-        onTap: () {
-          setState(() => _editing = true);
-          _f.requestFocus();
-        },
-        builder: (context, s) => Text(
-          _c.text,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TypeScale.bodyStrong.copyWith(color: s.hovered ? p.cueText : p.inkPrimary),
+      return Tooltip(
+        message: displayTitle(_c.text),
+        child: Interactive(
+          onTap: () {
+            setState(() => _editing = true);
+            _f.requestFocus();
+          },
+          // At rest the title reads as a title; editing shows what's stored.
+          builder: (context, s) => Text(
+            displayTitle(_c.text),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TypeScale.bodyStrong.copyWith(color: s.hovered ? p.cueText : p.inkPrimary),
+          ),
         ),
       );
     }
