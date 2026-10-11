@@ -203,30 +203,49 @@ class SectionLabel extends StatelessWidget {
   }
 }
 
-/// Section heading led by a small cue dot — a lamp on the marker.
+/// A quiet section label: small, grey, a touch of tracking — hierarchy
+/// from weight and color, not decoration. [live] leads it with the cue
+/// lamp, kept for what is happening now or next ("Up next", live states).
 class SectionHeading extends StatelessWidget {
-  const SectionHeading(this.title, {super.key, this.color});
+  const SectionHeading(this.title, {super.key, this.color, this.live = false, this.rule = false});
 
   final String title;
   final Color? color;
+  final bool live;
+
+  /// A hairline after the label, to the end of the row.
+  final bool rule;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final text = Text(
+      title,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: withWeight(TypeScale.caption, 600).copyWith(color: color ?? p.inkSecondary, letterSpacing: 0.24),
+    );
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: rule ? MainAxisSize.max : MainAxisSize.min,
       children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: p.primary,
-            boxShadow: [BoxShadow(color: p.primary.withValues(alpha: 0.5), blurRadius: 6)],
+        if (live) ...[
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: p.primary,
+              boxShadow: [BoxShadow(color: p.primary.withValues(alpha: 0.5), blurRadius: 6)],
+            ),
           ),
-        ),
-        const SizedBox(width: 9),
-        Text(title, style: TypeScale.bodyStrong.copyWith(color: color ?? p.inkPrimary)),
+          const SizedBox(width: 9),
+        ],
+        if (rule) ...[
+          Flexible(child: text),
+          const SizedBox(width: 12),
+          Expanded(child: Container(height: 1, color: p.hairline)),
+        ] else
+          Flexible(child: text),
       ],
     );
   }
@@ -246,11 +265,7 @@ class SettingsGroup extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (title != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 2, bottom: 10),
-            child: SectionHeading(title!, color: p.inkSecondary),
-          ),
+        if (title != null) Padding(padding: const EdgeInsets.only(left: 2, bottom: 8), child: SectionHeading(title!)),
         Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(

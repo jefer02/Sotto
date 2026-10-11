@@ -5,6 +5,7 @@ import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../../data/models/shortcut.dart';
+import '../platform/platform_keys.dart';
 import 'interactive.dart';
 import 'keycap.dart';
 
@@ -20,8 +21,10 @@ enum ButtonSize {
   final double fontSize;
 }
 
-/// Controls sit at 26–36 px, the density of a desktop tool. Every live
-/// action carries its keycap so the mouse stays optional.
+/// Controls sit at 26–36 px, the density of a desktop tool. Secondary and
+/// overlay buttons carry their keycap so the mouse stays optional; a
+/// primary button keeps its face clean and names the shortcut in its
+/// tooltip instead.
 class SottoButton extends StatelessWidget {
   const SottoButton({
     super.key,
@@ -79,10 +82,13 @@ class SottoButton extends StatelessWidget {
     final p = context.palette;
     final o = context.overlayPalette;
 
-    return Interactive(
+    final keys = shortcut != null ? PlatformKeys.describe(shortcut!) : shortcutText;
+    // The chip on a cue-filled face can't reach AA contrast; the tooltip can.
+    final chipInTooltip = variant == ButtonVariant.primary && keys != null;
+    final button = Interactive(
       onTap: onPressed,
       enabled: onPressed != null,
-      semanticLabel: label,
+      semanticLabel: keys == null ? label : '$label, $keys',
       builder: (context, s) {
         final (Color bg, Color border, Color ink, List<BoxShadow> shadow) = switch (variant) {
           ButtonVariant.primary => (
@@ -132,7 +138,7 @@ class SottoButton extends StatelessWidget {
           ),
         };
 
-        final hasKey = shortcut != null || shortcutText != null;
+        final hasKey = keys != null && !chipInTooltip;
         final content = Row(
           mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -154,11 +160,7 @@ class SottoButton extends StatelessWidget {
               _ShortcutHint(
                 shortcut: shortcut,
                 text: shortcutText,
-                tone: variant == ButtonVariant.primary
-                    ? KeycapTone.onCue
-                    : variant == ButtonVariant.overlay
-                    ? KeycapTone.overlay
-                    : KeycapTone.main,
+                tone: variant == ButtonVariant.overlay ? KeycapTone.overlay : KeycapTone.main,
               ),
             ],
           ],
@@ -197,6 +199,8 @@ class SottoButton extends StatelessWidget {
         );
       },
     );
+    if (!chipInTooltip) return button;
+    return Tooltip(message: '$label · $keys', child: button);
   }
 }
 
