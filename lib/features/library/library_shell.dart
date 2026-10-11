@@ -554,33 +554,3 @@ class _DashedBorder extends CustomPainter {
   @override
   bool shouldRepaint(_DashedBorder old) => old.color != color;
 }
-
-Widget emptyState(
-  BuildContext context, {
-  required SottoIcons icon,
-  required String title,
-  required String body,
-  Widget? action,
-}) {
-  final p = context.palette;
-  return Center(
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 360),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SottoIcon(icon, size: 20, color: p.inkTertiary),
-          const SizedBox(height: 12),
-          Text(title, style: TypeScale.title3.copyWith(color: p.inkPrimary)),
-          const SizedBox(height: 6),
-          Text(
-            body,
-            textAlign: TextAlign.center,
-            style: TypeScale.body.copyWith(color: p.inkTertiary),
-          ),
-          if (action != null) ...[const SizedBox(height: 16), action],
-        ],
-      ),
-    ),
-  );
-}
