@@ -8,6 +8,7 @@ import 'package:record/record.dart';
 
 import '../../../l10n/l10n.dart';
 
+import '../../../core/utils/display_title.dart';
 import '../../../core/design/icons.dart';
 import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
@@ -516,7 +517,9 @@ class _LiveCheckState extends ConsumerState<_LiveCheck> {
                 Text(_error!, style: TypeScale.body.copyWith(color: p.inkSecondary))
               else if (!widget.active)
                 Text(
-                  script == null ? context.l10n.checkWriteFirst : context.l10n.checkPressTest(script.title),
+                  script == null
+                      ? context.l10n.checkWriteFirst
+                      : context.l10n.checkPressTest(displayTitle(script.title)),
                   style: TypeScale.body.copyWith(color: p.inkSecondary),
                 )
               else ...[
