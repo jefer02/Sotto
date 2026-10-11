@@ -6,12 +6,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../l10n/l10n.dart';
 
+import '../../core/utils/display_title.dart';
 import '../../core/design/icons.dart';
 import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
 import '../../core/design/typography.dart';
 import '../../core/widgets/buttons.dart';
 import '../../core/widgets/display.dart';
+import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/interactive.dart';
 import '../../data/models/session_record.dart';
 import '../../data/repositories.dart';
@@ -29,8 +31,7 @@ class SessionsScreen extends ConsumerWidget {
         LibraryHeader(title: context.l10n.navSessions),
         Expanded(
           child: sessions.isEmpty
-              ? emptyState(
-                  context,
+              ? EmptyState(
                   icon: SottoIcons.sessions,
                   title: context.l10n.emptyNoSessions,
                   body: context.l10n.emptyNoSessionsHint,
@@ -80,7 +81,9 @@ class SessionTile extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    showTitle ? r.scriptTitle : (r.rehearsal ? context.l10n.rehearsal : context.l10n.liveSession),
+                    showTitle
+                        ? displayTitle(r.scriptTitle)
+                        : (r.rehearsal ? context.l10n.rehearsal : context.l10n.liveSession),
                     style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary),
                   ),
                   const SizedBox(height: 2),
