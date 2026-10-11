@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/display_title.dart';
 import '../../core/design/icons.dart';
 import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
@@ -410,7 +411,7 @@ class ChatToggles extends ConsumerWidget {
       children: [
         chip(l.chatThinkDeeper, think, () => unawaited(c.toggleThinkDeeper())),
         chip(
-          script == null ? l.chatUseScript : l.chatUseScriptNamed(script.title),
+          script == null ? l.chatUseScript : l.chatUseScriptNamed(displayTitle(script.title)),
           useScript && script != null,
           script == null ? null : () => unawaited(c.toggleUseScript()),
         ),
