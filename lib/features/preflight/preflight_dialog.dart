@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../l10n/l10n.dart';
 
+import '../../core/utils/display_title.dart';
 import '../../core/design/icons.dart';
 import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
@@ -14,6 +16,7 @@ import '../../core/widgets/buttons.dart';
 import '../../core/widgets/controls.dart';
 import '../../core/widgets/display.dart';
 import '../../core/widgets/keycap.dart';
+import '../../core/widgets/stage_transitions.dart';
 import '../../data/models/script.dart';
 import '../../data/models/settings.dart';
 import '../../data/models/shortcut.dart';
@@ -50,8 +53,23 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
     if (_starting) return;
     setState(() => _starting = true);
     final controller = ref.read(liveControllerProvider.notifier);
+    final asRehearsal = rehearsal ?? widget.rehearsal;
+    // Everything the house-lights-down moment needs, read before the dialog goes.
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final p = context.palette;
+    final label = asRehearsal ? context.l10n.rehearsal : context.l10n.liveChip;
+    final still = MediaQuery.disableAnimationsOf(context);
     Navigator.of(context).pop();
-    await controller.start(widget.script, startSection: _startSection, rehearsal: rehearsal ?? widget.rehearsal);
+    final lift = await playGoLive(
+      overlay,
+      rehearsal: asRehearsal,
+      label: label,
+      title: displayTitle(widget.script.title),
+      lamp: asRehearsal ? p.primary : p.liveCapture,
+      still: still,
+    );
+    await controller.start(widget.script, startSection: _startSection, rehearsal: asRehearsal);
+    lift();
   }
 
   @override
@@ -96,9 +114,7 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
             _Check(
               icon: SottoIcons.eyeOff,
               title: l.pfScreenSharing,
-              detail: settings.excludeFromCapture
-                  ? l.pfShareProtected
-                  : l.pfShareUnprotected,
+              detail: settings.excludeFromCapture ? l.pfShareProtected : l.pfShareUnprotected,
               level: CheckLevel.warn,
               highlight: true,
             ),
@@ -113,12 +129,23 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
               level: readiness.answers.level,
               action: readiness.answers.level == CheckLevel.ok ? null : (l.pfAddKey, '/settings/integrations'),
             ),
-            _Check(
-              icon: SottoIcons.send,
-              title: l.pfMeetingChat,
-              detail: l.pfMeetingChatDetail,
-              level: CheckLevel.ok,
-            ),
+            if (readiness.screen case final screen?)
+              _Check(
+                icon: SottoIcons.display,
+                title: l.screenAwareness,
+                detail: screen.detail ?? screen.label,
+                level: screen.level,
+                action: screen.level == CheckLevel.ok ? null : (l.pfSetUp, '/settings/privacy'),
+              ),
+            if (readiness.agent case final agent?)
+              _Check(
+                icon: SottoIcons.cursor,
+                title: l.agentMode,
+                detail: agent.detail ?? agent.label,
+                level: agent.level,
+                action: agent.level == CheckLevel.ok ? null : (l.pfSetUp, '/settings/privacy'),
+              ),
+            _Check(icon: SottoIcons.send, title: l.pfMeetingChat, detail: l.pfMeetingChatDetail, level: CheckLevel.ok),
           ];
     final passed = checks.where((c) => c.level == CheckLevel.ok).length;
 
@@ -131,7 +158,7 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
         autofocus: true,
         child: Dialog(
           backgroundColor: p.raised,
-          insetPadding: const EdgeInsets.all(40),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
           shape: RoundedRectangleBorder(
             borderRadius: Radii.rXl,
             side: BorderSide(color: p.control),
@@ -156,10 +183,11 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
                               style: TypeScale.caption.copyWith(color: p.inkSecondary),
                             ),
                             const SizedBox(height: 4),
-                            Text(s.title, style: TypeScale.title1.copyWith(color: p.inkPrimary)),
+                            Text(displayTitle(s.title), style: TypeScale.title1.copyWith(color: p.inkPrimary)),
                             const SizedBox(height: 4),
                             Text(
-                              l.pfSummary(minutes, l.sectionsCount(s.sections.length)) + (checks.isEmpty ? '' : l.pfChecksPassed(passed, checks.length)),
+                              l.pfSummary(minutes, l.sectionsCount(s.sections.length)) +
+                                  (checks.isEmpty ? '' : l.pfChecksPassed(passed, checks.length)),
                               style: TypeScale.caption.copyWith(color: p.inkTertiary),
                             ),
                           ],
@@ -173,13 +201,21 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  if (checks.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(40),
-                      child: Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
-                    )
-                  else
-                    for (final c in checks) _CheckRow(check: c),
+                  // Only the checklist scrolls: the title and the go button
+                  // stay put on short windows.
+                  Flexible(
+                    child: checks.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.all(40),
+                            child: Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+                          )
+                        : SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [for (final c in checks) _CheckRow(check: c)],
+                            ),
+                          ),
+                  ),
                   const SizedBox(height: 12),
                   Divider(height: 1, color: p.hairline),
                   const SizedBox(height: 16),
@@ -212,13 +248,13 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 18,
+                    runSpacing: 8,
                     children: [
                       _Hint(settings.shortcutFor(LiveAction.nextBeat), l.hintNextBeat),
-                      const SizedBox(width: 18),
                       _Hint(settings.shortcutFor(LiveAction.ask), l.hintAsk),
-                      const SizedBox(width: 18),
                       _Hint(settings.shortcutFor(LiveAction.hide), l.hintHide),
                     ],
                   ),
@@ -317,7 +353,7 @@ class _CheckRow extends StatelessWidget {
           const SizedBox(width: 12),
           switch (c.level) {
             CheckLevel.ok => SottoIcon(SottoIcons.check, size: 14, color: p.confirmed),
-            CheckLevel.warn => SottoIcon(SottoIcons.alert, size: 14, color: p.cueText),
+            CheckLevel.warn => SottoIcon(SottoIcons.alert, size: 14, color: p.caution),
             CheckLevel.missing => SottoIcon(SottoIcons.alert, size: 14, color: p.inkTertiary),
           },
         ],

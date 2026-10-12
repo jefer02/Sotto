@@ -1,0 +1,13 @@
+{
+  "name": "sotto-bridge-extension",
+  "private": true,
+  "description": "Sotto Bridge browser extension (Chrome, Edge, Firefox). Tests only; the extension itself has no build step.",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "icons": "node tools/render-icons.js"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}

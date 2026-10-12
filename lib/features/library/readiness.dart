@@ -5,9 +5,13 @@ import '../../core/platform/hotkey_service.dart';
 import '../../core/platform/platform_keys.dart';
 import '../../data/models/settings.dart';
 import '../../data/repositories.dart';
-import '../../data/storage/secret_store.dart';
 import '../../l10n/l10n.dart';
+import '../../services/ai/deepseek_models.dart';
+import '../../services/ai/llm_client.dart';
+import '../../services/agent/input_service.dart';
+import '../../services/screen/screen_service.dart';
 import '../../services/speech/model_manager.dart';
+import '../../core/platform/platform_features.dart';
 
 enum CheckLevel { ok, warn, missing }
 
@@ -25,6 +29,8 @@ class Readiness {
     required this.hotkeys,
     required this.answers,
     required this.share,
+    this.screen,
+    this.agent,
   });
 
   final ReadinessItem mic;
@@ -32,6 +38,12 @@ class Readiness {
   final ReadinessItem hotkeys;
   final ReadinessItem answers;
   final ReadinessItem share;
+
+  /// Screen Recording permission (macOS), only when screen awareness is on.
+  final ReadinessItem? screen;
+
+  /// Agent mode (Accessibility permission on macOS), only when it is on.
+  final ReadinessItem? agent;
 
   List<ReadinessItem> get sidebarItems => [mic, voice, hotkeys, share];
 
@@ -62,18 +74,10 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
   final lang = settings.language.split('-').first.toUpperCase();
   final extra = settings.alsoRecognize.map((l) => l.split('-').first.toUpperCase());
   final langs = [lang, ...extra].join(', ');
-  final hasCloudKey =
-      await secrets.read(SecretKey.cloudSttApiKey) != null || await secrets.read(SecretKey.openaiApiKey) != null;
 
   final ReadinessItem voice;
   if (settings.advanceMode == AdvanceMode.manual) {
     voice = ReadinessItem(l.readyHotkeysOnly, CheckLevel.ok, detail: l.readyAdvanceManual);
-  } else if (settings.engine == SpeechEngine.cloud) {
-    voice = ReadinessItem(
-      l.readyCloud(langs),
-      hasCloudKey ? CheckLevel.ok : CheckLevel.missing,
-      detail: hasCloudKey ? null : l.readyAddSttKey,
-    );
   } else {
     final english = settings.language.toLowerCase().startsWith('en');
     final canFollow =
@@ -82,35 +86,65 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
         ready(ModelCatalog.whisperTurbo);
     voice = canFollow
         ? ReadinessItem(l.readyOnDevice(langs), CheckLevel.ok)
-        : ReadinessItem(
-            l.readyOnDevice(langs),
-            hasCloudKey ? CheckLevel.warn : CheckLevel.missing,
-            detail: l.readyDownloadModels,
-          );
+        : ReadinessItem(l.readyOnDevice(langs), CheckLevel.missing, detail: l.readyDownloadModels);
   }
 
   final hk = ref.read(hotkeyServiceProvider);
   final chord = [for (final m in settings.chord) PlatformKeys.modifierSymbol(m)].join(PlatformKeys.isMac ? '' : '+');
-  final hotkeys = ReadinessItem(
-    l.readyHotkeys(chord),
-    hk.failures.isEmpty ? CheckLevel.ok : CheckLevel.warn,
-    detail: hk.failures.isEmpty ? null : l.readyTakenByOther(hk.failures.length),
-  );
+  final features = ref.read(platformFeaturesProvider);
+  // Wayland: keybinder can't grab keys, so registering "works" but nothing
+  // fires — say so rather than look ready.
+  final hotkeys = features.wayland
+      ? ReadinessItem(l.readyHotkeysWayland, CheckLevel.warn, detail: l.readyHotkeysWaylandSub)
+      : ReadinessItem(
+          l.readyHotkeys(chord),
+          hk.failures.isEmpty ? CheckLevel.ok : CheckLevel.warn,
+          detail: hk.failures.isEmpty ? null : l.readyTakenByOther(hk.failures.length),
+        );
 
-  final aiKey = await secrets.read(switch (settings.aiProvider) {
-    AiProvider.anthropic => SecretKey.anthropicApiKey,
-    AiProvider.openai => SecretKey.openaiApiKey,
-    AiProvider.openaiCompatible => SecretKey.compatibleApiKey,
-  });
-  final answers = aiKey != null || settings.aiProvider == AiProvider.openaiCompatible
-      ? ReadinessItem('${settings.aiProvider.label} · ${settings.aiModel}', CheckLevel.ok)
-      : ReadinessItem(l.readyNoKey, CheckLevel.missing, detail: l.readyAddKey);
+  // The built-in key counts: no warning unless there is no key at all, or
+  // DeepSeek turned the key down when the model list was fetched (revoked,
+  // out of balance). Offline or slow is not a key problem.
+  final cred = await resolveDeepSeekCredential(secrets);
+  ReadinessItem answers;
+  if (cred == null) {
+    answers = ReadinessItem(l.readyNoKey, CheckLevel.missing, detail: l.readyAddKey);
+  } else {
+    answers = ReadinessItem('DeepSeek · ${settings.aiModel}', CheckLevel.ok);
+    try {
+      await ref.read(deepSeekModelsProvider.future).timeout(const Duration(seconds: 4));
+    } on LlmException catch (e) {
+      if (const {401, 402, 403}.contains(e.statusCode)) {
+        answers = ReadinessItem(l.readyKeyRejected, CheckLevel.warn, detail: e.message);
+      }
+    } catch (_) {}
+  }
+
+  ReadinessItem? screen;
+  if (settings.screenAwareness) {
+    final granted = await ref.read(screenServiceProvider).permission() != ScreenPermission.denied;
+    screen = granted
+        ? ReadinessItem(l.readyScreenOk, CheckLevel.ok)
+        : ReadinessItem(l.screenPermissionMissing, CheckLevel.missing, detail: l.screenPermissionMissingSub);
+  }
+
+  ReadinessItem? agent;
+  if (settings.agentEnabled) {
+    final trusted = await ref.read(inputServiceProvider).hasPermission();
+    agent = trusted
+        ? ReadinessItem(settings.agentAutonomy == AgentAutonomy.auto ? l.readyAgentAuto : l.readyAgentOk, CheckLevel.ok)
+        : ReadinessItem(l.accessibilityMissing, CheckLevel.missing, detail: l.accessibilityMissingSub);
+  }
 
   return Readiness(
+    screen: screen,
+    agent: agent,
     mic: ReadinessItem(micLabel, micLevel),
     voice: voice,
     hotkeys: hotkeys,
     answers: answers,
-    share: ReadinessItem(l.readyShareWindow, CheckLevel.warn, detail: l.readyShareWarning),
+    share: features.captureExclusion
+        ? ReadinessItem(l.readyShareWindow, CheckLevel.warn, detail: l.readyShareWarning)
+        : ReadinessItem(l.readyShareVisible, CheckLevel.warn, detail: l.readyShareVisibleSub),
   );
 });

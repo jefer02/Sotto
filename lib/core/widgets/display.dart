@@ -79,7 +79,7 @@ class StatusChip extends StatelessWidget {
         icon: SottoIcons.check,
       ),
       _ when s.rehearsalCount == 1 => StatusChip(l.statusRehearsed, tone: ChipTone.confirmed, icon: SottoIcons.check),
-      ScriptStatus.structured || ScriptStatus.ready => StatusChip(l.statusStructured),
+      ScriptStatus.structured || ScriptStatus.ready => StatusChip(l.statusStructured, tone: ChipTone.cue, dot: true),
       ScriptStatus.draft => StatusChip(l.statusDraft, tone: ChipTone.outline),
     };
   }
@@ -130,7 +130,7 @@ class SourceChip extends StatelessWidget {
   }
 }
 
-/// Stage cue: mono caps in a tungsten outline — impossible to read aloud by
+/// Stage cue: mono caps in a cue outline — impossible to read aloud by
 /// accident.
 class CueChip extends StatelessWidget {
   const CueChip(this.cue, {super.key, this.color, this.dimmed = false});
@@ -203,6 +203,54 @@ class SectionLabel extends StatelessWidget {
   }
 }
 
+/// A quiet section label: small, grey, a touch of tracking — hierarchy
+/// from weight and color, not decoration. [live] leads it with the cue
+/// lamp, kept for what is happening now or next ("Up next", live states).
+class SectionHeading extends StatelessWidget {
+  const SectionHeading(this.title, {super.key, this.color, this.live = false, this.rule = false});
+
+  final String title;
+  final Color? color;
+  final bool live;
+
+  /// A hairline after the label, to the end of the row.
+  final bool rule;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final text = Text(
+      title,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: withWeight(TypeScale.caption, 600).copyWith(color: color ?? p.inkSecondary, letterSpacing: 0.24),
+    );
+    return Row(
+      mainAxisSize: rule ? MainAxisSize.max : MainAxisSize.min,
+      children: [
+        if (live) ...[
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: p.primary,
+              boxShadow: [BoxShadow(color: p.primary.withValues(alpha: 0.5), blurRadius: 6)],
+            ),
+          ),
+          const SizedBox(width: 9),
+        ],
+        if (rule) ...[
+          Flexible(child: text),
+          const SizedBox(width: 12),
+          Expanded(child: Container(height: 1, color: p.hairline)),
+        ] else
+          Flexible(child: text),
+      ],
+    );
+  }
+}
+
 /// A grouped card of rows separated by hairlines (Settings).
 class SettingsGroup extends StatelessWidget {
   const SettingsGroup({super.key, required this.children, this.title, this.footer});
@@ -217,16 +265,16 @@ class SettingsGroup extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (title != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 2, bottom: 10),
-            child: Text(title!, style: TypeScale.bodyStrong.copyWith(color: p.inkSecondary)),
-          ),
+        if (title != null) Padding(padding: const EdgeInsets.only(left: 2, bottom: 8), child: SectionHeading(title!)),
         Container(
           decoration: BoxDecoration(
-            color: p.panel,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [p.cardTop, p.cardBottom],
+            ),
             borderRadius: Radii.rL,
-            border: Border.all(color: p.hairline),
+            border: Border.all(color: p.cardEdge),
           ),
           child: Column(
             children: [
@@ -299,6 +347,7 @@ class SectionBar extends StatelessWidget {
     this.labels,
     this.highlight,
     this.progressColor,
+    this.trackColor,
     this.filled = 0,
     this.height = 3,
     this.gap = 3,
@@ -308,6 +357,9 @@ class SectionBar extends StatelessWidget {
   final List<String>? labels;
   final int? highlight;
   final Color? progressColor;
+
+  /// Unplayed segments; defaults to the cue track.
+  final Color? trackColor;
 
   /// Segments before this index draw as done.
   final int filled;
@@ -338,7 +390,7 @@ class SectionBar extends StatelessWidget {
                           ? (progressColor ?? p.cueFill)
                           : i < filled
                           ? p.inkTertiary
-                          : p.control,
+                          : (trackColor ?? p.primaryTrack),
                     ),
                   ),
                   if (labels != null) ...[
@@ -448,7 +500,23 @@ class ScriptText extends StatelessWidget {
 
 // ───────────────────────────── Surfaces ─────────────────────────────
 
-/// e1 · card — flat, hairline-bordered, radius 12.
+/// Sidebar surface: the panel, warmed at the top where the brand sits.
+BoxDecoration sidebarDecoration(SottoPalette p) => BoxDecoration(
+  color: p.panel,
+  gradient: LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color.alphaBlend(p.primary.withValues(alpha: p.isDark ? 0.11 : 0.10), p.panel),
+      p.panel,
+    ],
+    stops: const [0, 0.45],
+  ),
+  border: Border(right: BorderSide(color: p.hairline)),
+);
+
+/// e1 · card — hairline-bordered, radius 12, lit from above; on hover the
+/// edge catches the cue light.
 class SurfaceCard extends StatelessWidget {
   const SurfaceCard({
     super.key,
@@ -456,6 +524,7 @@ class SurfaceCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(16),
     this.color,
     this.hovered = false,
+    this.accent,
   });
 
   final Widget child;
@@ -463,18 +532,74 @@ class SurfaceCard extends StatelessWidget {
   final Color? color;
   final bool hovered;
 
+  /// A collection's color: a fading line along the top edge, a faint tint,
+  /// and the hover glow. Defaults to cue for the glow only.
+  final Color? accent;
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    return AnimatedContainer(
+    final glow = accent ?? p.primary;
+    final lift = hovered && p.isDark ? 0.35 : 0.0;
+    final base = color ?? Color.lerp(p.cardBottom, p.float, lift)!;
+    // Top edge a step lighter than the bottom: the light comes from above.
+    final top = color ?? Color.lerp(p.cardTop, p.control, lift)!;
+    // A collection owns the top of its card: its color pools there and fades
+    // out before the text, so the card reads as that collection at a glance.
+    final tinted = accent != null && color == null;
+    final wash = tinted
+        ? Color.alphaBlend(accent!.withValues(alpha: (p.isDark ? 0.16 : 0.11) + (hovered ? 0.05 : 0)), top)
+        : top;
+    final card = AnimatedContainer(
       duration: Motion.quick,
       padding: padding,
       decoration: BoxDecoration(
-        color: color ?? (hovered ? p.raised : p.panel),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [wash, top, base],
+          stops: [0, tinted ? 0.55 : 0.0, 1],
+        ),
         borderRadius: Radii.rL,
-        border: Border.all(color: hovered ? p.control : p.hairline),
+        border: Border.all(color: hovered ? glow.withValues(alpha: 0.6) : p.cardEdge),
+        boxShadow: [
+          if (hovered) BoxShadow(color: glow.withValues(alpha: p.isDark ? 0.22 : 0.22), blurRadius: 28),
+          BoxShadow(
+            color: Color(p.isDark ? 0x66000000 : 0x141C1916),
+            offset: const Offset(0, 6),
+            blurRadius: 16,
+            spreadRadius: -8,
+          ),
+        ],
       ),
       child: child,
+    );
+    if (accent == null) return card;
+    return Stack(
+      children: [
+        card,
+        Positioned(
+          top: 0,
+          left: 12,
+          right: 12,
+          child: IgnorePointer(
+            child: Container(
+              height: 2,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(1),
+                gradient: LinearGradient(
+                  colors: [
+                    accent!,
+                    accent!.withValues(alpha: hovered ? 0.7 : 0.45),
+                    accent!.withValues(alpha: 0),
+                  ],
+                  stops: const [0, 0.55, 1],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -512,7 +637,8 @@ String relativeTime(DateTime t, {DateTime? now, bool edited = false}) {
 }
 
 /// "Sep 23 · 14:04" in the active language.
-String shortDateTime(DateTime t) => '${DateFormat.MMMd(L10n.current.localeName).format(t)} · ${DateFormat.Hm().format(t)}';
+String shortDateTime(DateTime t) =>
+    '${DateFormat.MMMd(L10n.current.localeName).format(t)} · ${DateFormat.Hm().format(t)}';
 
 /// "3:00 PM" / "15:00" as the active language writes it.
 String clockTime(DateTime t) => DateFormat.jm(L10n.current.localeName).format(t);

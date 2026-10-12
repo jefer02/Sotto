@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -28,7 +29,9 @@ class ImportException implements Exception {
 }
 
 /// .txt and .md natively, .docx by reading the OOXML body, .pdf through
-/// PDFium (pdfrx). Everything runs locally.
+/// PDFium (pdfrx). Everything runs locally, and off the UI isolate: text
+/// decoding and the .docx XML on `Isolate.run`, PDFium on pdfrx's own
+/// worker isolate — a long file never freezes the window.
 abstract final class ScriptImporter {
   static const supportedExtensions = ['txt', 'md', 'markdown', 'docx', 'pdf'];
 
@@ -36,21 +39,30 @@ abstract final class ScriptImporter {
     final ext = p.extension(path).toLowerCase().replaceFirst('.', '');
     final name = p.basename(path);
     final title = p.basenameWithoutExtension(path);
-    final bytes = await File(path).readAsBytes();
-    final text = switch (ext) {
-      'txt' || 'md' || 'markdown' => _decodeText(bytes),
-      'docx' => _docxText(bytes),
-      'pdf' => await _pdfText(path),
-      _ => throw ImportException(L10n.current.importUnsupported),
-    };
+    if (!supportedExtensions.contains(ext)) throw ImportException(L10n.current.importUnsupported);
+    final String? text;
+    if (ext == 'pdf') {
+      text = await _pdfText(path);
+    } else {
+      final bytes = await File(path).readAsBytes();
+      text = await _parseOffThread(ext, bytes);
+    }
+    // Strings are localized here, on the main isolate.
+    if (text == null) throw ImportException(L10n.current.importNoBody);
     if (text.trim().isEmpty) {
       throw ImportException(L10n.current.importNoText(name));
     }
     return ImportResult(title: _titleFrom(text) ?? title, text: text, sourceName: name);
   }
 
-  static ImportResult fromPaste(String text) =>
-      ImportResult(title: _titleFrom(text) ?? L10n.current.pastedScript, text: text, sourceName: L10n.current.pastedText);
+  static ImportResult fromPaste(String text) => ImportResult(
+    title: _titleFrom(text) ?? L10n.current.pastedScript,
+    text: text,
+    sourceName: L10n.current.pastedText,
+  );
+
+  static Future<String?> _parseOffThread(String ext, Uint8List bytes) =>
+      Isolate.run(() => ext == 'docx' ? _docxText(bytes) : _decodeText(bytes));
 
   static String _decodeText(Uint8List bytes) {
     try {
@@ -67,10 +79,11 @@ abstract final class ScriptImporter {
     return m?.group(1)?.trim();
   }
 
-  static String _docxText(Uint8List bytes) {
+  /// Null when the file has no Word body.
+  static String? _docxText(Uint8List bytes) {
     final archive = ZipDecoder().decodeBytes(bytes);
     final entry = archive.findFile('word/document.xml');
-    if (entry == null) throw ImportException(L10n.current.importNoBody);
+    if (entry == null) return null;
     final doc = XmlDocument.parse(utf8.decode(entry.content as List<int>));
     final out = StringBuffer();
 
@@ -107,24 +120,32 @@ abstract final class ScriptImporter {
   static Future<String> _pdfText(String path) async {
     await pdfrxFlutterInitialize();
     final doc = await PdfDocument.openFile(path);
+    final pages = <String>[];
     try {
-      final out = StringBuffer();
       for (final page in doc.pages) {
         final text = await page.loadText();
-        if (text != null) {
-          // PDF text arrives with hard line breaks; rejoin wrapped lines but
-          // keep blank-line paragraph breaks.
-          final joined = text.fullText
-              .replaceAll('\r\n', '\n')
-              .replaceAll(RegExp(r'(?<![.!?:])\n(?!\n)'), ' ')
-              .replaceAll(RegExp(r'[ \t]+'), ' ');
-          out.writeln(joined.trim());
-          out.writeln();
-        }
+        if (text != null) pages.add(text.fullText);
       }
-      return out.toString();
     } finally {
       await doc.dispose();
     }
+    return _joinOffThread(pages);
+  }
+
+  static Future<String> _joinOffThread(List<String> pages) => Isolate.run(() => joinPdfPages(pages));
+
+  /// PDF text arrives with hard line breaks; rejoin wrapped lines but keep
+  /// blank-line paragraph breaks.
+  static String joinPdfPages(List<String> pages) {
+    final out = StringBuffer();
+    for (final text in pages) {
+      final joined = text
+          .replaceAll('\r\n', '\n')
+          .replaceAll(RegExp(r'(?<![.!?:])\n(?!\n)'), ' ')
+          .replaceAll(RegExp(r'[ \t]+'), ' ');
+      out.writeln(joined.trim());
+      out.writeln();
+    }
+    return out.toString();
   }
 }

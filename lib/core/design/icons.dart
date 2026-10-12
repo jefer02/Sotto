@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 /// Sotto icon set · 16-point grid, 1.5 px stroke, round caps and joins.
 /// Geometry extracted verbatim from the Iconography board. Icons inherit
-/// ink; tungsten only when active. Sizes: 14 in buttons, 16 in nav, 20 in
+/// ink; electric only when active. Sizes: 14 in buttons, 16 in nav, 20 in
 /// empty states.
 enum SottoIcons {
   home('<path d="M2.75 6.9 8 2.6l5.25 4.3v6.35H2.75z"></path><path d="M6.4 13.25V9.75h3.2v3.5"></path>'),
@@ -22,6 +22,9 @@ enum SottoIcons {
   ),
   search('<circle cx="7.1" cy="7.1" r="4.35"></circle><path d="m10.35 10.35 3.15 3.15"></path>'),
   plus('<path d="M8 3.25v9.5M3.25 8h9.5"></path>'),
+  // Text size: a capital A (10-unit cap height) with − or + beside it.
+  textSizeMinus('<path d="M1.75 13 5.5 3l3.75 10M3.1 9.5h4.8"></path><path d="M11 8h3.5"></path>'),
+  textSizePlus('<path d="M1.75 13 5.5 3l3.75 10M3.1 9.5h4.8"></path><path d="M11 8h3.5M12.75 6.25v3.5"></path>'),
   import(
     '<path d="M8 2.25v7.5M5 7l3 3 3-3"></path><path d="M2.75 10.25v2a1.5 1.5 0 0 0 1.5 1.5h7.5a1.5 1.5 0 0 0 1.5-1.5v-2"></path>',
   ),
@@ -117,16 +120,24 @@ enum SottoIcons {
   auto(
     '<circle cx="8" cy="8" r="5.75"></circle><path d="M8 2.25v11.5A5.75 5.75 0 0 0 8 2.25z" fill="currentColor"></path>',
   ),
+  form(
+    '<rect x="2.75" y="2.75" width="10.5" height="10.5" rx="1.5"></rect><path d="M5 6l1 1 2-2M9.5 6.25h1.5M5 10l1 1 2-2M9.5 10.25h1.5"></path>',
+  ),
+  chat(
+    '<path d="M2.75 4.25a1.5 1.5 0 0 1 1.5-1.5h7.5a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H7.25l-3 2.5v-2.5a1.5 1.5 0 0 1-1.5-1.5z"></path>',
+  ),
+  stop('<rect x="4" y="4" width="8" height="8" rx="1.5"></rect>'),
   grip('<path d="M6 4h.01M10 4h.01M6 8h.01M10 8h.01M6 12h.01M10 12h.01"></path>');
 
   const SottoIcons(this.body);
   final String body;
 
-  String svg(Color color) {
+  /// [strokeWidth] above 1.5 draws a halo (the text-only outline).
+  String svg(Color color, {double strokeWidth = 1.5}) {
     final hex = '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     final opacity = color.a;
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" '
-        'fill="none" stroke="$hex" stroke-opacity="$opacity" stroke-width="1.5" '
+        'fill="none" stroke="$hex" stroke-opacity="$opacity" stroke-width="$strokeWidth" '
         'stroke-linecap="round" stroke-linejoin="round">'
         '${body.replaceAll('currentColor', hex)}</svg>';
   }
@@ -149,7 +160,7 @@ class SottoIcon extends StatelessWidget {
   }
 }
 
-/// The cue mark: a tungsten dot beside three bars — the brand glyph.
+/// The cue mark: an electric dot beside three bars — the brand glyph.
 class CueMark extends StatelessWidget {
   const CueMark({super.key, this.size = 20, this.ink, this.cue, this.hollow = false});
 
@@ -163,7 +174,7 @@ class CueMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final i = ink ?? const Color(0xFFF2EFE9);
-    final c = cue ?? const Color(0xFFF4B55C);
+    final c = cue ?? const Color(0xFF2F6BFF);
     String hex(Color x) => '#${(x.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     final dot = hollow
         ? '<circle cx="6" cy="16" r="2.4" fill="none" stroke="${hex(c)}" stroke-width="1.2"/>'

@@ -2,11 +2,24 @@ import '../../data/models/script.dart';
 import '../../core/utils/ids.dart';
 import '../../l10n/l10n.dart';
 
+/// Section titles the structurer invents. Passed in rather than read from
+/// [L10n.current] so structuring can run on a background isolate, where
+/// statics start over (and the interface language would be lost).
+class StructurerLabels {
+  const StructurerLabels({required this.opening, required this.fallback});
+
+  StructurerLabels.current() : opening = L10n.current.sectionOpening, fallback = L10n.current.sectionFallback;
+
+  final String opening;
+  final String fallback;
+}
+
 /// Offline, rule-based organizer: raw text → sections, beats and cues.
-/// The AI organizer produces the same shape when a key is configured; this
-/// one always works and is what runs while you are offline.
+/// It is the instant first pass on import; the AI organizer then refines
+/// the boundaries (see `organize_plan.dart`), and this is also what stays
+/// when you are offline.
 class ScriptStructurer {
-  const ScriptStructurer({this.minBeatWords = 6, this.maxBeatWords = 28});
+  const ScriptStructurer({this.minBeatWords = 6, this.maxBeatWords = 28, this.labels});
 
   /// Shorter sentences merge into the next one.
   final int minBeatWords;
@@ -14,8 +27,16 @@ class ScriptStructurer {
   /// Longer sentences split at a natural pause ("one breath").
   final int maxBeatWords;
 
+  /// Null: [StructurerLabels.current] (main isolate only).
+  final StructurerLabels? labels;
+
+  StructurerLabels get _labels => labels ?? StructurerLabels.current();
+
   static final _heading = RegExp(r'^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$');
-  static final _sectionLabel = RegExp(r'^\s*(?:section|part|chapter|secci[oó]n|parte|cap[ií]tulo)\s+\d+\s*[:.\-–—]\s*(.+)$', caseSensitive: false);
+  static final _sectionLabel = RegExp(
+    r'^\s*(?:section|part|chapter|secci[oó]n|parte|cap[ií]tulo)\s+\d+\s*[:.\-–—]\s*(.+)$',
+    caseSensitive: false,
+  );
   static final _bullet = RegExp(r'^\s*(?:[-*•]|\d+[.)])\s+(.+)$');
   static final _rule = RegExp(r'^\s*(?:-{3,}|\*{3,}|_{3,})\s*$');
   static final _inlineCue = RegExp(
@@ -26,9 +47,10 @@ class ScriptStructurer {
   );
   static final _sentenceEnd = RegExp(r'(?<=[.!?…])["”’)]?\s+(?=["“‘(]?[A-Z0-9$€£])');
 
-  /// [linePerBeat] trusts the input's line breaks as beat boundaries — used
-  /// for the AI organizer's output, which already splits by breath.
-  List<Section> structure(String raw, {bool linePerBeat = false}) {
+  /// Sections for [raw]. [first] is false for a later part of a longer
+  /// script, whose first untitled section is not the "Opening".
+  List<Section> structure(String raw, {bool first = true}) {
+    final labels = _labels;
     final lines = raw.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
     final drafts = <_DraftSection>[];
     _DraftSection? current;
@@ -47,20 +69,10 @@ class ScriptStructurer {
       final line = lines[i];
       final trimmed = line.trim();
 
-      String? title;
-      final h = _heading.firstMatch(line);
-      final label = _sectionLabel.firstMatch(line);
-      if (h != null) {
-        title = h.group(1);
-      } else if (label != null) {
-        title = label.group(1);
-      } else if (_looksLikeTitle(trimmed, lines, i)) {
-        title = trimmed;
-      }
-
+      final title = titleAt(lines, i);
       if (title != null) {
         flushParagraph();
-        current = _DraftSection(_cleanTitle(title));
+        current = _DraftSection(title);
         drafts.add(current!);
         continue;
       }
@@ -80,16 +92,15 @@ class ScriptStructurer {
       }
       if (paragraph.isNotEmpty) paragraph.write(' ');
       paragraph.write(trimmed);
-      if (linePerBeat) flushParagraph();
     }
     flushParagraph();
 
     final nonEmpty = drafts.where((d) => d.paragraphs.isNotEmpty || d.keyPoints.isNotEmpty).toList();
-    if (nonEmpty.isEmpty) return [Section.create(L10n.current.sectionOpening)];
+    if (nonEmpty.isEmpty) return [Section.create(labels.opening)];
 
     // No headings at all: chunk long scripts into ~200-word parts.
-    if (!linePerBeat && nonEmpty.length == 1 && nonEmpty.first.title == null) {
-      return _chunkUntitled(nonEmpty.first.paragraphs);
+    if (nonEmpty.length == 1 && nonEmpty.first.title == null) {
+      return _chunkUntitled(nonEmpty.first.paragraphs, labels, first: first);
     }
 
     var slide = 0;
@@ -97,12 +108,14 @@ class ScriptStructurer {
       for (var i = 0; i < nonEmpty.length; i++)
         Section(
           id: newId(),
-          title: nonEmpty[i].title ?? (i == 0 ? L10n.current.sectionOpening : _titleFrom(nonEmpty[i].paragraphs)),
+          title:
+              nonEmpty[i].title ??
+              (i == 0 && first ? labels.opening : titleFrom(nonEmpty[i].paragraphs.firstOrNull ?? '', labels.fallback)),
           keyPoints: nonEmpty[i].keyPoints,
           beats: () {
             final beats = <Beat>[];
             for (final p in nonEmpty[i].paragraphs) {
-              final (b, s) = _beatsFor(p, slide, whole: linePerBeat);
+              final (b, s) = beatsFor(p, slide);
               beats.addAll(b);
               slide = s;
             }
@@ -112,8 +125,11 @@ class ScriptStructurer {
     ];
   }
 
-  /// Returns the beats of a paragraph and the running slide counter.
-  (List<Beat>, int) _beatsFor(String paragraph, int slideCounter, {bool whole = false}) {
+  /// Returns the beats of a paragraph and the running slide counter. Inline
+  /// cues ([SLIDE 7], [PAUSE]…) become chips on the beat that follows them.
+  /// [whole] keeps the text as one beat (the AI chose the boundaries),
+  /// splitting only what is longer than one breath.
+  (List<Beat>, int) beatsFor(String paragraph, int slideCounter, {bool whole = false}) {
     var slide = slideCounter;
     final beats = <Beat>[];
     Cue? pending;
@@ -125,7 +141,10 @@ class ScriptStructurer {
     for (final m in _inlineCue.allMatches(paragraph)) {
       pieces.add((null, paragraph.substring(last, m.start)));
       Cue cue;
-      if (m.group(1) != null || m.group(3) != null || (m.group(8)?.toLowerCase().endsWith('diapositiva') ?? false) || m.group(8)?.toLowerCase() == 'next slide') {
+      if (m.group(1) != null ||
+          m.group(3) != null ||
+          (m.group(8)?.toLowerCase().endsWith('diapositiva') ?? false) ||
+          m.group(8)?.toLowerCase() == 'next slide') {
         final n = int.tryParse(m.group(2) ?? '');
         slide = n ?? slide + 1;
         cue = Cue(CueType.slide, '$slide');
@@ -147,7 +166,7 @@ class ScriptStructurer {
         continue;
       }
       final trimmed = text.trim().replaceAll(RegExp(r'\s+'), ' ');
-      for (final sentence in whole ? [if (trimmed.isNotEmpty) trimmed] : _sentences(text)) {
+      for (final sentence in whole ? [if (trimmed.isNotEmpty) ...splitLong(trimmed)] : _sentences(text)) {
         beats.add(Beat.create(sentence, cue: pending));
         pending = null;
       }
@@ -172,11 +191,11 @@ class ScriptStructurer {
         merged.add(s);
       }
     }
-    return [for (final s in merged) ..._splitLong(s)];
+    return [for (final s in merged) ...splitLong(s)];
   }
 
   /// Splits at the pause nearest the middle: ";", ":", "—", then ",".
-  List<String> _splitLong(String s) {
+  List<String> splitLong(String s) {
     if (_words(s) <= maxBeatWords) return [s];
     final mid = s.length ~/ 2;
     int? best;
@@ -193,10 +212,10 @@ class ScriptStructurer {
       if (best != null) break;
     }
     if (best == null) return [s];
-    return [..._splitLong(s.substring(0, best).trim()), ..._splitLong(s.substring(best).trim())];
+    return [...splitLong(s.substring(0, best).trim()), ...splitLong(s.substring(best).trim())];
   }
 
-  List<Section> _chunkUntitled(List<String> paragraphs) {
+  List<Section> _chunkUntitled(List<String> paragraphs, StructurerLabels labels, {required bool first}) {
     const target = 220;
     final sections = <Section>[];
     var buffer = <String>[];
@@ -206,11 +225,17 @@ class ScriptStructurer {
       if (buffer.isEmpty) return;
       final beats = <Beat>[];
       for (final p in buffer) {
-        final (b, s) = _beatsFor(p, slide);
+        final (b, s) = beatsFor(p, slide);
         beats.addAll(b);
         slide = s;
       }
-      sections.add(Section(id: newId(), title: sections.isEmpty ? L10n.current.sectionOpening : _titleFrom(buffer), beats: beats));
+      sections.add(
+        Section(
+          id: newId(),
+          title: sections.isEmpty && first ? labels.opening : titleFrom(buffer.first, labels.fallback),
+          beats: beats,
+        ),
+      );
       buffer = [];
       words = 0;
     }
@@ -224,22 +249,41 @@ class ScriptStructurer {
     return sections;
   }
 
-  bool _looksLikeTitle(String line, List<String> lines, int i) {
+  /// The section title line [i] of [lines] declares — a Markdown heading,
+  /// "Part 2: …", or a short stand-alone capitalized line — or null.
+  static String? titleAt(List<String> lines, int i) {
+    final line = lines[i];
+    final h = _heading.firstMatch(line);
+    if (h != null) return _cleanTitle(h.group(1)!);
+    final label = _sectionLabel.firstMatch(line);
+    if (label != null) return _cleanTitle(label.group(1)!);
+    final trimmed = line.trim();
+    if (_looksLikeTitle(trimmed, lines, i)) return _cleanTitle(trimmed);
+    return null;
+  }
+
+  /// A bullet line's text, or null.
+  static String? bulletAt(String line) => _bullet.firstMatch(line)?.group(1)?.trim();
+
+  static bool isRule(String line) => _rule.hasMatch(line);
+
+  static bool _looksLikeTitle(String line, List<String> lines, int i) {
     if (line.isEmpty || line.length > 60) return false;
     if (RegExp(r'[.,;:!?…"”]$').hasMatch(line)) return false;
     if (_bullet.hasMatch(line) || _inlineCue.hasMatch(line)) return false;
     final prevBlank = i == 0 || lines[i - 1].trim().isEmpty;
     final nextBlank = i + 1 >= lines.length || lines[i + 1].trim().isEmpty;
     final words = _words(line);
-    return prevBlank && nextBlank && words <= 7 && RegExp(r'^[A-Z0-9]').hasMatch(line);
+    return prevBlank && nextBlank && words <= 7 && RegExp(r'^[A-Z0-9ÁÉÍÓÚÑ¿¡]').hasMatch(line);
   }
 
-  String _cleanTitle(String t) => t.replaceAll(RegExp(r'[*_`]'), '').trim();
+  static String _cleanTitle(String t) => t.replaceAll(RegExp(r'[*_`]'), '').trim();
 
-  String _titleFrom(List<String> paragraphs) {
-    final words = paragraphs.first.replaceAll(_inlineCue, '').trim().split(RegExp(r'\s+'));
+  /// A title from the first words of [text] ("Gross margin rose again").
+  static String titleFrom(String text, String fallback) {
+    final words = text.replaceAll(_inlineCue, '').replaceAll('**', '').trim().split(RegExp(r'\s+'));
     final t = words.take(4).join(' ').replaceAll(RegExp(r'[.,;:!?]+$'), '');
-    return t.isEmpty ? L10n.current.sectionFallback : t;
+    return t.isEmpty ? fallback : t;
   }
 
   static int _words(String s) => s.trim().isEmpty ? 0 : s.trim().split(RegExp(r'\s+')).length;
@@ -247,7 +291,10 @@ class ScriptStructurer {
   /// Names and numbers worth sending to the recognizer as hints.
   static List<String> hintWordsFor(List<Section> sections, {int limit = 12}) {
     final counts = <String, int>{};
-    final number = RegExp(r'[$€£]?\d[\d,.]*\s?(?:%|million|billion|thousand|millones|mil|k|m|bn)?', caseSensitive: false);
+    final number = RegExp(
+      r'[$€£]?\d[\d,.]*\s?(?:%|million|billion|thousand|millones|mil|k|m|bn)?',
+      caseSensitive: false,
+    );
     final proper = RegExp(r'(?<=[a-z,;:]\s)([A-Z][a-zA-Z]{2,}(?:\s[A-Z][a-zA-Z]+)*)');
     for (final s in sections) {
       for (final b in s.beats) {

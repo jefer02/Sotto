@@ -1,5 +1,7 @@
 import Cocoa
 import FlutterMacOS
+import IOKit.ps
+import ScreenCaptureKit
 
 /// Sotto's single window. While preparing it is an ordinary titled window;
 /// while live it becomes the overlay: a non-activating panel that floats
@@ -12,6 +14,11 @@ class MainFlutterWindow: NSPanel {
   private var blurView: NSVisualEffectView?
   private var savedLevel: NSWindow.Level = .normal
   private var savedBehavior: NSWindow.CollectionBehavior = []
+
+  /// The overlay takes the keyboard for a moment (chat input, editing an
+  /// answer); the app that had it gets it back afterwards.
+  private var allowKey = false
+  private var appBeforeKeyboard: NSRunningApplication?
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
@@ -44,23 +51,113 @@ class MainFlutterWindow: NSPanel {
           excludeFromCapture: args["excludeFromCapture"] as? Bool ?? false,
           blur: args["blur"] as? Bool ?? false,
           dark: args["dark"] as? Bool ?? true,
-          radius: CGFloat(args["radius"] as? Double ?? 16))
+          radius: CGFloat(args["radius"] as? Double ?? 16),
+          textOnly: args["textOnly"] as? Bool ?? false)
+        result(nil)
+      case "allowFill":
+        self.allowFillOnce = true
+        result(nil)
+      case "keyboard":
+        let args = call.arguments as? [String: Any] ?? [:]
+        self.setOverlayKeyboard(args["on"] as? Bool ?? false)
         result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
     }
 
+    let formsChannel = FlutterMethodChannel(
+      name: "app.sotto/forms",
+      binaryMessenger: flutterViewController.engine.binaryMessenger)
+    formsChannel.setMethodCallHandler { [weak self] call, result in
+      self?.handleForms(call, result: result)
+    }
+
+    let inputChannel = FlutterMethodChannel(
+      name: "app.sotto/input",
+      binaryMessenger: flutterViewController.engine.binaryMessenger)
+    inputChannel.setMethodCallHandler { call, result in
+      SyntheticInput.handle(call, result: result)
+    }
+
+    let screenChannel = FlutterMethodChannel(
+      name: "app.sotto/screen",
+      binaryMessenger: flutterViewController.engine.binaryMessenger)
+    screenChannel.setMethodCallHandler { [weak self] call, result in
+      self?.handleScreen(call, result: result)
+    }
+
+    // Battery saver: background polling (auto-fill) slows down.
+    let powerChannel = FlutterMethodChannel(
+      name: "app.sotto/power",
+      binaryMessenger: flutterViewController.engine.binaryMessenger)
+    powerChannel.setMethodCallHandler { call, result in
+      call.method == "saver" ? result(MainFlutterWindow.savingPower()) : result(FlutterMethodNotImplemented)
+    }
+
     super.awakeFromNib()
+  }
+
+  /// Set by Dart right before it restores an overlay the presenter had
+  /// dragged to fill the screen; consumed by the next frame change.
+  private var allowFillOnce = false
+
+  // The overlay is a small floating window. Zoom (a double-click on its top
+  // edge), full screen and window tiling (macOS 15: dragging a window to the
+  // top of the screen fills it) are refused; only the presenter's own edge
+  // drag — a live resize — may make it that big.
+  override func zoom(_ sender: Any?) {
+    if overlayActive { return }
+    super.zoom(sender)
+  }
+
+  override func toggleFullScreen(_ sender: Any?) {
+    if overlayActive { return }
+    super.toggleFullScreen(sender)
+  }
+
+  private func refusesFrame(_ frame: NSRect) -> Bool {
+    guard overlayActive, !inLiveResize, let area = screen?.visibleFrame else { return false }
+    if allowFillOnce {
+      allowFillOnce = false
+      return false
+    }
+    return frame.width >= area.width - 2 && frame.height >= area.height - 2
+  }
+
+  override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+    if refusesFrame(frameRect) { return }
+    super.setFrame(frameRect, display: flag)
+  }
+
+  override func setFrame(_ frameRect: NSRect, display displayFlag: Bool, animate animateFlag: Bool) {
+    if refusesFrame(frameRect) { return }
+    super.setFrame(frameRect, display: displayFlag, animate: animateFlag)
   }
 
   // In the overlay, never become key: keystrokes keep going to the app the
   // presenter is actually using.
-  override var canBecomeKey: Bool { !overlayActive }
+  override var canBecomeKey: Bool { !overlayActive || allowKey }
   override var canBecomeMain: Bool { !overlayActive }
 
+  private func setOverlayKeyboard(_ on: Bool) {
+    guard overlayActive, on != allowKey else { return }
+    allowKey = on
+    if on {
+      appBeforeKeyboard = NSWorkspace.shared.frontmostApplication
+      NSApp.activate(ignoringOtherApps: true)
+      makeKey()
+    } else {
+      resignKey()
+      // Give the keyboard back to Zoom / Keynote.
+      appBeforeKeyboard?.activate()
+      appBeforeKeyboard = nil
+    }
+  }
+
   private func configureOverlay(
-    enabled: Bool, excludeFromCapture: Bool, blur: Bool, dark: Bool, radius: CGFloat
+    enabled: Bool, excludeFromCapture: Bool, blur: Bool, dark: Bool, radius: CGFloat,
+    textOnly: Bool
   ) {
     if enabled && !overlayActive {
       savedLevel = level
@@ -75,13 +172,16 @@ class MainFlutterWindow: NSPanel {
       // Best effort only: on macOS 15+, ScreenCaptureKit can still capture
       // the window during a full-screen share. Pre-flight says so.
       sharingType = excludeFromCapture ? .none : .readOnly
-      hasShadow = true
-      setBlur(blur, dark: dark, radius: radius)
+      // Text only: no vibrancy and no window shadow — a shadow would outline
+      // the invisible window rectangle. Glyphs bring their own.
+      hasShadow = !textOnly
+      setBlur(blur && !textOnly, dark: dark, radius: radius)
     } else {
       styleMask.remove(.nonactivatingPanel)
       level = savedLevel
       collectionBehavior = savedBehavior
       sharingType = .readOnly
+      hasShadow = true
       setBlur(false, dark: dark, radius: radius)
     }
     invalidateShadow()
@@ -109,4 +209,741 @@ class MainFlutterWindow: NSPanel {
       blurView = view
     }
   }
+}
+
+// MARK: - Screen capture ("Ask about screen")
+
+extension MainFlutterWindow {
+  fileprivate func handleScreen(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    let args = call.arguments as? [String: Any] ?? [:]
+    switch call.method {
+    case "permission":
+      result(CGPreflightScreenCaptureAccess() ? "granted" : "denied")
+    case "requestPermission":
+      result(CGRequestScreenCaptureAccess())
+    case "openSettings":
+      let anchor = (args["pane"] as? String) == "accessibility" ? "Privacy_Accessibility" : "Privacy_ScreenCapture"
+      if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)") {
+        NSWorkspace.shared.open(url)
+      }
+      result(nil)
+    case "captureRegion":
+      captureRegion(args, result: result)
+    case "capture":
+      captureScreen(
+        cursor: (args["target"] as? String) == "cursor",
+        foreground: (args["target"] as? String) == "foreground",
+        maxSide: args["maxSide"] as? Int ?? 1300,
+        quality: args["quality"] as? Int ?? 80,
+        result: result)
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func captureScreen(
+    cursor: Bool, foreground: Bool = false, maxSide: Int, quality: Int, result: @escaping FlutterResult
+  ) {
+    guard CGPreflightScreenCaptureAccess() else {
+      result(FlutterError(code: "permission_denied", message: "Screen Recording permission is off", details: nil))
+      return
+    }
+    let mouse = NSEvent.mouseLocation
+    let target = foreground
+      ? MainFlutterWindow.foregroundScreen()
+      : (cursor ? NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } : self.screen)
+    guard let screen = target ?? NSScreen.main,
+      let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+    else {
+      result(FlutterError(code: "capture_failed", message: "No display", details: nil))
+      return
+    }
+    let displayID = CGDirectDisplayID(number.uint32Value)
+    let scale = screen.backingScaleFactor
+    // Global display coordinates (top-left origin, points) — what CGEvent uses.
+    let bounds = CGDisplayBounds(displayID)
+    let pixelW = bounds.width * scale
+    let pixelH = bounds.height * scale
+    let k = min(1.0, CGFloat(maxSide) / max(pixelW, pixelH))
+    let outW = Int((pixelW * k).rounded())
+    let outH = Int((pixelH * k).rounded())
+
+    // On the main thread, where Flutter results go.
+    func reply(_ jpeg: Data?, method: String) {
+      guard let jpeg = jpeg else {
+        result(FlutterError(code: "capture_failed", message: "Screen capture failed", details: nil))
+        return
+      }
+      result([
+        "jpeg": FlutterStandardTypedData(bytes: jpeg),
+        "width": outW,
+        "height": outH,
+        "left": Double(bounds.origin.x * scale),
+        "top": Double(bounds.origin.y * scale),
+        "screenWidth": Double(pixelW),
+        "screenHeight": Double(pixelH),
+        "scale": Double(scale),
+        "method": method,
+      ])
+    }
+
+    // The JPEG is encoded off the main thread; the full-size image is
+    // released there as soon as it is encoded.
+    func finish(_ image: CGImage?, method: String) {
+      MainFlutterWindow.captureQueue.async {
+        let jpeg = image.flatMap { MainFlutterWindow.jpeg($0, width: outW, height: outH, quality: quality) }
+        DispatchQueue.main.async { reply(jpeg, method: method) }
+      }
+    }
+
+    if #available(macOS 14.0, *) {
+      SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: true) { content, _ in
+        guard let content = content,
+          let display = content.displays.first(where: { $0.displayID == displayID })
+        else {
+          finish(nil, method: "sck")
+          return
+        }
+        // Sotto never appears in its own screenshots — even where
+        // sharingType = .none isn't honoured (macOS 15+ ScreenCaptureKit).
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let own = content.applications.filter { $0.processID == pid }
+        let filter = SCContentFilter(display: display, excludingApplications: own, exceptingWindows: [])
+        let config = SCStreamConfiguration()
+        config.width = outW
+        config.height = outH
+        config.showsCursor = false
+        SCScreenshotManager.captureImage(contentFilter: filter, configuration: config) { image, _ in
+          finish(image, method: "sck")
+        }
+      }
+    } else {
+      // macOS 12–13: this API honours sharingType = .none — set it for the
+      // capture even if "Hide from screen capture" is off.
+      let previous = sharingType
+      sharingType = .none
+      let image = CGDisplayCreateImage(displayID)
+      sharingType = previous
+      finish(image, method: "cg")
+    }
+  }
+
+  /// A few pixels of what is behind the overlay, for the text-contrast
+  /// check. The rect is window_manager's bounds: points, top-left origin —
+  /// the global display coordinates CoreGraphics uses. Sotto's own windows
+  /// are left out; the pixels never leave this function but as raw RGBA.
+  private func captureRegion(_ args: [String: Any], result: @escaping FlutterResult) {
+    guard CGPreflightScreenCaptureAccess() else {
+      result(FlutterError(code: "permission_denied", message: "Screen Recording permission is off", details: nil))
+      return
+    }
+    let rect = CGRect(
+      x: args["left"] as? Double ?? 0, y: args["top"] as? Double ?? 0,
+      width: args["width"] as? Double ?? 0, height: args["height"] as? Double ?? 0)
+    guard rect.width > 0, rect.height > 0 else {
+      result(FlutterError(code: "capture_failed", message: "Empty region", details: nil))
+      return
+    }
+    let maxSide = CGFloat(args["maxSide"] as? Int ?? 48)
+    let k = min(1.0, maxSide / max(rect.width, rect.height))
+    let outW = max(1, Int(rect.width * k))
+    let outH = max(1, Int(rect.height * k))
+
+    var ids = [CGDirectDisplayID](repeating: 0, count: 8)
+    var count: UInt32 = 0
+    CGGetDisplaysWithPoint(CGPoint(x: rect.midX, y: rect.midY), 8, &ids, &count)
+    let displayID = count > 0 ? ids[0] : CGMainDisplayID()
+    let origin = CGDisplayBounds(displayID).origin
+    let local = rect.offsetBy(dx: -origin.x, dy: -origin.y)
+
+    func finish(_ image: CGImage?) {
+      DispatchQueue.main.async {
+        guard let image = image, let pixels = MainFlutterWindow.rgba(image, width: outW, height: outH) else {
+          result(FlutterError(code: "capture_failed", message: "Region capture failed", details: nil))
+          return
+        }
+        result([
+          "pixels": FlutterStandardTypedData(bytes: pixels),
+          "width": outW,
+          "height": outH,
+          "order": "rgba",
+        ])
+      }
+    }
+
+    if #available(macOS 14.0, *) {
+      SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: true) { content, _ in
+        guard let content = content,
+          let display = content.displays.first(where: { $0.displayID == displayID })
+        else {
+          finish(nil)
+          return
+        }
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let own = content.applications.filter { $0.processID == pid }
+        let filter = SCContentFilter(display: display, excludingApplications: own, exceptingWindows: [])
+        let config = SCStreamConfiguration()
+        config.sourceRect = local
+        config.width = outW
+        config.height = outH
+        config.showsCursor = false
+        SCScreenshotManager.captureImage(contentFilter: filter, configuration: config) { image, _ in
+          finish(image)
+        }
+      }
+    } else {
+      let previous = sharingType
+      sharingType = .none
+      let image = CGDisplayCreateImage(displayID, rect: local)
+      sharingType = previous
+      finish(image)
+    }
+  }
+
+  /// [image] scaled to width × height, as RGBA bytes.
+  fileprivate static func rgba(_ image: CGImage, width: Int, height: Int) -> Data? {
+    guard
+      let ctx = CGContext(
+        data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+        space: CGColorSpace(name: CGColorSpace.sRGB)!,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+      let data = ctx.data
+    else { return nil }
+    ctx.interpolationQuality = .medium
+    ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+    return Data(bytes: data, count: width * height * 4)
+  }
+
+  /// Scales [image] to width × height and encodes a JPEG.
+  fileprivate static func jpeg(_ image: CGImage, width: Int, height: Int, quality: Int) -> Data? {
+    guard
+      let ctx = CGContext(
+        data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpace(name: CGColorSpace.sRGB)!,
+        bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+    else { return nil }
+    ctx.interpolationQuality = .high
+    ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+    guard let scaled = ctx.makeImage() else { return nil }
+    let rep = NSBitmapImageRep(cgImage: scaled)
+    return rep.representation(
+      using: .jpeg, properties: [.compressionFactor: NSNumber(value: Double(quality) / 100.0)])
+  }
+}
+
+// MARK: - Questionnaires on screen: the AX API
+
+/// Reads and fills the frontmost app's form controls. Needs Accessibility
+/// permission — and an app outside the App Sandbox, which blocks AX access
+/// to other apps (see the README). Element ids are valid until the next read.
+extension MainFlutterWindow {
+  private static var formElements: [String: AXUIElement] = [:]
+
+  /// The screen of the frontmost app's front window (no permission needed:
+  /// window bounds come from the window server).
+  static func foregroundScreen() -> NSScreen? {
+    guard let app = NSWorkspace.shared.frontmostApplication,
+      app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+      let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+        as? [[String: Any]]
+    else { return NSScreen.main }
+    for w in info {
+      guard (w[kCGWindowOwnerPID as String] as? pid_t) == app.processIdentifier,
+        (w[kCGWindowLayer as String] as? Int) == 0,
+        let b = w[kCGWindowBounds as String] as? [String: CGFloat]
+      else { continue }
+      let center = CGPoint(x: (b["X"] ?? 0) + (b["Width"] ?? 0) / 2, y: (b["Y"] ?? 0) + (b["Height"] ?? 0) / 2)
+      return screen(containing: center) ?? NSScreen.main
+    }
+    return NSScreen.main
+  }
+
+  /// The screen whose display bounds (global, top-left points) hold [p].
+  fileprivate static func screen(containing p: CGPoint) -> NSScreen? {
+    NSScreen.screens.first { s in
+      guard let n = s.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return false }
+      return CGDisplayBounds(CGDirectDisplayID(n.uint32Value)).contains(p)
+    }
+  }
+
+  /// AX calls into another app can take a while on a big page: they run
+  /// here, one at a time, never on the main thread.
+  static let formsQueue = DispatchQueue(label: "app.sotto.forms", qos: .userInitiated)
+  static let captureQueue = DispatchQueue(label: "app.sotto.capture", qos: .userInitiated)
+
+  fileprivate func handleForms(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "permission":
+      result(AXIsProcessTrusted() ? "granted" : "denied")
+    case "requestPermission":
+      let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+      result(AXIsProcessTrustedWithOptions([key: true] as CFDictionary))
+    default:
+      // NSScreen is main-thread only: the displays' scales are read here.
+      let displays = MainFlutterWindow.displayScales()
+      let reply: FlutterResult = { value in DispatchQueue.main.async { result(value) } }
+      MainFlutterWindow.formsQueue.async { [weak self] in
+        guard let self = self else { return reply(FlutterError(code: "no_window", message: nil, details: nil)) }
+        self.handleFormsOffMain(call, displays: displays, result: reply)
+      }
+    }
+  }
+
+  /// Runs on [formsQueue].
+  private func handleFormsOffMain(
+    _ call: FlutterMethodCall, displays: [(CGRect, CGFloat)], result: @escaping FlutterResult
+  ) {
+    let args = call.arguments as? [String: Any] ?? [:]
+    let id = args["id"] as? String ?? ""
+    let element = MainFlutterWindow.formElements[id]
+    switch call.method {
+    case "read":
+      readForm(max: args["max"] as? Int ?? 800, displays: displays, result: result)
+    case "setValue":
+      guard let e = element else { return result(false) }
+      AXUIElementSetAttributeValue(e, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+      let text = (args["text"] as? String ?? "") as CFString
+      result(AXUIElementSetAttributeValue(e, kAXValueAttribute as CFString, text) == .success)
+    case "select", "invoke":
+      guard let e = element else { return result(false) }
+      result(AXUIElementPerformAction(e, kAXPressAction as CFString) == .success)
+    case "toggle":
+      guard let e = element else { return result(false) }
+      let on = args["on"] as? Bool ?? false
+      let current = (MainFlutterWindow.attr(e, kAXValueAttribute) as? NSNumber)?.intValue == 1
+      result(current == on || AXUIElementPerformAction(e, kAXPressAction as CFString) == .success)
+    case "choose":
+      guard let e = element else { return result(false) }
+      chooseOption(e, label: args["label"] as? String ?? "", result: result)
+    case "focus":
+      guard let e = element else { return result(false) }
+      result(AXUIElementSetAttributeValue(e, kAXFocusedAttribute as CFString, kCFBooleanTrue) == .success)
+    case "scrollIntoView":
+      guard let e = element else { return result(false) }
+      result(AXUIElementPerformAction(e, "AXScrollToVisible" as CFString) == .success)
+    case "foreground":
+      result(MainFlutterWindow.foregroundInfo())
+    case "canScrollDown":
+      result(MainFlutterWindow.canScrollDown())
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  /// The app in front and its focused window's title, as JSON — what the
+  /// auto-fill watcher polls. "own" is Sotto itself.
+  fileprivate static func foregroundInfo() -> String {
+    guard let app = NSWorkspace.shared.frontmostApplication else { return "{}" }
+    var title = ""
+    var windowId = "\(app.processIdentifier)"
+    if AXIsProcessTrusted() {
+      let axApp = AXUIElementCreateApplication(app.processIdentifier)
+      if let w = attr(axApp, kAXFocusedWindowAttribute), CFGetTypeID(w) == AXUIElementGetTypeID() {
+        let window = w as! AXUIElement
+        title = string(window, kAXTitleAttribute) ?? ""
+        windowId += ":\(CFHash(window))"
+      }
+    }
+    let info: [String: Any] = [
+      "id": windowId,
+      "title": title,
+      "app": app.localizedName ?? app.bundleIdentifier ?? "",
+      "own": app.processIdentifier == ProcessInfo.processInfo.processIdentifier,
+    ]
+    guard let data = try? JSONSerialization.data(withJSONObject: info),
+      let json = String(data: data, encoding: .utf8)
+    else { return "{}" }
+    return json
+  }
+
+  /// Whether the front window's page can scroll further down: its first
+  /// scroll area's vertical scroll bar value (0…1). Nil when unknown.
+  fileprivate static func canScrollDown() -> Any? {
+    guard AXIsProcessTrusted(), let app = NSWorkspace.shared.frontmostApplication,
+      app.processIdentifier != ProcessInfo.processInfo.processIdentifier
+    else { return nil }
+    let axApp = AXUIElementCreateApplication(app.processIdentifier)
+    guard let w = attr(axApp, kAXFocusedWindowAttribute), CFGetTypeID(w) == AXUIElementGetTypeID() else { return nil }
+    var queue: [(AXUIElement, Int)] = [(w as! AXUIElement, 0)]
+    var visited = 0
+    while !queue.isEmpty && visited < 400 {
+      let (e, depth) = queue.removeFirst()
+      visited += 1
+      if string(e, kAXRoleAttribute) == "AXScrollArea",
+        let bar = attr(e, kAXVerticalScrollBarAttribute), CFGetTypeID(bar) == AXUIElementGetTypeID(),
+        let value = attr(bar as! AXUIElement, kAXValueAttribute) as? NSNumber
+      {
+        return value.doubleValue < 0.995
+      }
+      if depth < 12 { queue.append(contentsOf: children(e).map { ($0, depth + 1) }) }
+    }
+    return nil
+  }
+
+  fileprivate static func attr(_ e: AXUIElement, _ name: String) -> CFTypeRef? {
+    var v: CFTypeRef?
+    return AXUIElementCopyAttributeValue(e, name as CFString, &v) == .success ? v : nil
+  }
+
+  fileprivate static func string(_ e: AXUIElement, _ name: String) -> String? {
+    let s = attr(e, name) as? String
+    return (s?.isEmpty ?? true) ? nil : s
+  }
+
+  fileprivate static func children(_ e: AXUIElement) -> [AXUIElement] {
+    (attr(e, kAXChildrenAttribute) as? [AXUIElement]) ?? []
+  }
+
+  /// The visible label: title, description, the linked title element, or
+  /// the placeholder.
+  fileprivate static func label(_ e: AXUIElement) -> String {
+    if let t = string(e, kAXTitleAttribute) { return t }
+    if let d = string(e, kAXDescriptionAttribute) { return d }
+    if let titled = attr(e, kAXTitleUIElementAttribute), CFGetTypeID(titled) == AXUIElementGetTypeID() {
+      let t = titled as! AXUIElement
+      if let v = string(t, kAXValueAttribute) ?? string(t, kAXTitleAttribute) { return v }
+    }
+    return string(e, kAXPlaceholderValueAttribute) ?? ""
+  }
+
+  /// Each display's bounds (global points, top-left origin) and scale.
+  fileprivate static func displayScales() -> [(CGRect, CGFloat)] {
+    NSScreen.screens.compactMap { s in
+      guard let n = s.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return nil }
+      return (CGDisplayBounds(CGDirectDisplayID(n.uint32Value)), s.backingScaleFactor)
+    }
+  }
+
+  /// Low Power Mode, or running on a battery at 20 % or less
+  /// (IOPSCopyPowerSourcesInfo) — the Mac's battery saver.
+  fileprivate static func savingPower() -> Bool {
+    if #available(macOS 12.0, *), ProcessInfo.processInfo.isLowPowerModeEnabled { return true }
+    guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+      let sources = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef]
+    else { return false }
+    for source in sources {
+      guard let d = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue() as? [String: Any],
+        d[kIOPSPowerSourceStateKey] as? String == kIOPSBatteryPowerValue
+      else { continue }
+      let current = d[kIOPSCurrentCapacityKey] as? Int ?? 100
+      let max = d[kIOPSMaxCapacityKey] as? Int ?? 100
+      if max > 0 && current * 100 / max <= 20 { return true }
+    }
+    return false
+  }
+
+  private func readForm(max: Int, displays: [(CGRect, CGFloat)], result: @escaping FlutterResult) {
+    guard AXIsProcessTrusted() else {
+      return result(FlutterError(code: "permission_denied", message: "Accessibility permission is off", details: nil))
+    }
+    guard let app = NSWorkspace.shared.frontmostApplication else {
+      return result(FlutterError(code: "no_window", message: nil, details: nil))
+    }
+    if app.processIdentifier == ProcessInfo.processInfo.processIdentifier {
+      return result(FlutterError(code: "own_window", message: nil, details: nil))
+    }
+    let axApp = AXUIElementCreateApplication(app.processIdentifier)
+    // Chrome, Edge and Electron apps build their web-content AX tree only
+    // when an assistive app asks; these switch it on (others ignore them).
+    // Firefox and some pages still expose little: those fields fall back to
+    // clicking and typing where the screenshot shows them.
+    AXUIElementSetAttributeValue(axApp, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+    AXUIElementSetAttributeValue(axApp, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+    guard let w = MainFlutterWindow.attr(axApp, kAXFocusedWindowAttribute),
+      CFGetTypeID(w) == AXUIElementGetTypeID()
+    else {
+      return result(FlutterError(code: "no_window", message: nil, details: nil))
+    }
+    let window = w as! AXUIElement
+    // Physical pixels, like the screenshot: global points × the display scale.
+    var scale: CGFloat = 2
+    if let pos = MainFlutterWindow.attr(window, kAXPositionAttribute) {
+      var p = CGPoint.zero
+      AXValueGetValue(pos as! AXValue, .cgPoint, &p)
+      scale = displays.first { $0.0.contains(p) }?.1 ?? 2
+    }
+
+    MainFlutterWindow.formElements = [:]
+    var out: [[String: Any]] = []
+    var counter = 0
+
+    func visit(_ e: AXUIElement, parent: String?, depth: Int) {
+      if out.count >= max || depth > 60 { return }
+      let role = MainFlutterWindow.string(e, kAXRoleAttribute) ?? ""
+      let subrole = MainFlutterWindow.string(e, kAXSubroleAttribute) ?? ""
+      let type: String?
+      switch role {
+      case "AXTextField", "AXTextArea", "AXSearchField": type = "edit"
+      case "AXRadioButton": type = "radio"
+      case "AXCheckBox", "AXSwitch": type = "checkbox"
+      case "AXPopUpButton", "AXComboBox": type = "combo"
+      case "AXButton": type = "button"
+      case "AXRadioGroup", "AXGroup", "AXList", "AXForm": type = "group"
+      default: type = nil
+      }
+      var here = parent
+      if let type = type {
+        counter += 1
+        let id = "ax\(counter)"
+        MainFlutterWindow.formElements[id] = e
+        here = id
+        let name = MainFlutterWindow.label(e)
+        // Unlabelled groups only exist to group radios and checkboxes.
+        if type != "group" || !name.isEmpty {
+          var m: [String: Any] = ["id": id, "type": type, "name": name]
+          if let parent = parent { m["parent"] = parent }
+          let value = MainFlutterWindow.attr(e, kAXValueAttribute)
+          if let v = value as? String { m["value"] = v }
+          if type == "checkbox" || type == "radio" { m["checked"] = (value as? NSNumber)?.intValue == 1 }
+          if let pos = MainFlutterWindow.attr(e, kAXPositionAttribute),
+            let size = MainFlutterWindow.attr(e, kAXSizeAttribute)
+          {
+            var p = CGPoint.zero
+            var z = CGSize.zero
+            AXValueGetValue(pos as! AXValue, .cgPoint, &p)
+            AXValueGetValue(size as! AXValue, .cgSize, &z)
+            m["bounds"] = [p.x * scale, p.y * scale, z.width * scale, z.height * scale]
+          }
+          m["enabled"] = (MainFlutterWindow.attr(e, kAXEnabledAttribute) as? Bool) ?? true
+          m["password"] = subrole == "AXSecureTextField"
+          m["multiline"] = role == "AXTextArea"
+          var patterns: [String] = []
+          var settable: DarwinBoolean = false
+          if AXUIElementIsAttributeSettable(e, kAXValueAttribute as CFString, &settable) == .success,
+            settable.boolValue
+          {
+            patterns.append("value")
+          }
+          var actions: CFArray?
+          if AXUIElementCopyActionNames(e, &actions) == .success, let names = actions as? [String] {
+            if names.contains(kAXPressAction) { patterns += ["invoke", "select", "toggle"] }
+            if names.contains(kAXShowMenuAction) || role == "AXPopUpButton" { patterns.append("expand") }
+            if names.contains("AXScrollToVisible") { patterns.append("scroll") }
+          }
+          m["patterns"] = patterns
+          if type == "combo" {
+            // A pop-up's menu items, when the app exposes them closed.
+            var options: [String] = []
+            for menu in MainFlutterWindow.children(e) {
+              for item in MainFlutterWindow.children(menu) {
+                if let t = MainFlutterWindow.string(item, kAXTitleAttribute) { options.append(t) }
+              }
+            }
+            if !options.isEmpty { m["options"] = options }
+          }
+          out.append(m)
+        }
+        if type == "combo" { return }  // its menu items are options, not fields
+      }
+      for child in MainFlutterWindow.children(e) {
+        visit(child, parent: here, depth: depth + 1)
+      }
+    }
+    visit(window, parent: nil, depth: 0)
+
+    guard let data = try? JSONSerialization.data(withJSONObject: out),
+      let json = String(data: data, encoding: .utf8)
+    else {
+      return result(FlutterError(code: "uia_failed", message: "Could not encode the form", details: nil))
+    }
+    result(json)
+  }
+
+  /// Opens a pop-up, presses the item titled [label], or sets the value of
+  /// an editable combo box.
+  private func chooseOption(_ e: AXUIElement, label: String, result: @escaping FlutterResult) {
+    AXUIElementPerformAction(e, kAXPressAction as CFString)
+    MainFlutterWindow.formsQueue.asyncAfter(deadline: .now() + 0.2) {
+      let want = label.lowercased()
+      for menu in MainFlutterWindow.children(e) {
+        for item in MainFlutterWindow.children(menu)
+        where MainFlutterWindow.string(item, kAXTitleAttribute)?.lowercased() == want {
+          return result(AXUIElementPerformAction(item, kAXPressAction as CFString) == .success)
+        }
+      }
+      AXUIElementPerformAction(e, kAXCancelAction as CFString)
+      result(AXUIElementSetAttributeValue(e, kAXValueAttribute as CFString, label as CFString) == .success)
+    }
+  }
+}
+
+// MARK: - Synthetic input (CGEvent)
+
+/// Synthetic mouse and keyboard over CGEvent — the macOS half of
+/// `app.sotto/input` (InputService): the click-and-type fallback for
+/// questionnaire fields that browsers don't expose to the AX API, and agent
+/// mode. Needs Accessibility permission (and no App Sandbox).
+///
+/// Coordinates are global display points, top-left origin — what CGEvent
+/// uses; the Dart side converts from physical pixels.
+enum SyntheticInput {
+  static func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    let a = call.arguments as? [String: Any] ?? [:]
+    let point = CGPoint(x: number(a["x"]), y: number(a["y"]))
+    switch call.method {
+    case "permission":
+      result(AXIsProcessTrusted() ? "granted" : "denied")
+    case "requestPermission":
+      let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+      result(AXIsProcessTrustedWithOptions([key: true] as CFDictionary))
+    case "move":
+      // While the button is held (a drag) the page must see drag events.
+      post(CGEvent(mouseEventSource: source, mouseType: leftDown ? .leftMouseDragged : .mouseMoved,
+                   mouseCursorPosition: point, mouseButton: .left))
+      result(nil)
+    case "mouseButton":
+      leftDown = a["down"] as? Bool ?? false
+      post(CGEvent(mouseEventSource: source, mouseType: leftDown ? .leftMouseDown : .leftMouseUp,
+                   mouseCursorPosition: point, mouseButton: .left))
+      result(nil)
+    case "click":
+      click(at: point, right: (a["button"] as? String) == "right", count: a["count"] as? Int ?? 1)
+      result(nil)
+    case "scroll":
+      if a["atPoint"] as? Bool ?? false {
+        post(CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left))
+      }
+      // Wheel units are lines; positive dy scrolls down (content moves up).
+      let dy = Int32(-(a["dy"] as? Int ?? 0))
+      let dx = Int32(-(a["dx"] as? Int ?? 0))
+      post(CGEvent(scrollWheelEvent2Source: source, units: .line, wheelCount: 2, wheel1: dy * 3, wheel2: dx * 3, wheel3: 0))
+      result(nil)
+    case "type":
+      type(a["text"] as? String ?? "")
+      result(nil)
+    case "keys":
+      result(pressKeys((a["keys"] as? [String]) ?? []) ? nil : FlutterError(code: "input_failed", message: "unknown key", details: nil))
+    case "releaseAll":
+      releaseAll()
+      result(nil)
+    case "focused":
+      result(focused())
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private static let source = CGEventSource(stateID: .hidSystemState)
+
+  /// A drag is in progress (matching / ordering questions).
+  private static var leftDown = false
+
+  private static func number(_ v: Any?) -> CGFloat {
+    if let d = v as? Double { return CGFloat(d) }
+    if let i = v as? Int { return CGFloat(i) }
+    return 0
+  }
+
+  private static func post(_ e: CGEvent?) {
+    e?.post(tap: .cghidEventTap)
+  }
+
+  private static func click(at p: CGPoint, right: Bool, count: Int) {
+    let down: CGEventType = right ? .rightMouseDown : .leftMouseDown
+    let up: CGEventType = right ? .rightMouseUp : .leftMouseUp
+    let button: CGMouseButton = right ? .right : .left
+    post(CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: p, mouseButton: button))
+    for n in 1...max(1, min(count, 2)) {
+      for type in [down, up] {
+        let e = CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: p, mouseButton: button)
+        e?.setIntegerValueField(.mouseEventClickState, value: Int64(n))
+        post(e)
+      }
+    }
+  }
+
+  /// One Unicode key event per character — web inputs see real typing, and
+  /// no keyboard layout gets in the way. Line breaks press Return.
+  private static func type(_ text: String) {
+    for ch in text {
+      if ch == "\n" || ch == "\r\n" {
+        tap(36, flags: [])
+        continue
+      }
+      let units = Array(String(ch).utf16)
+      for down in [true, false] {
+        let e = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: down)
+        units.withUnsafeBufferPointer { buf in
+          e?.keyboardSetUnicodeString(stringLength: buf.count, unicodeString: buf.baseAddress)
+        }
+        post(e)
+      }
+    }
+  }
+
+  private static func tap(_ key: CGKeyCode, flags: CGEventFlags) {
+    for down in [true, false] {
+      let e = CGEvent(keyboardEventSource: source, virtualKey: key, keyDown: down)
+      e?.flags = flags
+      post(e)
+    }
+  }
+
+  /// "cmd"+"a", "enter", "escape"… pressed together. On macOS "ctrl" is
+  /// Control and "cmd" / "meta" is Command.
+  private static func pressKeys(_ names: [String]) -> Bool {
+    var flags: CGEventFlags = []
+    var keys: [CGKeyCode] = []
+    for raw in names {
+      let n = raw.lowercased()
+      switch n {
+      case "cmd", "command", "meta", "super", "win": flags.insert(.maskCommand)
+      case "ctrl", "control": flags.insert(.maskControl)
+      case "alt", "option": flags.insert(.maskAlternate)
+      case "shift": flags.insert(.maskShift)
+      default:
+        guard let code = keyCodes[n] else { return false }
+        keys.append(code)
+      }
+    }
+    if keys.isEmpty { return false }
+    for k in keys { tap(k, flags: flags) }
+    return true
+  }
+
+  private static func releaseAll() {
+    leftDown = false
+    for code: CGKeyCode in [55, 54, 56, 60, 58, 61, 59, 62] {  // cmd, shift, option, control (both sides)
+      let e = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: false)
+      e?.flags = []
+      post(e)
+    }
+    let p = CGEvent(source: nil)?.location ?? .zero
+    post(CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: p, mouseButton: .left))
+    post(CGEvent(mouseEventSource: source, mouseType: .rightMouseUp, mouseCursorPosition: p, mouseButton: .right))
+  }
+
+  /// The focused control, for the safety gate: never type into a password.
+  private static func focused() -> [String: Any]? {
+    let system = AXUIElementCreateSystemWide()
+    var value: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &value) == .success,
+      let v = value, CFGetTypeID(v) == AXUIElementGetTypeID()
+    else { return nil }
+    let e = v as! AXUIElement
+    func string(_ name: String) -> String {
+      var s: CFTypeRef?
+      return AXUIElementCopyAttributeValue(e, name as CFString, &s) == .success ? (s as? String ?? "") : ""
+    }
+    return [
+      "isPassword": string(kAXSubroleAttribute) == "AXSecureTextField",
+      "name": string(kAXTitleAttribute).isEmpty ? string(kAXDescriptionAttribute) : string(kAXTitleAttribute),
+      "role": string(kAXRoleAttribute),
+    ]
+  }
+
+  /// ANSI virtual key codes (Carbon's kVK_*).
+  private static let keyCodes: [String: CGKeyCode] = [
+    "a": 0, "s": 1, "d": 2, "f": 3, "h": 4, "g": 5, "z": 6, "x": 7, "c": 8, "v": 9, "b": 11, "q": 12,
+    "w": 13, "e": 14, "r": 15, "y": 16, "t": 17, "1": 18, "2": 19, "3": 20, "4": 21, "6": 22, "5": 23,
+    "=": 24, "9": 25, "7": 26, "-": 27, "8": 28, "0": 29, "]": 30, "o": 31, "u": 32, "[": 33, "i": 34,
+    "p": 35, "l": 37, "j": 38, "'": 39, "k": 40, ";": 41, "\\": 42, ",": 43, "/": 44, "n": 45, "m": 46,
+    ".": 47, "`": 50,
+    "enter": 36, "return": 36, "tab": 48, "space": 49, "backspace": 51, "escape": 53, "esc": 53,
+    "delete": 117, "del": 117, "home": 115, "end": 119, "pageup": 116, "pagedown": 121,
+    "left": 123, "right": 124, "down": 125, "up": 126,
+    "arrowleft": 123, "arrowright": 124, "arrowdown": 125, "arrowup": 126,
+    "f1": 122, "f2": 120, "f3": 99, "f4": 118, "f5": 96, "f6": 97, "f7": 98, "f8": 100, "f9": 101,
+    "f10": 109, "f11": 103, "f12": 111,
+  ]
 }

@@ -7,14 +7,28 @@ import 'package:intl/intl.dart';
 
 import '../core/design/theme.dart';
 import '../core/design/tokens.dart';
+import '../core/platform/window_service.dart';
+import '../core/utils/frame_stats.dart';
+import '../core/widgets/stage_transitions.dart';
 import '../data/models/settings.dart';
+import '../data/models/shortcut.dart';
 import '../data/repositories.dart';
 import '../l10n/l10n.dart';
+import '../features/agent/agent_controller.dart';
+import '../features/agent/agent_view.dart';
+import '../features/chat/chat_controller.dart';
+import '../features/forms/autofill_controller.dart';
+import '../features/forms/autofill_view.dart';
+import '../features/live/backdrop_tone_controller.dart';
 import '../features/live/live_controller.dart';
 import '../features/library/library_actions.dart';
+import '../features/live/overlay_palette.dart';
 import '../features/live/overlay_screen.dart';
 import '../features/preflight/preflight_dialog.dart';
+import '../features/questionnaire/questionnaire_controller.dart';
+import '../features/questionnaire/questionnaire_view.dart';
 import 'router.dart';
+import '../core/platform/platform_features.dart';
 
 /// The script a global ⌃⌥L should start: the one open in the editor, or
 /// the library's "Up next".
@@ -62,10 +76,48 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       unawaited(_registerIdle());
     };
     WidgetsBinding.instance.addPostFrameCallback((_) => _registerIdle());
+    if (FrameStats.enabled) {
+      final router = ref.read(routerProvider);
+      router.routerDelegate.addListener(() => FrameStats.label = router.routerDelegate.currentConfiguration.uri.path);
+    }
   }
 
-  Future<void> _registerIdle() =>
-      ref.read(liveControllerProvider.notifier).registerIdleHotkeys(_openPreflightFromHotkey);
+  Future<void> _registerIdle() => ref
+      .read(liveControllerProvider.notifier)
+      .registerIdleHotkeys(
+        _openPreflightFromHotkey,
+        extra: {
+          // Linux has no form filling: the chord stays free for other apps.
+          if (ref.read(platformFeaturesProvider).formFilling)
+            LiveAction.fillForm: (
+              onDown: () => unawaited(ref.read(autoFillControllerProvider.notifier).fillNow()),
+              onUp: null,
+            ),
+          // Chord + Esc, outside a session too: whatever Sotto is doing on
+          // screen stops at once, and auto-fill rests.
+          LiveAction.agentStop: (onDown: _emergencyStop, onUp: null),
+          // The chat's shortcuts exist only with the chat turned on.
+          if (ref.read(settingsProvider).showChat) ...{
+            LiveAction.openChat: (onDown: () => unawaited(_openChat()), onUp: null),
+            LiveAction.pushToTalk: (
+              onDown: () =>
+                  unawaited(_openChat().then((_) => ref.read(chatControllerProvider.notifier).startDictation())),
+              onUp: () => unawaited(ref.read(chatControllerProvider.notifier).stopDictation()),
+            ),
+          },
+        },
+      );
+
+  void _emergencyStop() {
+    ref.read(agentControllerProvider.notifier).stop();
+    ref.read(autoFillControllerProvider.notifier).emergencyStop();
+  }
+
+  /// Chord + C outside a session: the Chat page, in front.
+  Future<void> _openChat() async {
+    ref.read(routerProvider).go('/chat');
+    await ref.read(windowServiceProvider).bringToFront();
+  }
 
   void _openPreflightFromHotkey() {
     final id = ref.read(focusedScriptProvider);
@@ -76,12 +128,18 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    // Re-bind ⌃⌥L when the chord or its key changes in Settings.
-    ref.listen(settingsProvider.select((s) => (s.chord, s.bindings)), (_, _) {
+    // Re-bind ⌃⌥L when the chord or its key changes in Settings — and the
+    // chat's shortcuts when the chat is turned on or off.
+    ref.listen(settingsProvider.select((s) => (s.chord, s.bindings, s.showChat)), (_, _) {
       if (!ref.read(liveControllerProvider).isLive) unawaited(_registerIdle());
     });
     final settings = ref.watch(settingsProvider);
     final isLive = ref.watch(liveControllerProvider.select((s) => s.isLive));
+    // An agent task started from the main window turns it into an overlay too.
+    final agentOverlay = ref.watch(agentControllerProvider.select((a) => a.active && a.standalone));
+    final formOverlay = ref.watch(questionnaireControllerProvider.select((q) => q.active && q.standalone));
+    // Auto-fill (or "Fill what's on screen now") outside a session.
+    final autoFillOverlay = ref.watch(autoFillControllerProvider.select((a) => a.overlay));
     final locale = appLocale(settings.uiLanguage);
     // Controllers and services read strings without a BuildContext.
     L10n.current = lookupAppLocalizations(locale);
@@ -93,7 +151,8 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       AppThemeMode.auto => ThemeMode.system,
     };
 
-    if (isLive) {
+    if (FrameStats.enabled && (isLive || agentOverlay || formOverlay || autoFillOverlay)) FrameStats.label = 'overlay';
+    if (isLive || agentOverlay || formOverlay || autoFillOverlay) {
       final platformDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
       final overlayDark = switch (settings.overlayTheme) {
         OverlayThemeMode.dark => true,
@@ -101,9 +160,9 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
         OverlayThemeMode.matchApp =>
           settings.appTheme == AppThemeMode.dark || (settings.appTheme == AppThemeMode.auto && platformDark),
       };
-      final overlay = (overlayDark ? OverlayPalette.dark : OverlayPalette.light).withGroundOpacity(
-        settings.overlayOpacity * (overlayDark ? 1 : 1.1).clamp(0, 1),
-      );
+      // Auto text color: what's behind the overlay, sampled on-device.
+      final backdrop = isLive ? ref.watch(backdropToneProvider) : null;
+      final overlay = overlayPaletteFor(settings, dark: overlayDark, backdrop: backdrop);
       return MaterialApp(
         key: ValueKey(locale.languageCode),
         debugShowCheckedModeBanner: false,
@@ -112,11 +171,18 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         color: const Color(0x00000000),
+        // A backdrop change crossfades the text color over 200 ms.
+        themeAnimationDuration: const Duration(milliseconds: 200),
+        themeAnimationCurve: Curves.easeInOut,
         theme: buildSottoTheme(
           overlayDark ? SottoPalette.stage : SottoPalette.houseLights,
           overlay: overlay,
         ).copyWith(scaffoldBackgroundColor: const Color(0x00000000), canvasColor: const Color(0x00000000)),
-        home: const OverlayScreen(),
+        home: isLive
+            ? const OverlayScreen()
+            : autoFillOverlay
+            ? const AutoFillOverlayScreen()
+            : (formOverlay ? const QuestionnaireOverlayScreen() : const AgentOverlayScreen()),
       );
     }
 
@@ -132,8 +198,23 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       theme: buildSottoTheme(SottoPalette.houseLights),
       darkTheme: buildSottoTheme(SottoPalette.stage),
       themeMode: themeMode,
+      // Light ↔ dark crossfades (SottoPalette.lerp); instant under reduce motion.
+      themeAnimationDuration:
+          settings.reduceMotion || WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations
+          ? Duration.zero
+          : Motion.panel,
+      themeAnimationCurve: Motion.move,
       routerConfig: ref.watch(routerProvider),
-      builder: (context, child) => _GlobalShortcuts(child: child ?? const SizedBox.shrink()),
+      // "Reduce motion" (Settings › Appearance) calms the main window too,
+      // not only the overlay: every effect checks disableAnimations.
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(disableAnimations: media.disableAnimations || settings.reduceMotion),
+          // The curtain rises on launch; the house lights come up after a show.
+          child: LaunchCurtain(child: _GlobalShortcuts(child: child ?? const SizedBox.shrink())),
+        );
+      },
     );
   }
 }

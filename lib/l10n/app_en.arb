@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
   "appTitle": "Sotto",
-  "statusOrganizing": "Organizing…",
+  "statusOrganizing": "Refining…",
   "statusRehearsedTimes": "Rehearsed ×{count}",
   "@statusRehearsedTimes": {
     "placeholders": {
@@ -80,7 +80,6 @@
   "modShift": "Shift",
   "modOption": "Option",
   "modCommand": "Command",
-  "providerCompatible": "OpenAI-compatible",
   "untitledScript": "Untitled script",
   "sectionOpening": "Opening",
   "sectionFallback": "Section",
@@ -148,7 +147,7 @@
     }
   },
   "llmRefusal": "The model declined to answer this question.",
-  "llmTimeout": "{provider} did not respond in time.",
+  "llmTimeout": "{provider} did not respond — check your connection",
   "@llmTimeout": {
     "placeholders": {
       "provider": {
@@ -183,7 +182,6 @@
       }
     }
   },
-  "llmAiServer": "The AI server",
   "modelStreamingEn": "English · streaming",
   "modelStreamingEnDesc": "Follows your voice word by word",
   "modelStreamingEnLight": "English · streaming (light)",
@@ -205,9 +203,7 @@
   "engineUnavailable": "Unavailable",
   "engineOnDeviceStreaming": "On-device · streaming",
   "engineOnDeviceWhisper": "On-device · Whisper",
-  "engineCloud": "Cloud",
   "engineModelsMissing": "Speech models are not installed yet. Download them in Settings → Voice & following.",
-  "engineCloudKeyMissing": "Add a speech-to-text API key in Settings → Integrations to use the cloud engine.",
   "sttEngineFailed": "Speech engine failed to start: {error}",
   "@sttEngineFailed": {
     "placeholders": {
@@ -218,15 +214,6 @@
   },
   "sttNoModel": "No transcription model installed.",
   "sttStopped": "Speech engine stopped.",
-  "sttBadKey": "The speech-to-text API key was rejected.",
-  "sttCloudFailed": "Cloud transcription failed ({status}).",
-  "@sttCloudFailed": {
-    "placeholders": {
-      "status": {
-        "type": "int"
-      }
-    }
-  },
   "micPermission": "Sotto needs microphone access. Allow it in System Settings → Privacy.",
   "noticeShortcutsTaken": "{count, plural, =1{1 shortcut is taken by another app} other{{count} shortcuts are taken by another app}}",
   "@noticeShortcutsTaken": {
@@ -238,21 +225,12 @@
   },
   "noticeNoSpeechForQuestions": "Questions need a speech engine — see Settings → Voice & following.",
   "noticeNoQuestion": "Didn't catch a question",
-  "answerNeedsKey": "Add an API key in Settings → Integrations to draft answers.",
+  "answerNeedsKey": "Answers need a DeepSeek key. Add your own in Settings → Integrations — it's free to create.",
   "noticeCopiedForChat": "Copied — paste into the meeting chat",
   "noticeAnswerCopied": "Answer copied",
   "readyNoMic": "No microphone",
   "readyHotkeysOnly": "Hotkeys only",
   "readyAdvanceManual": "Advance: manual",
-  "readyCloud": "Cloud · {langs}",
-  "@readyCloud": {
-    "placeholders": {
-      "langs": {
-        "type": "String"
-      }
-    }
-  },
-  "readyAddSttKey": "Add a speech-to-text key in Integrations",
   "readyOnDevice": "On-device · {langs}",
   "@readyOnDevice": {
     "placeholders": {
@@ -279,7 +257,7 @@
     }
   },
   "readyNoKey": "No API key",
-  "readyAddKey": "Add one in Integrations to draft answers",
+  "readyAddKey": "Add your own DeepSeek key in Integrations to draft answers",
   "readyShareWindow": "Share a window",
   "readyShareWarning": "Sharing your entire screen can capture the overlay on macOS 15+",
   "sourceQaPrep": "Q&A prep",
@@ -317,6 +295,26 @@
   "newScript": "New script",
   "upNext": "Up next",
   "recentScripts": "Recent scripts",
+  "greetingMorning": "Good morning",
+  "greetingAfternoon": "Good afternoon",
+  "greetingEvening": "Good evening",
+  "homeStatScripts": "{count, plural, =1{script} other{scripts}}",
+  "@homeStatScripts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeStatReady": "{count, plural, =1{ready to go live} other{ready to go live}}",
+  "@homeStatReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeStatMinutes": "min of material",
   "filterAll": "All",
   "filterDrafts": "Drafts",
   "filterReady": "Ready",
@@ -538,20 +536,6 @@
   "structure": "Structure",
   "organizeAgain": "Organize again — sections, beats and cues",
   "addSection": "Add section",
-  "structureSummary": "{sections} sections · {beats} beats · {cues} cues",
-  "@structureSummary": {
-    "placeholders": {
-      "sections": {
-        "type": "int"
-      },
-      "beats": {
-        "type": "int"
-      },
-      "cues": {
-        "type": "int"
-      }
-    }
-  },
   "timing": "Timing",
   "plannedDuration": "{duration} planned",
   "@plannedDuration": {
@@ -598,17 +582,6 @@
     "placeholders": {
       "title": {
         "type": "String"
-      }
-    }
-  },
-  "beatsAndCues": "{beats} beats · {cues} cues",
-  "@beatsAndCues": {
-    "placeholders": {
-      "beats": {
-        "type": "int"
-      },
-      "cues": {
-        "type": "int"
       }
     }
   },
@@ -699,7 +672,7 @@
       }
     }
   },
-  "suggestNeedsKey": "Add an API key in Settings → Integrations to suggest questions.",
+  "suggestNeedsKey": "Suggesting questions needs a DeepSeek key. Add your own in Settings → Integrations.",
   "noQuestionsReturned": "The model returned no questions.",
   "likelyQuestions": "Likely questions",
   "suggestWithAi": "Suggest with AI",
@@ -981,7 +954,6 @@
   "voiceDescription": "How Sotto listens to you while you present. On-device recognition keeps your voice on this computer.",
   "stopTest": "Stop test",
   "testWithScript": "Test with this script",
-  "microphone": "Microphone",
   "noMicrophoneFound": "No microphone found",
   "inputLevel": "Input level",
   "inputLevelSub": "Speak normally — aim for the green zone",
@@ -997,9 +969,6 @@
   "addLanguage": "Add a language",
   "engine": "Engine",
   "engineOnDeviceSub": "sherpa-onnx on this computer · no audio leaves it",
-  "engineCloudSub": "OpenAI-compatible speech-to-text · audio is uploaded while you speak",
-  "onDevice": "On-device",
-  "cloud": "Cloud",
   "following": "Following",
   "advance": "Advance",
   "followMyVoice": "Follow my voice",
@@ -1091,10 +1060,6 @@
   "predraft": "Pre-draft likely questions",
   "predraftSub": "From Q&A prep — matched answers appear instantly",
   "delivery": "Delivery",
-  "readAloudThrough": "Read aloud through",
-  "readAloudThroughSub": "The room never hears it — wear headphones",
-  "headphonesOnly": "Headphones only",
-  "systemOutput": "System output",
   "voice": "Voice",
   "systemDefault": "System default",
   "copyForChatAsks": "Copy for chat asks for",
@@ -1109,7 +1074,7 @@
   "copyThenPaste": "Copy, then paste",
   "copyThenPasteSub": "Holding the send key places the answer on your clipboard as plain text. Paste it into the Zoom, Teams or Meet chat with one keystroke. Nothing is posted on your behalf.",
   "whatLeaves": "What leaves this computer",
-  "leavesAudio": "Audio — yours or the room’s, when speech runs on-device.",
+  "leavesAudio": "Audio — yours and the room’s are transcribed on this computer.",
   "leavesQuestion": "The text of the question and the excerpts used to answer it.",
   "leavesNothingElse": "Nothing else: no script, no history, no account.",
   "generalDescription": "Language, pace, storage and defaults. Everything Sotto keeps lives on this computer.",
@@ -1141,28 +1106,12 @@
     }
   },
   "inKeychain": "In keychain",
-  "integrationsDescription": "Answers use your own API key. It is stored in the system keychain and sent only to the provider you choose, only when a question is asked.",
-  "answersModel": "Answers model",
-  "provider": "Provider",
+  "integrationsDescription": "Answers are drafted by DeepSeek. Add your API key; it is stored in the system keychain and sent to DeepSeek only when a question is asked.",
   "apiKey": "API key",
-  "apiKeyOptional": "Optional for local servers such as Ollama or LM Studio",
   "model": "Model",
-  "modelLowEffort": "Live answers run at low effort for speed",
-  "baseUrl": "Base URL",
-  "baseUrlSub": "Leave empty for {url}",
-  "@baseUrlSub": {
-    "placeholders": {
-      "url": {
-        "type": "String"
-      }
-    }
-  },
   "testConnection": "Test connection",
   "test": "Test",
-  "cloudStt": "Cloud speech-to-text",
-  "cloudSttFooter": "Optional. Used when you choose the Cloud engine, or as a fallback when on-device models are not installed. Falls back to your OpenAI key if this one is empty.",
-  "compatible": "Compatible",
-  "privacyDescription": "Privacy by construction: presenter audio stays on this computer, room audio is captured only on the chord, and only text is sent to answer a question.",
+  "privacyDescription": "Privacy by construction: presenter audio stays on this computer, room audio is captured only on the chord, and only text is sent to answer a question — plus one screenshot when you ask about your screen, if you turn that on.",
   "hideFromCapture": "Hide the overlay from screen capture",
   "hideFromCaptureSub": "Uses the OS protection where available. On macOS 15+, sharing your entire screen can still capture it — share a window instead.",
   "retention": "Retention",
@@ -1190,13 +1139,681 @@
   "deleteAllDataConfirm": "Delete all local data?",
   "deleteAllDataBody": "This removes every script and session from this computer. It can’t be undone.",
   "privVoice": "Voice",
-  "privVoiceBody": "Presenter audio never leaves the device with the on-device engine.",
+  "privVoiceBody": "Presenter audio never leaves this computer: speech runs on-device.",
   "privRoom": "Room audio",
   "privRoomBody": "Captured only on the chord, shown in red, transcribed locally.",
   "privAnswers": "Answers",
-  "privAnswersBody": "Only the question text and the excerpts used are sent to your model provider.",
+  "privAnswersBody": "Only the question text and the excerpts used are sent to DeepSeek.",
   "privModels": "Speech models",
   "privModelsBody": "Downloaded once from the sherpa-onnx project on GitHub.",
   "privConsent": "Consent",
-  "privConsentBody": "Recording laws vary. Consider telling the room that Q&A assist is on."
+  "privConsentBody": "Recording laws vary. Consider telling the room that Q&A assist is on.",
+  "llmNoBalance": "Your DeepSeek balance is empty. Top up at platform.deepseek.com.",
+  "integrationsDescriptionBuiltIn": "Answers are drafted by DeepSeek with the key built into this copy of Sotto, so they work out of the box. A personal key is optional: add one to use your own account and limits.",
+  "deepseekFooter": "Only the question and the excerpts used to answer it are sent.",
+  "apiKeyOverrideSub": "Optional. Leave empty to use the built-in key.",
+  "builtInKey": "Built-in key",
+  "modelsLoading": "Loading models…",
+  "modelsLoadFailed": "Could not load the model list: {error}",
+  "@modelsLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deepseekPlatform": "Account, balance and keys",
+  "open": "Open",
+  "beatsCount": "{count, plural, =1{1 beat} other{{count} beats}}",
+  "@beatsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cuesCount": "{count, plural, =0{no cues} =1{1 cue} other{{count} cues}}",
+  "@cuesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readAloudTitle": "Read aloud",
+  "readAloudHeadphones": "Plays through the system output — wear headphones so the room never hears it.",
+  "welcomeStep": "WELCOME · {step} OF {total}",
+  "@welcomeStep": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "welcomeSkip": "Skip for now",
+  "welcomeNext": "Next",
+  "welcomeBack": "Back",
+  "welcomeUseExample": "Start with the example",
+  "welcomeModelsTitle": "Download the voice models",
+  "welcomeModelsBody": "Sotto follows your voice on this computer. These models are downloaded once and then work offline; your audio never leaves the device.",
+  "welcomeModelsFooter": "Downloads keep going in the background. Without models, the overlay still advances with hotkeys or a timer.",
+  "welcomeScriptTitle": "Bring in your first script",
+  "welcomeScriptBody": "Sotto organizes it into sections, one-breath beats and cues. You can also start with the example talk in your library.",
+  "welcomeImportFile": "Import a file",
+  "welcomeImportFileSub": ".docx, .pdf, .md or .txt",
+  "welcomePaste": "Paste text",
+  "welcomePasteSub": "From the clipboard",
+  "welcomeWrite": "Write from scratch",
+  "welcomeWriteSub": "A blank script",
+  "welcomeBrowserTitle": "Browser extension (optional)",
+  "welcomeBrowserBody": "Install the browser extension for precise reading (you can skip it). It reads web forms from the page itself, only when you ask, and never sees passwords or payment details. Without it, Sotto reads the screen.",
+  "overlayStyle": "Overlay style",
+  "overlayStyleTextOnly": "Text only",
+  "overlayStylePanel": "Panel",
+  "overlayStyleTextOnlySub": "No background — just outlined words over your slides",
+  "overlayStylePanelSub": "A translucent card behind the text",
+  "overlayStyleTextOnlyFooter": "Controls and the status strip appear when you hover the overlay or use a shortcut, then fade after 2 seconds.",
+  "textColor": "Text color",
+  "outlineColor": "Outline",
+  "outlineAuto": "Auto — contrasts with the text",
+  "outlineAutoSub": "Auto: dark around light text, light around dark text",
+  "outlineWidth": "Outline width",
+  "shadowStrength": "Shadow",
+  "modelReadsImages": "reads screenshots",
+  "sourceScreen": "Your screen",
+  "actionAskScreen": "Ask about the screen",
+  "actionAskScreenSub": "Takes one screenshot, then listens for your question",
+  "noticeScreenOff": "Screen awareness is off — turn it on in Settings → Privacy",
+  "noticeScreenPermission": "Sotto needs Screen Recording permission — see Settings → Privacy",
+  "defaultScreenQuestion": "What is on my screen right now, and what should I say about it?",
+  "capturingScreen": "Capturing screen",
+  "screenshotAttached": "Screenshot attached — sent to DeepSeek with your question",
+  "screenAwareness": "Screen awareness",
+  "screenAwarenessFooter": "Screenshots are taken only when you ask, scaled down, sent to DeepSeek with your question and never saved. Sotto's own overlay never appears in them. A red “Capturing screen” light shows each time.",
+  "screenAwarenessToggle": "Let Sotto look at my screen when I ask",
+  "screenAwarenessToggleSub": "Off by default. Screenshots are sent to DeepSeek.",
+  "screenTarget": "Capture",
+  "screenTargetOverlay": "The display with the overlay",
+  "screenTargetCursor": "The display under the pointer",
+  "attachSlide": "Show the slide with audience questions",
+  "attachSlideSub": "Each question also sends one screenshot of what is on screen",
+  "screenPermissionMissing": "Screen Recording permission needed",
+  "screenPermissionMissingSub": "System Settings → Privacy & Security → Screen Recording → Sotto",
+  "openSystemSettings": "Open System Settings",
+  "privScreen": "Screenshots",
+  "privScreenOffBody": "Off. Sotto never looks at your screen.",
+  "privScreenOnBody": "Only when you ask: one screenshot goes to DeepSeek with the question. Never saved.",
+  "readyScreenOk": "On — one screenshot per question you ask about the screen",
+  "actionAgentTask": "Agent task",
+  "actionAgentTaskSub": "Say a task; the agent does it on screen, step by step",
+  "actionAgentStop": "Stop the agent",
+  "actionAgentStopSub": "Emergency stop — cancels at once and lets go of every key",
+  "agentOff": "Agent mode is off — turn it on in Settings → Privacy",
+  "agentUnsupported": "Agent mode works on Windows and macOS.",
+  "agentNeedsAccessibility": "Sotto needs Accessibility permission to control the mouse and keyboard — see Settings → Privacy.",
+  "agentListening": "Describe the task",
+  "agentStarting": "Looking at the screen…",
+  "agentThinking": "Deciding the next step…",
+  "agentWaiting": "Waiting for you",
+  "agentActing": "Working…",
+  "agentInControl": "AGENT IN CONTROL",
+  "agentStep": "step {step}/{max}",
+  "@agentStep": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "agentStop": "Stop",
+  "agentStopHint": "Emergency stop: {keys} — works everywhere",
+  "@agentStopHint": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "agentCouldNotStart": "Could not start",
+  "agentCompleted": "Done",
+  "agentStopped": "Stopped — nothing else will run",
+  "agentDeclined": "Stopped at your request",
+  "agentLimit": "Stopped after {max} steps",
+  "@agentLimit": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "agentFailed": "Stopped by an error",
+  "agentNext": "NEXT ACTION",
+  "agentConfirmSensitive": "CONFIRM — {reason}",
+  "@agentConfirmSensitive": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "agentRun": "Run",
+  "agentStopTask": "Stop task",
+  "agentCardTitle": "Let the agent do it",
+  "agentCardBody": "Describe a task — “fill this form with my details from the prep docs”. The agent works on screen, one step at a time, and asks before anything that submits, sends, pays or deletes.",
+  "agentTaskPlaceholder": "What should the agent do?",
+  "agentRunTask": "Start",
+  "agentMode": "Agent mode",
+  "agentModeFooter": "The agent sends screenshots to DeepSeek and moves the mouse and keyboard, at most 25 steps per task. It never types into password fields or handles payment data, always asks before submitting, sending, paying, deleting or buying, shows an amber frame while in control, and logs every action in the session. {keys} stops it at once, from anywhere.",
+  "@agentModeFooter": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "agentToggle": "Let Sotto control my mouse and keyboard",
+  "agentToggleSub": "Off by default. Only for tasks you start.",
+  "agentAutonomy": "Supervision",
+  "agentConfirmEach": "Confirm each action",
+  "agentAuto": "Run automatically",
+  "agentConfirmEachSub": "Enter runs the shown action, Esc stops",
+  "agentAutoSub": "Still asks before anything that submits, sends, pays, deletes or buys",
+  "accessibilityMissing": "Accessibility permission needed",
+  "accessibilityMissingSub": "System Settings → Privacy & Security → Accessibility → Sotto",
+  "sessionAgentTask": "Agent: {task}",
+  "@sessionAgentTask": {
+    "placeholders": {
+      "task": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionAgentActions": "{count, plural, =1{1 action} other{{count} actions}}",
+  "@sessionAgentActions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readyAgentOk": "On — confirm each action",
+  "readyAgentAuto": "On — runs automatically, asks before irreversible steps",
+  "agentDoClick": "Click “{target}” at {at}",
+  "@agentDoClick": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "at": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoDoubleClick": "Double-click “{target}” at {at}",
+  "@agentDoDoubleClick": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "at": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoRightClick": "Right-click “{target}” at {at}",
+  "@agentDoRightClick": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "at": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoMove": "Move the pointer to {at}",
+  "@agentDoMove": {
+    "placeholders": {
+      "at": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoType": "Type “{text}” into {target}",
+  "@agentDoType": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoKeys": "Press {keys}",
+  "@agentDoKeys": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "agentDoScrollDown": "Scroll down",
+  "agentDoScrollUp": "Scroll up",
+  "agentDoWait": "Wait {ms} ms",
+  "@agentDoWait": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "agentDoScreenshot": "Look at the screen again",
+  "agentDoDone": "Finish",
+  "agentWhyPassword": "the focused field is a password field",
+  "agentWhySecret": "it looks like a password or security-code field",
+  "agentWhyPayment": "it looks like a payment field",
+  "agentWhyCard": "the text looks like a card number",
+  "agentWhyIrreversible": "it may submit, send, pay or delete",
+  "agentWhySubmitKey": "it may submit or delete",
+  "agentWhyOutside": "outside the screenshot",
+  "privAgent": "Agent",
+  "privAgentOffBody": "Off. Sotto never moves your mouse or types.",
+  "privAgentOnBody": "Only for tasks you start: one screenshot per step goes to DeepSeek; every action is logged in the session.",
+  "refiningProgress": "Refining… {done}/{total}",
+  "@refiningProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "refiningHint": "You can read and edit now — parts you change are kept as you left them.",
+  "refinedKeptEdits": "Kept your edits in {count, plural, =1{1 part} other{{count} parts}}",
+  "@refinedKeptEdits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "refineStopped": "Refining stopped — {reason} The quick organization stays.",
+  "@refineStopped": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "formsOff": "Questionnaires on screen are off. Turn them on in Settings → Answers.",
+  "formsUnsupported": "Filling questionnaires needs Windows or macOS.",
+  "formsNoWindow": "Click the questionnaire's window first, then press the shortcut.",
+  "formsReadFailed": "Couldn't read the form in front. Click into it and try again.",
+  "formsBadReply": "DeepSeek's answer couldn't be read. Try again.",
+  "formsWhySensitive": "password or payment field — never filled",
+  "formsWhyNoMatch": "the answer isn't one of the options",
+  "formsWhyNoField": "field not found",
+  "formsWhyNoAnswer": "no answer",
+  "formsSessionTitle": "Questionnaire on screen",
+  "formsReading": "Reading the form…",
+  "formsThinking": "Answering the questions…",
+  "formsReview": "Check the answers — edit any, then Enter to fill",
+  "formsAnswering": "Answering {done}/{total}…",
+  "@formsAnswering": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "formsVerifying": "Checking every answer stuck…",
+  "formsNextPage": "Page filled — Enter for “{label}”",
+  "@formsNextPage": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "formsDoneSubmit": "Done — review and submit",
+  "formsSubmitted": "Submitted.",
+  "formsStopped": "Stopped. Nothing more was typed.",
+  "formsFailed": "Couldn't fill this form.",
+  "formsReady": "{count, plural, =1{1 answer filled} other{{count} answers filled}} — review and submit when ready",
+  "@formsReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "formsFilling": "Sotto is filling",
+  "formsPage": "Page {page}",
+  "@formsPage": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "formsFillThese": "Fill these",
+  "formsGoNext": "Next page",
+  "formsSubmit": "Click “{label}”",
+  "@formsSubmit": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "formsIllSubmit": "I'll submit it",
+  "actionFillForm": "Fill questionnaire on screen",
+  "actionFillFormSub": "Reads the form in front, answers it and fills it in",
+  "actionOpenChat": "Chat",
+  "actionOpenChatSub": "Opens the assistant chat in the overlay",
+  "actionPushToTalk": "Talk to chat (hold)",
+  "actionPushToTalkSub": "Hold to dictate a chat message",
+  "formsGroup": "Questionnaires on screen",
+  "formsEnable": "Answer questionnaires on screen",
+  "formsEnableSub": "{keys} reads the form in front, answers with DeepSeek's own knowledge (not your script) and fills it in.",
+  "@formsEnableSub": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "formsMode": "Mode",
+  "formsModeAuto": "Fill automatically",
+  "formsModeFirst": "Show me the answers first",
+  "formsLanguage": "Answer language",
+  "formsLangSame": "Same as the questionnaire",
+  "formsLangApp": "App language",
+  "formsStyle": "Open answers",
+  "formsStyleShort": "Short",
+  "formsStyleDetailed": "Detailed",
+  "formsInstructions": "Extra instructions",
+  "formsInstructionsSub": "Optional context for the answers — your name, role, preferences.",
+  "formsInstructionsHint": "e.g. My name is Ana Ruiz, product manager at Acme. Prefer concise answers.",
+  "formsPrivacy": "Screenshots of the questionnaire are sent to DeepSeek and never saved. Nothing is stored unless history is on: then each filled answer is logged in Sessions.",
+  "formsSubmitNote": "Sotto never submits on its own: auto-fill stops before Submit, and a fill you start waits for Enter. {keys} stops at once.",
+  "@formsSubmitNote": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "historyOff": "Don't keep",
+  "sessionFormRun": "Questionnaire · {count, plural, =1{1 answer} other{{count} answers}}",
+  "@sessionFormRun": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "formsDialogTitle": "Questionnaire",
+  "navChat": "Chat",
+  "chatNew": "New chat",
+  "chatNoConversations": "No conversations yet.",
+  "chatRename": "Rename",
+  "chatUntitled": "Untitled chat",
+  "chatEmptyTitle": "Ask anything",
+  "chatEmptyBody": "Extra questions before or during a talk. Attach your screen, or let it read your script. Thinking is off by default for fast replies — turn on Think deeper when it's worth the wait.",
+  "chatPanelEmpty": "Type or hold the talk key to ask. Zoom keeps the keyboard until you click the input.",
+  "chatCopy": "Copy",
+  "chatReadAloud": "Read aloud",
+  "chatScreenAttached": "screen attached",
+  "chatThinking": "Thinking…",
+  "chatListening": "Listening… release to stop",
+  "chatTranscribing": "Transcribing…",
+  "chatPlaceholder": "Message — Enter to send, Shift+Enter for a new line · hold {keys} to talk",
+  "@chatPlaceholder": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "chatDictate": "Dictate (hold {keys})",
+  "@chatDictate": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "chatStopDictation": "Stop dictating",
+  "chatAttachScreen": "Attach screen — sends a screenshot with the next message",
+  "chatStop": "Stop generating",
+  "chatSend": "Send",
+  "chatThinkDeeper": "Think deeper",
+  "chatUseScript": "Use my script",
+  "chatUseScriptNamed": "Use my script · {title}",
+  "@chatUseScriptNamed": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGroup": "Chat",
+  "chatAutoSend": "Send dictation at once",
+  "chatAutoSendSub": "Off: the transcript lands in the input so you can edit it first.",
+  "chatContext": "Messages sent as context",
+  "chatContextSub": "The most recent ones; older messages are trimmed.",
+  "chatPrivacy": "Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved.",
+  "formsNeedsAccessibility": "Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again.",
+  "formsCouldNotFill": "could not fill — please fill it yourself",
+  "overlayTextColor": "Overlay text color",
+  "overlayTextColorAuto": "Auto",
+  "overlayTextColorLight": "Always light",
+  "overlayTextColorDark": "Always dark",
+  "overlayTextColorCustom": "Custom",
+  "overlayTextColorAutoSub": "Dark text on light slides, light text on dark ones — checked on this computer every 0.8 s, never sent anywhere",
+  "overlayTextColorFixedSub": "Fixed; the background isn't checked",
+  "overlayTextColorCustomSub": "Your own text and outline colors",
+  "maxOverlayHeight": "Max overlay height",
+  "maxOverlayHeightSub": "The overlay grows and shrinks with the lines showing, up to this share of the screen. Drag its edge to set a height for the session.",
+  "autofillOn": "Auto-fill ON",
+  "autofillPaused": "Paused",
+  "autofillPause": "Pause",
+  "autofillResume": "Resume",
+  "autofillStop": "Stop",
+  "autofillHoldToStop": "Hold 1 s to stop",
+  "autofillStopNow": "Stop now",
+  "autofillFilling": "Filling… {done}/{total} — {question}",
+  "@autofillFilling": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "question": {
+        "type": "String"
+      }
+    }
+  },
+  "autofillDone": "Done — review and submit yourself",
+  "autofillOpenSotto": "Open Sotto",
+  "autofillLog": "Log",
+  "autofillLogEmpty": "Answers will appear here, with why each was chosen.",
+  "autofillCountdown": "Switch to the form… {seconds}",
+  "@autofillCountdown": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "autofillWatching": "Watching for questionnaires",
+  "autofillIndicator": "Sotto is filling",
+  "autofillToggle": "Auto-fill forms",
+  "autofillToggleSub": "Watches the window in front and fills the forms that appear — sign-ups, surveys, applications. Screenshots go to DeepSeek. Never presses Submit.",
+  "formsScrollTitle": "Scroll to find more questions",
+  "formsScrollSub": "Scrolls down, up to 10 times a page, while new questions keep appearing",
+  "qtText": "Text",
+  "qtLongText": "Long text",
+  "qtMultipleChoice": "Multiple choice",
+  "qtTrueFalse": "True / False",
+  "qtCheckboxes": "Checkboxes",
+  "qtDropdown": "Dropdown",
+  "qtScale": "Scale",
+  "qtMatching": "Matching",
+  "qtOrdering": "Ordering",
+  "qtImageChoice": "Image choice",
+  "qtReadOnly": "Read only — answer shown",
+  "showChat": "Show chat",
+  "showChatSub": "Adds Chat to the sidebar and turns on its shortcuts (open chat, push to talk). Off by default: it stays out of the way.",
+  "chatAutoClose": "Close the chat panel after",
+  "chatAutoCloseSub": "In the overlay, after this long with no activity — never while a reply is arriving",
+  "chatAutoCloseNever": "Never",
+  "navForms": "Forms",
+  "setForms": "Forms",
+  "formsDescription": "Filling ordinary forms on screen — registrations, surveys, job applications, contact forms: automatically as they appear, or when you ask. Graded tests and exams are left alone.",
+  "showFormsNav": "Show Forms in sidebar",
+  "showFormsNavSub": "The page with auto-fill, its status and recent fills",
+  "formsStatusOff": "Off",
+  "formsStatusWatching": "Watching",
+  "formsStatusFilling": "Filling… {done}/{total}",
+  "@formsStatusFilling": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "formsStatusOffSub": "Turn on auto-fill above, or fill what's on screen once.",
+  "formsStatusWatchingSub": "Switch to a form: Sotto fills it and stops before Submit.",
+  "formsStatusPausedSub": "Nothing is watched or filled until you resume.",
+  "formsFillNow": "Fill what's on screen now",
+  "formsFillNowSub": "Then switch to the form within 3 seconds — same as {keys}.",
+  "@formsFillNowSub": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "formsRecent": "Recent fills",
+  "formsRecentEmpty": "Nothing filled yet.",
+  "formsHistoryOff": "History is off (Privacy → Don't keep): fills aren't kept.",
+  "formsFieldsFilled": "{count, plural, =1{1 field filled} other{{count} fields filled}}",
+  "@formsFieldsFilled": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "formsOutcomeCompleted": "Completed",
+  "formsOutcomeStopped": "Stopped",
+  "formsOutcomeError": "Error",
+  "formsClearHistory": "Clear fill history",
+  "formsClearHistorySub": "Deletes every questionnaire record; live sessions keep the rest.",
+  "formsHistoryCleared": "Fill history cleared.",
+  "formsPrivacyNote": "Each fill sends a screenshot of the window in front, and its form fields, to DeepSeek. Screenshots are never saved. Password and payment fields are never read or filled.",
+  "formsOpenSettings": "Forms settings",
+  "formsAutofillGroup": "Auto-fill",
+  "formsAnswersGroup": "Answers",
+  "formsHistoryGroup": "History",
+  "formsBrowserTitle": "Browser integration",
+  "formsBrowserExtension": "Sotto Bridge extension",
+  "formsBrowserSub": "Reads web forms precisely, from the page itself. Without it, Sotto reads the screen.",
+  "formsBrowserLearnMore": "What it can and can't see",
+  "bridgeConnected": "Connected",
+  "bridgeNotInstalled": "Not installed",
+  "bridgeInstall": "Install extension",
+  "bridgeReconnect": "Reconnect",
+  "bridgeReconnecting": "Reconnecting — browsers with the extension come back within a few seconds.",
+  "hoverOverlayStyle": "Overlay style: {style}",
+  "@hoverOverlayStyle": {"placeholders": {"style": {"type": "String"}}},
+  "hoverTextColor": "Text color: {color}",
+  "@hoverTextColor": {"placeholders": {"color": {"type": "String"}}},
+  "hoverAutoFillOn": "Auto-fill is on — turn off",
+  "hoverAutoFillOff": "Auto-fill is off — turn on",
+  "hoverOpenChat": "Open chat",
+  "hoverCloseChat": "Close chat",
+  "hoverEndSessionHold": "Hold 1 s to end session",
+  "practiceBarsTitle": "Last {days} days",
+  "@practiceBarsTitle": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceDaysCount": "{count, plural, =0{No practice yet} =1{1 day practiced} other{{count} days practiced}}",
+  "@practiceDaysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceRangeStart": "{days} days ago",
+  "@practiceRangeStart": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceToday": "Today",
+  "practiceDayEmpty": "No practice",
+  "practiceDayRehearsals": "{count, plural, =1{1 rehearsal} other{{count} rehearsals}}",
+  "@practiceDayRehearsals": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceDayLive": "{count, plural, =1{1 live run} other{{count} live runs}}",
+  "@practiceDayLive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceLegendRehearsal": "Rehearsal",
+  "practiceLegendLive": "Live",
+  "llmBuiltInKeyFailed": "The DeepSeek key built into Sotto isn't working right now. Add your own key in Settings → Integrations to keep drafting answers — voice following and the overlay keep working without it.",
+  "readyKeyRejected": "DeepSeek key not working",
+  "apiKeyRequiredSub": "Needed for answers, chat and organizing with AI. Voice following works without it.",
+  "getApiKey": "Get a key",
+  "getApiKeySub": "Create one at platform.deepseek.com — paste it above and press Test",
+  "usingBuiltInKey": "Using the built-in key",
+  "usingYourKey": "Using your key",
+  "notOnLinux": "Not available on Linux yet",
+  "linuxExperimentalSub": "Sotto on Linux is experimental. Reading the screen, filling forms, agent mode, the browser extension and reading answers aloud need Windows or macOS for now.",
+  "screenUnavailableNotice": "Reading the screen isn't available on Linux yet.",
+  "formsUnavailableNotice": "Filling forms isn't available on Linux yet.",
+  "agentUnavailableNotice": "Agent mode isn't available on Linux yet.",
+  "readAloudUnavailableNotice": "Reading answers aloud isn't available on Linux yet.",
+  "formsUnavailableTitle": "Forms aren't available on Linux yet",
+  "formsUnavailableBody": "Filling forms needs to read and click other apps' windows, which Sotto can only do on Windows and macOS for now.",
+  "readyShareVisible": "Overlay shows in screen shares",
+  "readyShareVisibleSub": "On Linux the overlay can't hide from screen capture — share only your slides window, not the whole screen.",
+  "readyHotkeysWayland": "Shortcuts need an X11 session",
+  "readyHotkeysWaylandSub": "Wayland doesn't let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay's buttons."
 }

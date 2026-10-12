@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import '../../data/models/settings.dart';
-import '../../data/storage/secret_store.dart';
 import '../../l10n/l10n.dart';
 import 'audio_capture.dart';
 import 'model_manager.dart';
@@ -36,12 +35,23 @@ class QuestionProgress {
 /// Following runs whenever the session is live. Room capture — for a
 /// question — runs only between the chord and the end of the question.
 class SpeechSession {
-  SpeechSession._(this._settings, this._mic, this._follower, this._transcriber, this.report, this._disposables);
+  SpeechSession._(
+    this._settings,
+    this._mic,
+    this._follower,
+    this._transcriber,
+    this._liveTranscriber,
+    this.report,
+    this._disposables,
+  );
 
   final AppSettings _settings;
   final AudioCapture _mic;
   final LiveRecognizer? _follower;
   final Transcriber? _transcriber;
+
+  /// The fastest Whisper loaded, for words that have to keep up with speech.
+  final Transcriber? _liveTranscriber;
   final EngineReport report;
   final List<Future<void> Function()> _disposables;
 
@@ -71,33 +81,27 @@ class SpeechSession {
 
   static Future<SpeechSession> start({
     required AppSettings settings,
-    required SecretStore secrets,
     required ModelManager models,
     List<String> hints = const [],
   }) async {
     final disposables = <Future<void> Function()>[];
     LiveRecognizer? follower;
-    Transcriber? transcriber;
+    Transcriber? transcriber, liveTranscriber;
     final l = L10n.current;
     String following = l.engineUnavailable, questions = l.engineUnavailable;
-    var canFollow = false, canAnswer = false;
+    var canFollow = false;
     String? warning;
 
     final english = settings.language.toLowerCase().startsWith('en');
     final prompt = hints.isEmpty ? null : hints.join(', ');
 
-    Future<CloudTranscriber?> cloud() async {
-      final key = await secrets.read(SecretKey.cloudSttApiKey) ?? await secrets.read(SecretKey.openaiApiKey);
-      if (key == null) return null;
-      final base = settings.cloudSttBaseUrl.isNotEmpty ? settings.cloudSttBaseUrl : 'https://api.openai.com/v1';
-      return CloudTranscriber(apiKey: key, model: settings.cloudSttModel, baseUrl: base);
-    }
-
-    if (settings.engine == SpeechEngine.onDevice) {
+    {
       final streaming = english
           ? (await models.locate(ModelCatalog.streamingEn) ?? await models.locate(ModelCatalog.streamingEnLight))
           : null;
-      final whisper = await models.locate(ModelCatalog.whisperTurbo) ?? await models.locate(ModelCatalog.whisperBase);
+      final base = await models.locate(ModelCatalog.whisperBase);
+      // The most accurate Whisper transcribes questions.
+      final whisper = await models.locate(ModelCatalog.whisperTurbo) ?? base;
       if (streaming != null || whisper != null) {
         final engine = await SherpaEngine.start(
           streaming: streaming,
@@ -109,7 +113,17 @@ class SpeechSession {
           follower = engine;
           following = l.engineOnDeviceStreaming;
         } else {
-          final seg = SegmentedRecognizer(engine, language: settings.language, prompt: prompt);
+          // Following re-transcribes the open utterance about once a second,
+          // so it needs the fastest Whisper. Turbo takes seconds per pass on a
+          // CPU: the script lagged behind the voice, then raced ahead on pauses.
+          Transcriber fast = engine;
+          if (base != null && whisper != base) {
+            final baseEngine = await SherpaEngine.start(whisper: base, language: isoLanguage(settings.language));
+            disposables.add(baseEngine.dispose);
+            fast = baseEngine;
+          }
+          liveTranscriber = fast;
+          final seg = SegmentedRecognizer(fast, language: settings.language, prompt: prompt);
           disposables.add(seg.dispose);
           follower = seg;
           following = l.engineOnDeviceWhisper;
@@ -117,32 +131,12 @@ class SpeechSession {
         if (engine.canTranscribe) {
           transcriber = engine;
           questions = l.engineOnDeviceWhisper;
-          canAnswer = true;
         }
       } else {
         warning = l.engineModelsMissing;
       }
     }
 
-    // Cloud: chosen explicitly, or as the fallback when on-device is missing.
-    if (follower == null || transcriber == null) {
-      final c = await cloud();
-      if (c != null) {
-        disposables.add(c.dispose);
-        if (follower == null) {
-          final seg = SegmentedRecognizer(c, language: settings.language, prompt: prompt);
-          disposables.add(seg.dispose);
-          follower = seg;
-          following = l.engineCloud;
-        }
-        transcriber ??= c;
-        if (!canAnswer) questions = l.engineCloud;
-        canAnswer = true;
-        warning = settings.engine == SpeechEngine.cloud ? null : warning;
-      } else if (settings.engine == SpeechEngine.cloud) {
-        warning = l.engineCloudKeyMissing;
-      }
-    }
     // Last resort for questions: the streaming model's own words.
     if (transcriber == null && follower != null) questions = following;
     canFollow = follower != null;
@@ -156,6 +150,7 @@ class SpeechSession {
       mic,
       follower,
       transcriber,
+      liveTranscriber ?? transcriber,
       EngineReport(following: following, questions: questions, canFollow: canFollow, warning: warning),
       disposables,
     );
@@ -200,9 +195,9 @@ class SpeechSession {
     if (follower is SherpaEngine && follower.canFollow) {
       follower.clear();
       _questionRecognizer = follower;
-    } else if (_transcriber != null) {
+    } else if (_liveTranscriber case final live?) {
       _questionRecognizer = SegmentedRecognizer(
-        _transcriber,
+        live,
         language: _settings.language,
         refresh: const Duration(milliseconds: 900),
       );

@@ -7,6 +7,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
@@ -14,9 +15,19 @@ import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
 import '../../core/design/typography.dart';
 import '../../core/platform/window_service.dart';
+import '../../core/widgets/stage_transitions.dart';
 import '../../data/models/settings.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
+import '../../domain/overlay/auto_height.dart';
+import '../agent/agent_controller.dart';
+import '../agent/agent_view.dart';
+import '../chat/chat_controller.dart';
+import '../chat/chat_panel.dart';
+import '../forms/autofill_controller.dart';
+import '../forms/autofill_view.dart';
+import '../questionnaire/questionnaire_controller.dart';
+import '../questionnaire/questionnaire_view.dart';
 import 'live_controller.dart';
 import 'live_state.dart';
 import 'overlay/history_panel.dart';
@@ -39,15 +50,37 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   static const _historyWidth = 340.0;
   static const _metaHeight = Layout.overlayMeta;
   static const _actionsHeight = 50.0;
+  static const _chatHeight = 440.0;
+  static const _panelHeight = QuestionnaireController.panelHeight;
 
-  bool _controlsVisible = false;
-  Timer? _hoverIntent;
-  Timer? _hoverHide;
+  /// The hover panel: shown on pointer enter, faded [_chromeLinger] after
+  /// the pointer leaves. [_panelAtTop] keeps it off the camera edge.
+  bool _panelVisible = false;
+  bool _panelAtTop = false;
+  Timer? _panelHide;
+
+  /// Text-only style: meta strip and controls appear on hover or while a
+  /// shortcut is held, then fade out [_chromeLinger] later.
+  bool _chromeVisible = false;
+  bool _hovering = false;
+  Timer? _chromeHide;
+  StreamSubscription<bool>? _pings;
+  static const _chromeLinger = Duration(seconds: 2);
   Timer? _geometryDebounce;
+  Timer? _saveDebounce;
   DateTime _programmaticUntil = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastWheel = DateTime.fromMillisecondsSinceEpoch(0);
 
   late double _readingHeight = ref.read(settingsProvider).overlaySize.$2;
+
+  /// The height the presenter chose (saved, or dragged this session): it
+  /// picks the layout and places the eye-line, so neither moves while the
+  /// window's height follows the text.
+  late double _layoutHeight = _readingHeight;
+
+  /// Set once the presenter drags the height: the most auto-height may use
+  /// for the rest of the session.
+  double? _userCap;
   bool _widened = false;
   ResolvedLayout? _layout;
   int _layoutBeat = -1;
@@ -60,14 +93,35 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   void initState() {
     super.initState();
     windowManager.addListener(this);
+    _pings = ref.read(liveControllerProvider.notifier).chromePings.listen((down) {
+      if (down) {
+        _showChrome();
+      } else if (!_hovering) {
+        _hideChromeLater();
+      }
+    });
+  }
+
+  void _showChrome() {
+    _chromeHide?.cancel();
+    if (!_chromeVisible && mounted) setState(() => _chromeVisible = true);
+  }
+
+  void _hideChromeLater() {
+    _chromeHide?.cancel();
+    _chromeHide = Timer(_chromeLinger, () {
+      if (mounted) setState(() => _chromeVisible = false);
+    });
   }
 
   @override
   void dispose() {
     windowManager.removeListener(this);
-    _hoverIntent?.cancel();
-    _hoverHide?.cancel();
+    _panelHide?.cancel();
+    _chromeHide?.cancel();
+    unawaited(_pings?.cancel());
     _geometryDebounce?.cancel();
+    _saveDebounce?.cancel();
     _edgeTimer?.cancel();
     super.dispose();
   }
@@ -78,6 +132,18 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
   void _markProgrammatic() => _programmaticUntil = DateTime.now().add(const Duration(milliseconds: 700));
 
+  /// Geometry is saved 500 ms after the last move or resize.
+  static const _saveDelay = Duration(milliseconds: 500);
+
+  void _saveGeometryLater() {
+    _saveDebounce?.cancel();
+    // The chosen height, not auto-height's (a resize drag has set it by now).
+    _saveDebounce = Timer(
+      _saveDelay,
+      () => unawaited(ref.read(liveControllerProvider.notifier).rememberGeometry(height: _layoutHeight)),
+    );
+  }
+
   @override
   void onWindowMoved() {
     if (_programmatic) return;
@@ -85,8 +151,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     _geometryDebounce = Timer(const Duration(milliseconds: 160), () async {
       _markProgrammatic();
       await _window.snapAfterDrag();
-      await ref.read(liveControllerProvider.notifier).rememberGeometry();
     });
+    _saveGeometryLater();
   }
 
   @override
@@ -97,9 +163,24 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     _geometryDebounce?.cancel();
     _geometryDebounce = Timer(const Duration(milliseconds: 200), () async {
       final b = await _window.bounds();
-      _readingHeight = b.height;
-      await ref.read(liveControllerProvider.notifier).rememberGeometry();
+      _readingHeight = _layoutHeight = b.height;
+      _userCap = b.height;
     });
+    _saveGeometryLater();
+  }
+
+  // The overlay is never maximised, zoomed or tiled by the OS — only the
+  // presenter's own edge drag makes it big.
+  @override
+  void onWindowMaximize() => unawaited(_undoFill());
+
+  @override
+  void onWindowEnterFullScreen() => unawaited(_undoFill());
+
+  Future<void> _undoFill() async {
+    _saveDebounce?.cancel();
+    _markProgrammatic();
+    await _window.undoFill();
   }
 
   bool get _bottomDocked {
@@ -110,6 +191,32 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   Future<void> _resizeTo(double height) async {
     _markProgrammatic();
     await _window.resizeOverlay(height, fromBottom: _bottomDocked);
+  }
+
+  /// Auto-height: after each advance the window is just tall enough for
+  /// the lines showing (150 ms ease-out), up to the setting's share of the
+  /// display or the height the presenter dragged. Only while reading —
+  /// answers, chat, agent and forms size the window themselves.
+  Future<void> _onFit(double area) async {
+    final live = ref.read(liveControllerProvider);
+    final reading =
+        live.phase == LivePhase.standby || live.phase == LivePhase.reading || live.phase == LivePhase.paused;
+    if (!reading ||
+        ref.read(chatControllerProvider).overlayOpen ||
+        ref.read(agentControllerProvider).active ||
+        ref.read(questionnaireControllerProvider).active) {
+      return;
+    }
+    final screen = await _window.displayArea();
+    final target = AutoHeight.clamp(
+      area + _metaHeight,
+      screenHeight: screen.height,
+      maxFraction: ref.read(settingsProvider).maxOverlayHeight,
+      userCap: _userCap,
+    );
+    _readingHeight = target;
+    _markProgrammatic();
+    await _window.animateHeight(target, fromBottom: _bottomDocked);
   }
 
   /// Answers grow the window away from the camera edge, once, then shrink
@@ -130,7 +237,9 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     final b = await _window.bounds();
     _widened = open;
     _markProgrammatic();
-    await _window.setOverlayWidth(open ? b.width + _historyWidth : math.max(300.0, b.width - _historyWidth));
+    await _window.setOverlayWidth(
+      open ? b.width + _historyWidth : math.max(OverlayGeometry.minimum.width, b.width - _historyWidth),
+    );
   }
 
   void _onClickThroughChanged(bool on) {
@@ -147,19 +256,31 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   // ─────────────────────────── Hover & input ───────────────────────────
 
   void _onEnter() {
-    _hoverHide?.cancel();
-    _hoverIntent?.cancel();
-    _hoverIntent = Timer(Motion.hoverIntent, () {
-      if (mounted) setState(() => _controlsVisible = true);
-    });
+    _hovering = true;
+    _showChrome();
+    _panelHide?.cancel();
+    // Click-through forwards pointer moves, but the panel stays away.
+    if (ref.read(liveControllerProvider).clickThrough) return;
+    unawaited(_placePanel());
+    if (!_panelVisible) setState(() => _panelVisible = true);
   }
 
   void _onExit() {
-    _hoverIntent?.cancel();
-    _hoverHide?.cancel();
-    _hoverHide = Timer(Motion.hoverHide, () {
-      if (mounted) setState(() => _controlsVisible = false);
+    _hovering = false;
+    _hideChromeLater();
+    _panelHide?.cancel();
+    _panelHide = Timer(_chromeLinger, () {
+      if (mounted) setState(() => _panelVisible = false);
     });
+  }
+
+  /// Opposite the camera edge: an overlay in the display's top half gets the
+  /// panel along its bottom, one in the bottom half along its top.
+  Future<void> _placePanel() async {
+    final b = await _window.bounds();
+    final area = await _window.displayArea();
+    final atTop = !OverlayGeometry.nearTop(b, area);
+    if (mounted && atTop != _panelAtTop) setState(() => _panelAtTop = atTop);
   }
 
   void _onWheel(PointerSignalEvent e) {
@@ -180,7 +301,25 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   Widget build(BuildContext context) {
     ref.listen(liveControllerProvider.select((s) => s.phase), _onPhaseChanged);
     ref.listen(liveControllerProvider.select((s) => s.historyOpen), (_, open) => unawaited(_onHistoryChanged(open)));
-    ref.listen(liveControllerProvider.select((s) => s.clickThrough), (_, on) => _onClickThroughChanged(on));
+    ref.listen(liveControllerProvider.select((s) => s.clickThrough), (_, on) {
+      _onClickThroughChanged(on);
+      if (on) {
+        _panelHide?.cancel();
+        _panelVisible = false;
+      }
+    });
+    // The chat panel needs room; the reading size comes back on close.
+    ref.listen(chatControllerProvider.select((c) => c.overlayOpen), (_, open) {
+      unawaited(_resizeTo(open ? math.max(_readingHeight, _chatHeight) : _readingHeight));
+    });
+    // So do a questionnaire's list and an agent task's steps.
+    void panel(bool? was, bool open) {
+      if (was == open) return;
+      unawaited(_resizeTo(open ? math.max(_readingHeight, _panelHeight) : _readingHeight));
+    }
+
+    ref.listen(questionnaireControllerProvider.select((q) => q.active), panel);
+    ref.listen(agentControllerProvider.select((a) => a.active), panel);
 
     final s = ref.watch(liveControllerProvider);
     final settings = ref.watch(settingsProvider);
@@ -190,7 +329,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
     // Layout switches only between beats, never mid-sentence.
     final readingWidth = s.historyOpen && _widened ? size.width - _historyWidth : size.width;
-    final candidate = resolveLayout(settings.layout, Size(readingWidth, _readingHeight));
+    final candidate = resolveLayout(settings.layout, Size(readingWidth, _layoutHeight));
     if (_layout == null || s.position.beat != _layoutBeat || !s.following) {
       _layout = candidate;
       _layoutBeat = s.position.beat;
@@ -202,27 +341,60 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
       linesShown: settings.linesShown,
       glide: settings.scrollStyle == ScrollStyle.glide,
       reduceMotion: reduceMotion,
-      plate: settings.overlayOpacity < 0.7,
+      plate: !o.textOnly && settings.overlayOpacity < 0.7,
       wpm: settings.wordsPerMinute,
     );
 
-    final reading = s.flat == null ? const SizedBox.shrink() : ReadingView(state: s, layout: layout, style: style);
+    final reading = s.flat == null
+        ? const SizedBox.shrink()
+        : ReadingView(
+            state: s,
+            layout: layout,
+            style: style,
+            anchorOffset: (_layoutHeight - _metaHeight) * Layout.overlayAnchor,
+            onFit: (h) => unawaited(_onFit(h)),
+          );
 
-    final Widget content = switch (s.phase) {
-      LivePhase.idle || LivePhase.starting => Center(
-        child: Text(context.l10n.gettingReady, style: TypeScale.caption.copyWith(color: o.inkAt(0.6))),
-      ),
-      LivePhase.standby || LivePhase.reading || LivePhase.paused => reading,
-      LivePhase.listening => _Behind(
-        script: reading,
-        child: ListeningView(state: s),
-      ),
-      LivePhase.drafting => _Behind(
-        script: reading,
-        child: DraftingView(state: s),
-      ),
-      LivePhase.answer => AnswerView(state: s, onMeasured: _onAnswerMeasured),
-    };
+    final agentActive = ref.watch(agentControllerProvider.select((a) => a.active));
+    final formActive = ref.watch(questionnaireControllerProvider.select((q) => q.active));
+    final autoFillOn = ref.watch(autoFillControllerProvider.select((a) => a.on || a.countdown > 0));
+    final chatOpen = ref.watch(chatControllerProvider.select((c) => c.overlayOpen));
+    final Widget content = formActive
+        ? const QuestionnaireView()
+        : agentActive
+        ? const AgentView()
+        : chatOpen
+        ? const ChatPanel()
+        : switch (s.phase) {
+            LivePhase.idle || LivePhase.starting => Center(
+              child: Text(context.l10n.gettingReady, style: TypeScale.caption.copyWith(color: o.inkAt(0.6))),
+            ),
+            LivePhase.standby || LivePhase.reading || LivePhase.paused => reading,
+            LivePhase.listening => _Behind(
+              script: reading,
+              child: ListeningView(state: s),
+            ),
+            LivePhase.drafting => _Behind(
+              script: reading,
+              child: DraftingView(state: s),
+            ),
+            LivePhase.answer => AnswerView(state: s, onMeasured: _onAnswerMeasured),
+          };
+
+    // Text only: no ground, and the chrome fades with hover / shortcuts.
+    final textOnly = o.textOnly;
+    final panelShown = _panelVisible && !s.clickThrough;
+    final chrome = !textOnly || _chromeVisible;
+    Widget fading(Widget child) => textOnly
+        ? IgnorePointer(
+            ignoring: !chrome,
+            child: AnimatedOpacity(
+              duration: chrome ? Motion.quick : Motion.smooth,
+              opacity: chrome ? 1 : 0,
+              child: child,
+            ),
+          )
+        : child;
 
     final surface = ClipRRect(
       borderRadius: Radii.rXl,
@@ -233,11 +405,15 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
             Expanded(
               child: Column(
                 children: [
-                  MetaStrip(
-                    density: s.phase == LivePhase.answer ? MetaDensity.full : metaDensityFor(layout),
-                    onDragStart: () => unawaited(_window.startDragging()),
+                  fading(
+                    MetaStrip(
+                      density: s.phase == LivePhase.answer ? MetaDensity.full : metaDensityFor(layout),
+                      onDragStart: () => unawaited(_window.startDragging()),
+                    ),
                   ),
-                  if (layout == ResolvedLayout.ticker && s.flat != null) _TickerProgress(state: s),
+                  if (layout == ResolvedLayout.ticker && s.flat != null) fading(_TickerProgress(state: s)),
+                  // Auto-fill's status bar stays while it's on.
+                  if (autoFillOn) const Padding(padding: EdgeInsets.fromLTRB(10, 2, 10, 6), child: AutoFillBar()),
                   Expanded(
                     child: Listener(
                       onPointerSignal: _onWheel,
@@ -250,7 +426,10 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
                           switchOutCurve: Motion.leaveExit,
                           layoutBuilder: (current, previous) =>
                               Stack(fit: StackFit.expand, children: [...previous, ?current]),
-                          child: KeyedSubtree(key: ValueKey(_phaseGroup(s.phase)), child: content),
+                          child: KeyedSubtree(
+                            key: ValueKey(formActive ? 10 : (agentActive ? 9 : (chatOpen ? 8 : _phaseGroup(s.phase)))),
+                            child: content,
+                          ),
                         ),
                       ),
                     ),
@@ -270,54 +449,78 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: MouseRegion(
-        onEnter: (_) => _onEnter(),
-        onExit: (_) => _onExit(),
-        child: Stack(
-          children: [
-            Positioned.fill(child: surface),
-            // Hairline edge + lit top edge (inset 0 1px 0 rgba(255,255,255,.05)).
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: Radii.rXl,
-                    border: Border.all(color: o.edge),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 16,
-              right: 16,
-              top: 0.5,
-              child: IgnorePointer(child: Container(height: 1, color: o.innerHighlight)),
-            ),
-            if (s.phase != LivePhase.answer)
-              Positioned(
-                left: 0,
-                right: s.historyOpen ? _historyWidth : 0,
-                bottom: 10,
-                child: Center(
-                  child: IgnorePointer(
-                    ignoring: !_controlsVisible,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 120),
-                      opacity: _controlsVisible ? 1 : 0,
-                      child: OverlayControls(state: s, onEnd: () => unawaited(_end())),
+      // Out of the dark of going live, the overlay comes into focus.
+      body: OverlayEntrance(
+        enabled: !reduceMotion,
+        sweep: textOnly ? null : o.cue,
+        child: MouseRegion(
+          onEnter: (_) => _onEnter(),
+          onExit: (_) => _onExit(),
+          // Text only: every glyph below carries the outline + soft shadow.
+          child: DefaultTextStyle.merge(
+            style: TextStyle(shadows: o.textShadows(1, true)),
+            child: Stack(
+              children: [
+                Positioned.fill(child: surface),
+                // Hairline edge + lit top edge (inset 0 1px 0 rgba(255,255,255,.05)).
+                if (!textOnly)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: Radii.rXl,
+                          border: Border.all(color: o.edge),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            if (s.clickThrough) ...[
-              if (_showClickThroughEdge)
-                Positioned.fill(
-                  child: IgnorePointer(child: CustomPaint(painter: _DottedEdge(o.inkAt(0.5)))),
-                ),
-              Positioned(right: 10, bottom: 8, child: _ClickThroughBadge(palette: o)),
-            ],
-            if (!Platform.isMacOS) ..._resizeEdges(),
-          ],
+                if (!textOnly)
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    top: 0.5,
+                    child: IgnorePointer(child: Container(height: 1, color: o.innerHighlight)),
+                  ),
+                if (s.phase != LivePhase.answer)
+                  Positioned(
+                    left: 0,
+                    right: s.historyOpen ? _historyWidth : 0,
+                    top: _panelAtTop ? _metaHeight + 2 : null,
+                    bottom: _panelAtTop ? null : 10,
+                    child: Center(
+                      child: IgnorePointer(
+                        ignoring: !panelShown,
+                        child: AnimatedOpacity(
+                          duration: panelShown ? Motion.quick : Motion.smooth,
+                          opacity: panelShown ? 1 : 0,
+                          child: OverlayControls(state: s, onEnd: () => unawaited(_end())),
+                        ),
+                      ),
+                    ),
+                  ),
+                // Always visible while a screenshot is taken: nothing is captured silently.
+                if (s.capturingScreen)
+                  Positioned(
+                    right: 10,
+                    top: 8,
+                    child: _Badge(
+                      palette: o,
+                      icon: SottoIcons.display,
+                      label: context.l10n.capturingScreen,
+                      alert: true,
+                    ),
+                  ),
+                if (s.clickThrough) ...[
+                  if (_showClickThroughEdge)
+                    Positioned.fill(
+                      child: IgnorePointer(child: CustomPaint(painter: _DottedEdge(o.inkAt(0.5)))),
+                    ),
+                  Positioned(right: 10, bottom: 8, child: _ClickThroughBadge(palette: o)),
+                ],
+                if (!Platform.isMacOS) ..._resizeEdges(),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -330,7 +533,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     _ => 0,
   };
 
-  /// Frameless windows on Windows/Linux need their own resize edges.
+  /// Frameless windows on Windows/Linux need their own resize edges (every
+  /// side; the top one is thin so the meta strip still drags the window).
   List<Widget> _resizeEdges() {
     Widget edge(
       ResizeEdge e,
@@ -363,6 +567,9 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
       edge(ResizeEdge.bottom, SystemMouseCursors.resizeUpDown, left: 16, right: 16, bottom: 0, height: t),
       edge(ResizeEdge.bottomRight, SystemMouseCursors.resizeDownRight, right: 0, bottom: 0, width: 14, height: 14),
       edge(ResizeEdge.bottomLeft, SystemMouseCursors.resizeDownLeft, left: 0, bottom: 0, width: 14, height: 14),
+      edge(ResizeEdge.top, SystemMouseCursors.resizeUpDown, left: 16, right: 16, top: 0, height: 3),
+      edge(ResizeEdge.topRight, SystemMouseCursors.resizeUpRight, right: 0, top: 0, width: 10, height: 10),
+      edge(ResizeEdge.topLeft, SystemMouseCursors.resizeUpLeft, left: 0, top: 0, width: 10, height: 10),
     ];
   }
 }
@@ -432,6 +639,41 @@ class _ClickThroughBadge extends StatelessWidget {
           Text(
             LiveAction.clickThrough.title,
             style: TypeScale.micro.copyWith(color: o.inkAt(0.75), fontWeight: FontWeight.w400),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A small labelled chip on the overlay's edge (the screen-capture light).
+class _Badge extends StatelessWidget {
+  const _Badge({required this.palette, required this.icon, required this.label, this.alert = false});
+  final OverlayPalette palette;
+  final SottoIcons icon;
+  final String label;
+  final bool alert;
+
+  @override
+  Widget build(BuildContext context) {
+    final o = palette;
+    final color = alert ? o.capture : o.inkAt(0.75);
+    return Container(
+      height: 22,
+      padding: const EdgeInsets.symmetric(horizontal: 7),
+      decoration: BoxDecoration(
+        color: o.textOnly ? o.chromeGround : o.inkAt(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: alert ? o.capture.withValues(alpha: 0.6) : o.inkAt(0.14)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SottoIcon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TypeScale.micro.copyWith(color: color, fontWeight: FontWeight.w600, shadows: const []),
           ),
         ],
       ),

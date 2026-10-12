@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:window_manager/window_manager.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
@@ -18,9 +19,11 @@ import '../../core/widgets/controls.dart';
 import '../../core/widgets/display.dart';
 import '../../core/widgets/interactive.dart';
 import '../../core/widgets/nav.dart';
+import '../../core/widgets/stage_light.dart';
 import '../../core/widgets/window_chrome.dart';
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
+import '../onboarding/welcome_dialog.dart';
 import 'readiness.dart';
 
 /// Search text shared by the sidebar field and the script lists.
@@ -48,6 +51,14 @@ class _LibraryShellState extends ConsumerState<LibraryShell> {
   final _search = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(showWelcomeIfNeeded(context, ref));
+    });
+  }
+
+  @override
   void dispose() {
     _searchFocus.dispose();
     _search.dispose();
@@ -72,10 +83,7 @@ class _LibraryShellState extends ConsumerState<LibraryShell> {
               duration: Motion.smooth,
               curve: Motion.shiftMove,
               width: _collapsed ? Layout.sidebarCollapsed : Layout.sidebar,
-              decoration: BoxDecoration(
-                color: p.panel,
-                border: Border(right: BorderSide(color: p.hairline)),
-              ),
+              decoration: sidebarDecoration(p),
               child: ClipRect(
                 child: _Sidebar(
                   collapsed: _collapsed,
@@ -85,7 +93,7 @@ class _LibraryShellState extends ConsumerState<LibraryShell> {
                 ),
               ),
             ),
-            Expanded(child: widget.child),
+            Expanded(child: StageGlow(child: widget.child)),
           ],
         ),
       ),
@@ -103,11 +111,14 @@ class _Sidebar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
     final location = GoRouterState.of(context).uri.path;
     final scripts = ref.watch(scriptsProvider).value ?? const <Script>[];
     final sessions = ref.watch(sessionsProvider).value ?? const [];
     final collections = ref.watch(collectionsProvider).value ?? const <Collection>[];
     final active = scripts.where((s) => !s.archived).toList();
+    final showChat = ref.watch(settingsProvider.select((s) => s.showChat));
+    final showForms = ref.watch(settingsProvider.select((s) => s.showFormsNav));
 
     void go(String path) => context.go(path);
     final toggle = SottoIconButton(
@@ -125,7 +136,16 @@ class _Sidebar extends ConsumerWidget {
           height: Layout.titleBar,
           child: Row(
             children: [
-              Expanded(child: TitleBarDragSpacer(width: collapsed ? 0 : trafficLightInset)),
+              Expanded(
+                child: collapsed
+                    ? const TitleBarDragSpacer(width: 0)
+                    : DragToMoveArea(
+                        child: Padding(
+                          padding: EdgeInsets.only(left: PlatformKeys.isMac ? trafficLightInset : 22),
+                          child: const Align(alignment: Alignment.centerLeft, child: SottoBrand()),
+                        ),
+                      ),
+              ),
               if (!(collapsed && PlatformKeys.isMac))
                 Padding(
                   padding: EdgeInsets.only(right: collapsed ? 13 : 12),
@@ -179,6 +199,28 @@ class _Sidebar extends ConsumerWidget {
                 onTap: () => go('/sessions'),
               ),
               const SizedBox(height: 2),
+              // Opt-in (Settings → General → Show chat).
+              if (showChat) ...[
+                NavItem(
+                  label: context.l10n.navChat,
+                  icon: SottoIcons.chat,
+                  selected: location == '/chat',
+                  collapsed: collapsed,
+                  onTap: () => go('/chat'),
+                ),
+                const SizedBox(height: 2),
+              ],
+              // Settings → General → Show Forms in sidebar (on by default).
+              if (showForms) ...[
+                NavItem(
+                  label: context.l10n.navForms,
+                  icon: SottoIcons.form,
+                  selected: location == '/forms',
+                  collapsed: collapsed,
+                  onTap: () => go('/forms'),
+                ),
+                const SizedBox(height: 2),
+              ],
               NavItem(
                 label: context.l10n.navArchive,
                 icon: SottoIcons.archive,
@@ -192,6 +234,7 @@ class _Sidebar extends ConsumerWidget {
                 NavItem(
                   label: c.name,
                   icon: SottoIcons.folder,
+                  iconColor: p.collectionColor(c.tone),
                   trailing: '${active.where((s) => s.collectionId == c.id).length}',
                   selected: location == '/collections/${c.id}',
                   collapsed: collapsed,
@@ -213,6 +256,33 @@ class _Sidebar extends ConsumerWidget {
             collapsed: collapsed,
             onTap: () => go('/settings/shortcuts'),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The cue mark and wordmark, the lamp lit.
+class SottoBrand extends StatelessWidget {
+  const SottoBrand({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(color: p.primary.withValues(alpha: p.isDark ? 0.28 : 0.22), blurRadius: 16)],
+          ),
+          child: CueMark(size: 22, ink: p.inkPrimary, cue: p.primary),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          context.l10n.appTitle,
+          style: withWeight(TypeScale.title3, 650).copyWith(color: p.inkPrimary, letterSpacing: -0.2, height: 1),
         ),
       ],
     );
@@ -262,7 +332,12 @@ class _NewCollectionState extends ConsumerState<_NewCollection> {
           onSubmitted: (name) {
             final n = name.trim();
             if (n.isNotEmpty) {
-              unawaited(ref.read(scriptRepositoryProvider).saveCollection(Collection(id: newId(), name: n)));
+              final existing = ref.read(collectionsProvider).value ?? const <Collection>[];
+              unawaited(
+                ref
+                    .read(scriptRepositoryProvider)
+                    .saveCollection(Collection(id: newId(), name: n, tone: Collection.nextTone(existing))),
+              );
             }
             setState(() => _editing = false);
           },
@@ -297,7 +372,10 @@ class _ReadinessCard extends ConsumerWidget {
                 Expanded(
                   child: Text(context.l10n.liveReadiness, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
                 ),
-                Text(r == null ? '…' : context.l10n.readinessCount(r.passed, 4), style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                Text(
+                  r == null ? '…' : context.l10n.readinessCount(r.passed, 4),
+                  style: TypeScale.caption.copyWith(color: p.inkTertiary),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -326,7 +404,7 @@ class _ReadinessCard extends ConsumerWidget {
         height: 6,
         decoration: BoxDecoration(shape: BoxShape.circle, color: p.confirmed),
       ),
-      CheckLevel.warn => SottoIcon(SottoIcons.alert, size: 13, color: p.cueText),
+      CheckLevel.warn => SottoIcon(SottoIcons.alert, size: 13, color: p.caution),
       CheckLevel.missing => SottoIcon(SottoIcons.alert, size: 13, color: p.inkTertiary),
     };
     return Tooltip(
@@ -475,34 +553,4 @@ class _DashedBorder extends CustomPainter {
 
   @override
   bool shouldRepaint(_DashedBorder old) => old.color != color;
-}
-
-Widget emptyState(
-  BuildContext context, {
-  required SottoIcons icon,
-  required String title,
-  required String body,
-  Widget? action,
-}) {
-  final p = context.palette;
-  return Center(
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 360),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SottoIcon(icon, size: 20, color: p.inkTertiary),
-          const SizedBox(height: 12),
-          Text(title, style: TypeScale.title3.copyWith(color: p.inkPrimary)),
-          const SizedBox(height: 6),
-          Text(
-            body,
-            textAlign: TextAlign.center,
-            style: TypeScale.body.copyWith(color: p.inkTertiary),
-          ),
-          if (action != null) ...[const SizedBox(height: 16), action],
-        ],
-      ),
-    ),
-  );
 }

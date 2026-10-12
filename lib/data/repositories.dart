@@ -1,9 +1,12 @@
+import '../core/platform/platform_features.dart';
+
 import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/l10n.dart';
+import 'models/chat.dart';
 import 'models/qa_entry.dart';
 import 'models/script.dart';
 import 'models/session_record.dart';
@@ -69,7 +72,29 @@ class ScriptRepository {
     }
   }
 
+  /// Collections from before colors existed get one each, in name order.
+  Future<void> assignMissingTones() async {
+    final all = _store.collections.values.map(Collection.fromJson).sortedBy((c) => c.name.toLowerCase()).toList();
+    final placed = all.where((c) => c.tone != null).toList();
+    for (final c in all.where((c) => c.tone == null)) {
+      final toned = c.withTone(Collection.nextTone(placed));
+      placed.add(toned);
+      await saveCollection(toned);
+    }
+  }
+
   bool get isEmpty => _store.scripts.isEmpty;
+
+  /// Refinement that was cut short by quitting leaves the quick, rule-based
+  /// organization — which is complete, so the script is simply structured.
+  Future<void> finishInterruptedOrganizing() async {
+    for (final key in _store.scripts.keys.toList()) {
+      final raw = _store.scripts.get(key);
+      if (raw != null && raw['status'] == ScriptStatus.organizing.name) {
+        await _store.scripts.put(key, {...raw, 'status': ScriptStatus.structured.name});
+      }
+    }
+  }
 }
 
 final scriptRepositoryProvider = Provider<ScriptRepository>((ref) => ScriptRepository(ref.watch(localStoreProvider)));
@@ -90,15 +115,18 @@ final scriptByIdProvider = Provider.family<Script?, String>((ref, id) {
 class SettingsNotifier extends Notifier<AppSettings> {
   static const _key = 'app';
 
+  // What this platform can't do stays off, whatever was saved or toggled.
+  PlatformFeatures get _features => ref.read(platformFeaturesProvider);
+
   @override
   AppSettings build() {
-    final raw = ref.watch(localStoreProvider).settings.get(_key);
-    return raw == null ? const AppSettings() : AppSettings.fromJson(raw);
+    final raw = ref.watch(localStoreProvider).settingsWrites.get(_key);
+    return _features.clamp(raw == null ? const AppSettings() : AppSettings.fromJson(raw));
   }
 
   void update(AppSettings Function(AppSettings s) change) {
-    state = change(state);
-    unawaited(ref.read(localStoreProvider).settings.put(_key, state.toJson()));
+    state = _features.clamp(change(state));
+    unawaited(ref.read(localStoreProvider).settingsWrites.put(_key, state.toJson()));
   }
 
   void reset(AppSettings Function(AppSettings current, AppSettings defaults) pick) =>
@@ -165,9 +193,24 @@ class SessionRepository {
       LocalStore.watchAll(_store.sessions)
           .map((maps) => maps.map(SessionRecord.fromJson).sortedBy((s) => s.startedAt).reversed.toList());
 
-  Future<void> save(SessionRecord r) => _store.sessions.put(r.id, r.toJson());
+  /// Coalesced: writes within 200 ms reach disk together.
+  Future<void> save(SessionRecord r) => _store.sessionWrites.put(r.id, r.toJson());
 
-  Future<void> delete(String id) => _store.sessions.delete(id);
+  Future<void> delete(String id) => _store.sessionWrites.delete(id);
+
+  /// "Clear fill history": questionnaire records go; sessions that were
+  /// only a questionnaire go with them, live sessions keep the rest.
+  Future<void> clearFormRuns() async {
+    await _store.sessionWrites.flush();
+    final writes = <Future<void>>[];
+    for (final raw in _store.sessions.values.toList()) {
+      final r = SessionRecord.fromJson(raw);
+      if (r.formRuns.isEmpty) continue;
+      final onlyForms = r.agentRuns.isEmpty && r.wordsSpoken == 0 && r.sectionSeconds.isEmpty;
+      writes.add(onlyForms ? delete(r.id) : save(r.withoutFormRuns()));
+    }
+    await Future.wait(writes);
+  }
 }
 
 final sessionRepositoryProvider = Provider<SessionRepository>(
@@ -175,3 +218,42 @@ final sessionRepositoryProvider = Provider<SessionRepository>(
 );
 
 final sessionsProvider = StreamProvider<List<SessionRecord>>((ref) => ref.watch(sessionRepositoryProvider).watchAll());
+
+// ───────────────────────────── Chats ─────────────────────────────
+
+class ChatRepository {
+  ChatRepository(this._store);
+
+  final LocalStore _store;
+
+  /// Newest first.
+  Stream<List<Conversation>> watchAll() =>
+      LocalStore.watchAll(_store.chats)
+          .map((maps) => maps.map(Conversation.fromJson).sortedBy((c) => c.updatedAt).reversed.toList());
+
+  Conversation? get(String id) {
+    final raw = _store.chats.get(id);
+    return raw == null ? null : Conversation.fromJson(raw);
+  }
+
+  Future<void> save(Conversation c) => _store.chats.put(c.id, c.toJson());
+
+  Future<void> delete(String id) => _store.chats.delete(id);
+
+  Future<void> clear() => _store.chats.clear();
+
+  /// Privacy → Keep history: conversations untouched for longer go.
+  Future<int> prune(int retentionDays) async {
+    final cutoff = DateTime.now().subtract(Duration(days: retentionDays));
+    final stale = _store.chats.keys.where((k) {
+      final at = DateTime.tryParse(_store.chats.get(k)?['updatedAt'] as String? ?? '');
+      return at != null && at.isBefore(cutoff);
+    }).toList();
+    await _store.chats.deleteAll(stale);
+    return stale.length;
+  }
+}
+
+final chatRepositoryProvider = Provider<ChatRepository>((ref) => ChatRepository(ref.watch(localStoreProvider)));
+
+final conversationsProvider = StreamProvider<List<Conversation>>((ref) => ref.watch(chatRepositoryProvider).watchAll());

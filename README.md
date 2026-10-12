@@ -1,155 +1,206 @@
 # Sotto
 
-*The voice in the wings.* A live presentation assistant for macOS and Windows: it keeps your script
-under the camera, follows your voice line by line, and drafts an answer when the room asks a question.
+*The voice in the wings.* Sotto is a live presentation assistant for your desktop. It keeps your
+script in a small overlay just under the camera, follows your voice line by line, and drafts an
+answer when the audience asks a question, so you can look at the room, not at your notes.
 
-Built with Flutter 3.47 / Dart 3.13. Fully local: no backend and no account. Everything is stored on
-this computer. The only network calls are the answer model (your own API key), the optional cloud
-speech-to-text, and a one-time download of the on-device speech models.
+- **Teleprompter overlay.** A floating, always-on-top window that shows the line you're saying and
+  the next ones. Its text stays readable over dark slides, white slides and video calls. On Windows
+  and macOS it is hidden from screen sharing.
+- **Follows your voice.** Speech recognition runs on your computer (sherpa-onnx): the overlay moves
+  as you speak, holds still while you ad-lib, and your shortcuts always win.
+- **Answers questions.** Press a shortcut, let the audience member speak, and DeepSeek drafts an
+  answer from your script and prep documents.
+- **Scripts in seconds.** Drop a `.docx`, `.pdf`, `.md` or `.txt` file, or paste text. Sotto splits it
+  into sections, sentences and stage cues without changing your words.
+- **Rehearse.** Rehearsals and live sessions keep per-section timing, so your pace estimate gets
+  more accurate each time.
+- **Optional extras**, off until you turn them on: chat, answers about what's on screen, form
+  filling with the Sotto Bridge browser extension, and agent mode.
+- English and Spanish interface. No account and no backend: your scripts stay on your computer.
 
-## Run it
+## Platforms
+
+| Platform | Status | Notes |
+|---|---|---|
+| **Windows 10 / 11** (x64) | Full | Not code-signed yet: SmartScreen warns on first launch. |
+| **macOS 12+** (Apple silicon and Intel) | Full | Not notarized yet: see the Gatekeeper steps below. |
+| **Linux** (x64) | Experimental | Reduced feature set, X11 recommended. See [Linux](#linux-experimental). |
+
+## Download and install
+
+Get the latest version from the [Releases](../../releases) page. Each file has a SHA-256 checksum
+in `SHA256SUMS.txt`.
+
+### Windows
+
+- **Installer:** `Sotto-<version>-windows-x64-setup.exe` adds Sotto to the Start menu and comes with an
+  uninstaller. No administrator rights needed.
+- **Portable:** `Sotto-<version>-windows-x64.zip`. Unzip it anywhere and run `sotto.exe`. The Visual
+  C++ runtime is included.
+
+Because the app isn't code-signed yet, **Windows SmartScreen** may say "Windows protected your PC".
+Choose **More info → Run anyway**. You only need to do this once per version.
+
+### macOS
+
+1. Open `Sotto-<version>-macos.dmg` and drag **Sotto** to **Applications**.
+2. The app is ad-hoc signed but not notarized, so Gatekeeper blocks the first launch. Either
+   right-click Sotto in Applications → **Open** → **Open**, or run:
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Sotto.app
+   ```
+
+3. Grant the permissions Sotto asks for (System Settings → Privacy & Security):
+
+| Permission | Needed for | When it's asked |
+|---|---|---|
+| **Microphone** | Following your voice, capturing questions, chat dictation | First live session or first dictation |
+| **Screen Recording** | Answers about the screen, "Attach screen" in chat, form filling, automatic overlay text color | When you first use one of them |
+| **Accessibility** | Form filling and agent mode (reading forms, clicking and typing) | When you turn either on |
+
+macOS applies Screen Recording only after you quit and reopen Sotto. Pre-flight (the check before
+going live) shows anything that's still missing.
+
+### Linux (experimental)
+
+- **tar.gz:** extract `Sotto-<version>-linux-x64.tar.gz` and run `./sotto` inside the folder.
+- **AppImage** (if attached to the release): `chmod +x Sotto-<version>-x86_64.AppImage` and run it.
+
+System packages (Debian/Ubuntu names):
+
+```sh
+sudo apt install libgtk-3-0 libsecret-1-0 gnome-keyring libkeybinder-3.0-0 pulseaudio-utils xdg-desktop-portal
+```
+
+`libsecret` and a keyring store your own DeepSeek key. `pulseaudio-utils` (`parecord`, which also
+works on PipeWire with `pipewire-pulse`) captures the microphone. `keybinder` registers global
+shortcuts, and `xdg-desktop-portal` opens file pickers.
+
+**Works on Linux:** the library and import, the editor, voice following, the teleprompter overlay,
+DeepSeek answers, chat, rehearsals and sessions.
+
+**Not available yet:** answers about the screen, form filling, agent mode, the browser extension,
+reading answers aloud, and hiding the overlay from screen sharing (share a window, not the whole
+screen). The app shows these as "Not available on Linux yet" instead of failing.
+
+**X11 vs Wayland.** Use an X11 session ("Ubuntu on Xorg" on the login screen) for the full
+experience. Wayland doesn't let apps register global shortcuts or keep a window above others, so on
+Wayland the shortcuts don't fire (the readiness card says so) and the overlay may not stay on top.
+The overlay's buttons still work. A transparent overlay needs a compositing window manager.
+
+## First launch
+
+1. **Voice models.** The welcome dialog offers the on-device speech models (Settings → Voice &
+   following → On-device models): *English · streaming* to follow your voice and *Whisper base* for
+   questions and other languages. They're downloaded once from the sherpa-onnx releases on GitHub
+   and work offline afterwards.
+2. **A script.** Write one, paste one, or drop a file onto the window.
+3. **Go live** with `Ctrl+Alt+L` (`⌃⌥L` on a Mac), or rehearse first. All shortcuts are listed and
+   can be changed in Settings → Shortcuts.
+
+Without voice models, the overlay still works with the shortcuts and a timed advance.
+
+## AI features and your DeepSeek key
+
+Organizing scripts, answering questions, chat, form filling and agent mode use
+[DeepSeek](https://platform.deepseek.com). **Release builds include a key, so these work out of
+the box.**
+
+You can use your **own key** instead. This is optional, but it gives you your own account and
+limits:
+
+1. Create a key at [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys).
+2. Paste it in **Settings → Integrations → API key** and press **Test**.
+
+Your key is stored in the system keychain (Windows Credential Manager, macOS Keychain, or the Secret
+Service on Linux) and takes priority over the built-in key. If the built-in key stops working, Sotto
+says so and points you to Settings → Integrations. Voice following and the overlay never need a
+key.
+
+## Privacy
+
+**Stays on your computer:**
+
+- Your scripts, prep documents, sessions, rehearsals, answers history, chats and settings, in a local
+  database.
+- Your voice. Speech recognition runs on your computer and audio is never uploaded.
+- Your own DeepSeek key, in the system keychain.
+- Screenshots. They're held in memory for a single request and never written to disk.
+- Sotto has no account, no analytics and no server of its own.
+
+**Sent to DeepSeek**, only when you use a feature that needs it:
+
+- **Answers:** the question and the script and prep excerpts used to answer it.
+- **Organizing an imported script:** its numbered sentences. DeepSeek only returns where sections
+  begin and end.
+- **Chat:** your messages, plus your script or a screenshot only if you attach them.
+- **Opt-in features:**
+  - Screen awareness: one screenshot when you press the shortcut.
+  - Form filling: a screenshot and the list of fields. Password and payment fields are never read
+    or sent.
+  - Agent mode: screenshots while it works.
+
+**Downloaded:** the speech models, once, from GitHub.
+
+Settings → Privacy controls how long history is kept and can delete all local data. DeepSeek's own
+policy applies to what it receives.
+
+## Browser extension
+
+**Sotto Bridge** (`extension/`, for Chrome, Edge and Firefox) lets form filling read web forms from the
+page itself instead of from pixels. Install it from Settings → Forms → Browser integration, or unpack
+`sotto-bridge-<version>.zip` from the release and load it as an unpacked extension (Chrome/Edge:
+`chrome://extensions` → Developer mode; Firefox: `about:debugging` → Load Temporary Add-on). Sotto
+registers its native messaging host for your user on every start, with no admin rights needed. It only
+reads the active tab, only when Sotto asks, and never reads password or payment fields. Available on
+Windows and macOS.
+
+## Build from source
+
+Requirements: [Flutter](https://docs.flutter.dev/get-started/install) **3.47.5** (stable), plus:
+
+- **Windows:** Visual Studio 2022 with the *Desktop development with C++* workload (Windows 10/11
+  SDK), and `nuget.exe` on `PATH` for `flutter_tts`.
+- **macOS:** Xcode 16 or later.
+- **Linux:**
+
+  ```sh
+  sudo apt install clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev libkeybinder-3.0-dev
+  ```
 
 ```sh
 flutter pub get
-flutter run -d macos     # or -d windows
-flutter test             # unit + widget tests
+flutter run -d windows        # or -d macos / -d linux
+flutter test                  # unit and widget tests (no key or network needed)
 ```
 
-On first launch the library is seeded with the design's example talk: "Q3 Board Review", or
-"Revisión del tercer trimestre" on a Spanish system.
+**Your own built-in key (optional).** The key is never in the source. Pass it at build time:
 
-Then:
-
-1. **Settings → Voice & following → On-device models.** Download *English · streaming* (follows your
-   voice) and *Whisper base* (question transcripts, other languages). They are fetched once from the
-   sherpa-onnx releases and used offline after that.
-2. **Settings → Integrations.** Pick Anthropic, OpenAI or any OpenAI-compatible server (Ollama,
-   LM Studio…) and paste a key. It is stored in the Keychain / Credential Manager, never in the app
-   database.
-3. Open a script and choose **Go live** (`⌃⌥L` / `Ctrl+Alt+L`).
-
-Without models the overlay still works on hotkeys, with a timed advance. Without a key, everything
-works except drafting answers.
-
-## Live shortcuts (default chord ⌃⌥ / Ctrl+Alt)
-
-| Key | Action | Key | Action |
-|---|---|---|---|
-| L | Go live / end | Q | Ask a question (press again or pause 1.2 s to finish) |
-| Space | Pause / resume following | ↩ (hold 0.5 s) | Copy answer for the meeting chat |
-| ↓ / ↑ | Next / previous beat | R | Read answer aloud (headphones) |
-| → / ← | Next / previous section | X | Dismiss answer / cancel question |
-| O | Hide overlay instantly | H | Questions history |
-| T | Click-through | = / − | Text size |
-| M | Move to next display | | |
-
-All shortcuts are global, so they work while Zoom or your slides have focus. You can rebind them, or
-change the shared chord, in Settings → Shortcuts. The recorder flags conflicts with system shortcuts
-and other apps.
-
-## Languages
-
-The interface is in English and Spanish. **Settings → General → Language** offers *System*, *English* or
-*Español*, and the change applies instantly. *System* follows the OS language and falls back to
-English. Dates, times, numbers and plurals follow the chosen language ("hace 4 h", "12 sept", "31,4 %").
-
-- **Strings** live in `lib/l10n/app_en.arb` (template) and `app_es.arb`. `flutter pub get` or
-  `flutter gen-l10n` regenerates `AppLocalizations`. Widgets use `context.l10n.key`; code without a
-  `BuildContext` (models, services, the live controller) uses `L10n.current`.
-- **Voice following in Spanish.** The normalizer reads numbers and symbols the way they are spoken in
-  Spanish ("48,2" → "cuarenta y ocho coma dos", "%" → "por ciento"). It also folds accents and uses
-  Spanish stop words. Cues accept `[DIAPOSITIVA 3]`, `[PAUSA]` and `[NOTA]` as well as the English
-  words.
-- On a Spanish system, first launch also sets the speech language to *Español (España)* or
-  *Español (Latinoamérica)*.
-- Answers are drafted in the language of the question by default (Settings → Answers → Language).
-- Content you write is never translated. Scripts keep the language they were written in.
-
-## Architecture
-
-```
-lib/
-  app/            App root, go_router routes, global shortcuts
-  core/
-    design/       Design tokens (tokens.dart), typography, theme, 48 icons from the design
-    widgets/      Component library: buttons, keycaps, controls, chips, settings rows, chrome
-    platform/     WindowService (main window ⇄ overlay), HotkeyService, key labels
-  data/
-    models/       Script → Section → Beat (+Cue), settings, Q&A entries, sessions (hand-written JSON)
-    storage/      Hive CE boxes (LocalStore), API keys in the OS keychain (SecretStore)
-    import/       .txt / .md / .docx (OOXML) / .pdf (PDFium) → text
-    repositories.dart   Riverpod providers over the stores
-  l10n/           ARB catalogs (en, es), generated AppLocalizations, L10n helpers
-  domain/
-    following/    Text normalizer ("$48.2" → "forty eight point two"), Smith–Waterman aligner,
-                  FollowEngine (the rules from the "Following your voice" board)
-    structuring/  Offline rule-based organizer: sections, one-breath beats, cues, hint words
-  services/
-    speech/       Mic capture (record), sherpa-onnx worker isolate, Whisper, cloud STT, VAD, models
-    ai/           Anthropic + OpenAI-compatible streaming clients (raw SSE), grounded answer drafting
-    tts/          Read aloud (flutter_tts)
-  features/
-    library/      Home, script lists, sessions, import (drop / paste / browse), readiness
-    editor/       Script workspace: Write, Q&A prep, Rehearsals, live overlay preview
-    preflight/    Go-live checks
-    settings/     Shortcuts, Appearance, Voice & following, Answers, General, Integrations, Privacy
-    live/         LiveController (the session state machine) and the overlay UI
+```sh
+cp secrets.example.json secrets.json      # git-ignored; paste your key into it
+flutter run --dart-define-from-file=secrets.json
+flutter build windows --release --dart-define-from-file=secrets.json
+# or: --dart-define=DEEPSEEK_API_KEY=sk-...
 ```
 
-**One window, two personalities.** Going live morphs the main window into the overlay. It becomes
-frameless, always on top, transparent, resizable and draggable, and it snaps under the camera. Ending
-the session restores it exactly. The platform extras window_manager doesn't cover live in a small
-native channel, `app.sotto/overlay`:
+Without it, the app builds and runs normally, and AI features ask for a key in Settings →
+Integrations. A key built into a binary can be extracted from it, so only ship builds with a key you
+are willing to share.
 
-- **macOS** (`macos/Runner/MainFlutterWindow.swift`): the window is an `NSPanel`. In the overlay it is
-  non-activating, never takes key focus, sits at `.statusBar` level on every Space and over
-  full-screen apps, uses `sharingType = .none`, and has a vibrancy blur.
-- **Windows** (`windows/runner/flutter_window.cpp`): `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE`, plus
-  `MA_NOACTIVATE` on click, `WDA_EXCLUDEFROMCAPTURE`, and a Windows 11 acrylic backdrop with rounded
-  corners.
+Releases are built by GitHub Actions (`.github/workflows/release.yml`) when a `v*` tag is pushed.
 
-**Voice following.** 16 kHz mic audio goes to sherpa-onnx in a background isolate, so inference never
-touches the 120 Hz UI thread. The rolling transcript is aligned against a band of the script (one beat
-back, three ahead) with a local alignment over normalized, phonetically keyed tokens. The follow
-engine applies the design's rules:
+## More
 
-- dim a word at ≥ 0.7 confidence
-- advance at 80 % of a beat
-- never scroll back on a guess
-- hold still during ad-libs and re-lock on a three-word match
-- give manual keys priority
+- [How Sotto works](docs/ARCHITECTURE.md): architecture, voice following, the overlay, every opt-in
+  feature in depth, tests and known limitations.
+- [Contributing](CONTRIBUTING.md)
+- [Changelog](CHANGELOG.md)
 
-The overlay glides by translating one pre-laid-out, repaint-isolated column, so advancing only
-recomposites a layer.
+## License
 
-**Answers.** An offline BM25 ranking picks script sections and prep-document excerpts. Only the
-question and those excerpts are sent. Q&A-prep answers that match are shown instantly with no model
-call. Responses stream in a line protocol, so the headline appears first and the points follow.
-Anthropic calls go to `claude-opus-5` at low effort for latency, with server-side refusal fallbacks.
+[MIT](LICENSE) © 2026 Jeferson Manuel Morillo Vallejo.
 
-## Tests
-
-- `test/domain` — normalizer, aligner and follow rules (advance, hold, relock, backward jumps,
-  section skips), including Spanish numbers and a Spanish script read aloud.
-- `test/integration` — real speech: a sample WAV streamed through the sherpa-onnx worker, driving the
-  follow engine. It runs once the light English model is installed (or with `SOTTO_MODEL_DIR`); on
-  Linux, point `LD_LIBRARY_PATH` at `build/linux/x64/debug/bundle/lib`.
-- `test/widgets` — renders the live answer card with the bundled fonts to `build/answer_card.png`.
-
-## Known limitations
-
-- **Meeting chat.** "Send to chat" copies the answer to the clipboard for you to paste. Posting
-  directly to Zoom/Teams needs their OAuth apps, which conflicts with running without a backend.
-- **Questions in a video call** arrive as system audio. Choose a loopback input (BlackHole on macOS,
-  "Stereo Mix" / VB-Cable on Windows) in Settings → Voice & following → *Questions come from*.
-- **Screen capture.** On macOS 15+, a full-screen share can still capture the overlay (ScreenCaptureKit).
-  Pre-flight says so. Share a window instead.
-- **Live following** uses a streaming model for English. Spanish and other languages follow via
-  Whisper, re-transcribing about once a second, so they react a little later.
-- Not built from the design: the menu-bar item, calendar integration, presentation-clicker following
-  and cloud accounts.
-- Linux builds and runs for development (used for verification), but it is not a target. Global
-  arrow-key hotkeys and read-aloud aren't available there.
-
-Typefaces: Geist, Geist Mono and Atkinson Hyperlegible Next, bundled under the SIL Open Font License
-(see `assets/fonts/`).
+Typefaces: Geist, Geist Mono and Atkinson Hyperlegible Next, under the SIL Open Font License (see
+`assets/fonts/`).

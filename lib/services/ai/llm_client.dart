@@ -4,8 +4,15 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/embedded_key.dart';
 import '../../data/models/settings.dart';
+import '../../data/storage/secret_store.dart';
 import '../../l10n/l10n.dart';
+import 'task_profile.dart';
+
+export 'task_profile.dart';
+
+const _provider = 'DeepSeek';
 
 class LlmException implements Exception {
   LlmException(this.message, {this.statusCode, this.retryable = false});
@@ -17,7 +24,10 @@ class LlmException implements Exception {
   @override
   String toString() => message;
 
-  static LlmException fromStatus(int status, String body, String provider) {
+  /// [builtInKey]: the request used the key built into Sotto, which the
+  /// user can't check or top up — so a rejected or empty key asks them to
+  /// add their own instead.
+  static LlmException fromStatus(int status, String body, {bool builtInKey = false}) {
     String detail = '';
     try {
       final j = jsonDecode(body);
@@ -26,50 +36,132 @@ class LlmException implements Exception {
     final l = L10n.current;
     final suffix = detail.isEmpty ? '' : ': $detail';
     final msg = switch (status) {
-      400 => '${l.llmRejected}$suffix',
-      401 || 403 => l.llmBadKey(provider),
+      400 || 422 => '${l.llmRejected}$suffix',
+      401 || 402 || 403 when builtInKey => l.llmBuiltInKeyFailed,
+      401 || 403 => l.llmBadKey(_provider),
+      402 => l.llmNoBalance,
       404 => l.llmNoModel,
-      429 => l.llmRateLimit(provider),
-      >= 500 => l.llmServerError(provider, status),
+      429 => l.llmRateLimit(_provider),
+      >= 500 => l.llmServerError(_provider, status),
       _ => '${l.llmFailed(status)}$suffix',
     };
     return LlmException(msg, statusCode: status, retryable: status == 429 || status >= 500);
   }
 }
 
-/// Raised when the model declines to answer (stop_reason "refusal").
+/// DeepSeek sent nothing for [DeepSeekClient.timeout]: "DeepSeek did not
+/// respond — check your connection". A [TimeoutException] too, so code
+/// that knows nothing of DeepSeek (the form runner) can end its cycle on it.
+class LlmTimeout extends LlmException implements TimeoutException {
+  LlmTimeout({this.duration = DeepSeekClient.defaultTimeout})
+    : super(L10n.current.llmTimeout(_provider), retryable: true);
+
+  @override
+  final Duration duration;
+}
+
+/// Raised when the model declines to answer (finish_reason "content_filter").
 class LlmRefusal extends LlmException {
   LlmRefusal() : super(L10n.current.llmRefusal);
 }
 
-/// Minimal streaming text interface; both providers implement it over raw
-/// HTTP + server-sent events.
-abstract class LlmClient {
-  Stream<String> stream({required String system, required String user, int maxTokens = 4096, bool fast = true});
+/// Where the key a DeepSeek call uses came from.
+enum KeySource { user, builtIn }
 
-  Future<String> complete({required String system, required String user, int maxTokens = 8192}) async {
+/// The key DeepSeek calls use and where it came from: one the user saved in
+/// Settings › Integrations wins, otherwise the key built into this copy
+/// ([kEmbeddedDeepSeekKey]). Null when neither exists.
+Future<({String key, KeySource source})?> resolveDeepSeekCredential(
+  SecretStore secrets, {
+  String embedded = kEmbeddedDeepSeekKey,
+}) async {
+  final saved = await secrets.read(SecretKey.deepseekApiKey);
+  if (saved != null && saved.trim().isNotEmpty) return (key: saved.trim(), source: KeySource.user);
+  final built = embedded.trim();
+  return built.isEmpty ? null : (key: built, source: KeySource.builtIn);
+}
+
+/// The key DeepSeek calls use; see [resolveDeepSeekCredential].
+Future<String?> resolveDeepSeekKey(SecretStore secrets, {String embedded = kEmbeddedDeepSeekKey}) async =>
+    (await resolveDeepSeekCredential(secrets, embedded: embedded))?.key;
+
+/// A model `GET /models` returned.
+class DeepSeekModel {
+  const DeepSeekModel(this.id, {this.images = false});
+  final String id;
+
+  /// Accepts `image_url` parts (screenshots).
+  final bool images;
+}
+
+/// A piece of a streamed reply: visible [content], or the model's hidden
+/// [reasoning] (thinking mode), which chat keeps to send back next turn.
+class LlmDelta {
+  const LlmDelta({this.content = '', this.reasoning = ''});
+  final String content;
+  final String reasoning;
+}
+
+/// Minimal streaming text interface over raw HTTP + server-sent events.
+/// Every request names a [DeepSeekTaskProfile], which decides thinking.
+abstract class LlmClient {
+  /// [images] are JPEG data URLs, attached to the user message (DeepSeek
+  /// accepts images in user messages only). [json] asks for a JSON object
+  /// (`response_format`); the prompt must say "JSON" too.
+  Stream<String> stream({
+    required String system,
+    required String user,
+    int maxTokens = 4096,
+    DeepSeekTaskProfile profile = DeepSeekTaskProfile.answers,
+    List<String> images = const [],
+    bool json = false,
+  });
+
+  Future<String> complete({
+    required String system,
+    required String user,
+    int maxTokens = 8192,
+    DeepSeekTaskProfile profile = DeepSeekTaskProfile.organize,
+    List<String> images = const [],
+    bool json = false,
+  }) async {
     final buf = StringBuffer();
-    await for (final chunk in stream(system: system, user: user, maxTokens: maxTokens, fast: false)) {
+    await for (final chunk in stream(
+      system: system,
+      user: user,
+      maxTokens: maxTokens,
+      profile: profile,
+      images: images,
+      json: json,
+    )) {
       buf.write(chunk);
     }
     return buf.toString();
   }
 
+  /// A multi-turn conversation (chat), streamed. [messages] are in API
+  /// form; [vision] routes to the model that reads images.
+  Stream<LlmDelta> streamMessages({
+    required List<Map<String, Object?>> messages,
+    required DeepSeekTaskProfile profile,
+    int maxTokens = 4096,
+    bool vision = false,
+  }) => throw UnimplementedError();
+
   void close();
 
-  static LlmClient create(AppSettings s, String apiKey) => switch (s.aiProvider) {
-    AiProvider.anthropic => AnthropicClient(
-      apiKey: apiKey,
-      model: s.aiModel.isEmpty ? s.aiProvider.defaultModel : s.aiModel,
-      baseUrl: s.effectiveAiBaseUrl,
-    ),
-    AiProvider.openai || AiProvider.openaiCompatible => OpenAiClient(
-      apiKey: apiKey,
-      model: s.aiModel.isEmpty ? s.aiProvider.defaultModel : s.aiModel,
-      baseUrl: s.effectiveAiBaseUrl,
-      official: s.aiProvider == AiProvider.openai,
-    ),
-  };
+  static LlmClient create(AppSettings s, String apiKey, {bool builtInKey = false}) =>
+      DeepSeekClient(apiKey: apiKey, model: s.aiModel, visionModel: s.visionModel, builtInKey: builtInKey);
+
+  /// A client for the current settings, or null when there is no key.
+  static Future<LlmClient?> forSettings(
+    AppSettings s,
+    SecretStore secrets, {
+    String embedded = kEmbeddedDeepSeekKey,
+  }) async {
+    final c = await resolveDeepSeekCredential(secrets, embedded: embedded);
+    return c == null ? null : create(s, c.key, builtInKey: c.source == KeySource.builtIn);
+  }
 }
 
 /// Splits a byte stream into SSE events: (event name, data payload).
@@ -91,134 +183,206 @@ Stream<(String?, String)> _sse(Stream<List<int>> bytes) async* {
   if (data.isNotEmpty) yield (event, data.toString());
 }
 
-Future<http.StreamedResponse> _send(http.Client client, http.Request req, String provider) async {
+/// Every DeepSeek call gives up after [timeout] without a byte: waiting for
+/// the headers, and between two pieces of the body (a reply may stream for
+/// longer, as long as it keeps coming). The request is abandoned
+/// ([LlmTimeout]) and the caller's cycle ends there.
+Future<http.StreamedResponse> _send(http.Client client, http.BaseRequest req, Duration timeout) async {
   try {
-    return await client.send(req).timeout(const Duration(seconds: 30));
+    final res = await client.send(req).timeout(timeout);
+    return http.StreamedResponse(
+      _idleTimeout(res.stream, timeout),
+      res.statusCode,
+      contentLength: res.contentLength,
+      request: res.request,
+      headers: res.headers,
+      isRedirect: res.isRedirect,
+      persistentConnection: res.persistentConnection,
+      reasonPhrase: res.reasonPhrase,
+    );
   } on TimeoutException {
-    throw LlmException(L10n.current.llmTimeout(provider), retryable: true);
+    throw LlmTimeout(duration: timeout);
   } on SocketException {
-    throw LlmException(L10n.current.llmOffline(provider), retryable: true);
+    throw LlmException(L10n.current.llmOffline(_provider), retryable: true);
   } on http.ClientException catch (e) {
-    throw LlmException(L10n.current.llmUnreachable(provider, e.message), retryable: true);
+    throw LlmException(L10n.current.llmUnreachable(_provider, e.message), retryable: true);
   }
 }
 
-class AnthropicClient extends LlmClient {
-  AnthropicClient({required this.apiKey, required this.model, required this.baseUrl});
+/// [bytes], failing with [LlmTimeout] when nothing arrives for [timeout];
+/// the subscription is cancelled, which closes the connection.
+Stream<List<int>> _idleTimeout(Stream<List<int>> bytes, Duration timeout) => bytes.timeout(
+  timeout,
+  onTimeout: (sink) {
+    sink.addError(LlmTimeout(duration: timeout));
+    sink.close();
+  },
+);
+
+/// DeepSeek's OpenAI-format API. Thinking models also stream
+/// `reasoning_content`; it is never shown and never breaks parsing.
+class DeepSeekClient extends LlmClient {
+  DeepSeekClient({
+    required this.apiKey,
+    required this.model,
+    this.visionModel,
+    http.Client? httpClient,
+    this.timeout = defaultTimeout,
+    this.builtInKey = false,
+  }) : _http = httpClient ?? http.Client();
+
+  /// [apiKey] is the one built into Sotto, not the user's.
+  final bool builtInKey;
+
+  static const baseUrl = 'https://api.deepseek.com';
+
+  /// How long a call may go without hearing from DeepSeek.
+  static const defaultTimeout = Duration(seconds: 30);
+  final Duration timeout;
+  static const defaultModel = 'deepseek-flash';
 
   final String apiKey;
   final String model;
-  final String baseUrl;
-  final _http = http.Client();
 
-  // Models that take output_config.effort; Haiku 4.5 rejects it.
-  bool get _supportsEffort =>
-      model.startsWith('claude-opus') ||
-      model.startsWith('claude-fable') ||
-      model.startsWith('claude-sonnet-5') ||
-      model.startsWith('claude-sonnet-4-6') ||
-      model.startsWith('claude-mythos');
+  /// Used instead of [model] when a request carries images and [model]
+  /// can't read them.
+  final String? visionModel;
+  final http.Client _http;
 
-  // Server-side refusal fallbacks: re-run a declined request on another
-  // model inside the same call. Enabled for the models that support it.
-  bool get _supportsFallbacks => model == 'claude-opus-5' || model == 'claude-fable-5-1';
+  Map<String, String> get _headers => {'content-type': 'application/json', 'authorization': 'Bearer $apiKey'};
+
+  /// `GET /models` — the models this key may use.
+  Future<List<DeepSeekModel>> listModels() async {
+    final req = http.Request('GET', Uri.parse('$baseUrl/models'))..headers.addAll(_headers);
+    final res = await _send(_http, req, timeout);
+    final body = await res.stream.bytesToString();
+    if (res.statusCode != 200) throw LlmException.fromStatus(res.statusCode, body, builtInKey: builtInKey);
+    final data = (jsonDecode(body) as Map)['data'] as List? ?? const [];
+    return [
+      for (final m in data.cast<Map<Object?, Object?>>())
+        DeepSeekModel(m['id']! as String, images: (m['input_modalities'] as List?)?.contains('image') ?? false),
+    ]..sort((a, b) => a.id.compareTo(b.id));
+  }
 
   @override
-  Stream<String> stream({required String system, required String user, int maxTokens = 4096, bool fast = true}) async* {
-    final uri = Uri.parse('${baseUrl.replaceAll(RegExp(r'/+$'), '')}/v1/messages');
-    final req = http.Request('POST', uri)
-      ..headers.addAll({
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        if (_supportsFallbacks) 'anthropic-beta': 'server-side-fallback-2026-07-01',
-      })
+  Stream<String> stream({
+    required String system,
+    required String user,
+    int maxTokens = 4096,
+    DeepSeekTaskProfile profile = DeepSeekTaskProfile.answers,
+    List<String> images = const [],
+    bool json = false,
+  }) async* {
+    await for (final d in _streamRequest(
+      model: images.isEmpty ? model : (visionModel ?? model),
+      messages: [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': userContent(user, images)},
+      ],
+      maxTokens: maxTokens,
+      profile: profile,
+      json: json,
+    )) {
+      if (d.content.isNotEmpty) yield d.content;
+    }
+  }
+
+  @override
+  Stream<LlmDelta> streamMessages({
+    required List<Map<String, Object?>> messages,
+    required DeepSeekTaskProfile profile,
+    int maxTokens = 4096,
+    bool vision = false,
+  }) => _streamRequest(
+    model: vision ? (visionModel ?? model) : model,
+    messages: messages,
+    maxTokens: maxTokens,
+    profile: profile,
+  );
+
+  Stream<LlmDelta> _streamRequest({
+    required String model,
+    required List<Map<String, Object?>> messages,
+    required int maxTokens,
+    required DeepSeekTaskProfile profile,
+    bool json = false,
+  }) async* {
+    final req = http.Request('POST', Uri.parse('$baseUrl/chat/completions'))
+      ..headers.addAll(_headers)
       ..body = jsonEncode({
         'model': model,
+        'stream': true,
         'max_tokens': maxTokens,
-        'stream': true,
-        'system': system,
-        'messages': [
-          {'role': 'user', 'content': user},
-        ],
-        // Live answers are latency-bound (first token ≤ 1.2 s p50), so they
-        // run at low effort; structuring a script can afford more.
-        if (_supportsEffort) 'output_config': {'effort': fast ? 'low' : 'medium'},
-        if (_supportsFallbacks) 'fallbacks': 'default',
+        ...profile.requestFields,
+        if (json) 'response_format': {'type': 'json_object'},
+        'messages': messages,
       });
 
-    final res = await _send(_http, req, 'Anthropic');
+    final res = await _send(_http, req, timeout);
     if (res.statusCode != 200) {
-      throw LlmException.fromStatus(res.statusCode, await res.stream.bytesToString(), 'Anthropic');
-    }
-    await for (final (event, data) in _sse(res.stream)) {
-      final j = jsonDecode(data) as Map<String, dynamic>;
-      switch (j['type'] ?? event) {
-        case 'content_block_delta':
-          final delta = j['delta'] as Map<String, dynamic>;
-          if (delta['type'] == 'text_delta') yield delta['text'] as String;
-        case 'message_delta':
-          if ((j['delta'] as Map?)?['stop_reason'] == 'refusal') throw LlmRefusal();
-        case 'error':
-          final err = j['error'] as Map?;
-          throw LlmException(
-            err?['message'] as String? ?? L10n.current.llmGenericError('Anthropic'),
-            retryable: err?['type'] == 'overloaded_error',
-          );
-      }
-    }
-  }
-
-  @override
-  void close() => _http.close();
-}
-
-class OpenAiClient extends LlmClient {
-  OpenAiClient({required this.apiKey, required this.model, required this.baseUrl, required this.official});
-
-  final String apiKey;
-  final String model;
-  final String baseUrl;
-
-  /// api.openai.com wants `max_completion_tokens`; most compatible servers
-  /// (Ollama, LM Studio, vLLM, OpenRouter) still read `max_tokens`.
-  final bool official;
-  final _http = http.Client();
-
-  @override
-  Stream<String> stream({required String system, required String user, int maxTokens = 4096, bool fast = true}) async* {
-    final uri = Uri.parse('${baseUrl.replaceAll(RegExp(r'/+$'), '')}/chat/completions');
-    final req = http.Request('POST', uri)
-      ..headers.addAll({'content-type': 'application/json', if (apiKey.isNotEmpty) 'authorization': 'Bearer $apiKey'})
-      ..body = jsonEncode({
-        'model': model,
-        'stream': true,
-        official ? 'max_completion_tokens' : 'max_tokens': maxTokens,
-        'messages': [
-          {'role': 'system', 'content': system},
-          {'role': 'user', 'content': user},
-        ],
-      });
-
-    final provider = official ? 'OpenAI' : L10n.current.llmAiServer;
-    final res = await _send(_http, req, provider);
-    if (res.statusCode != 200) {
-      throw LlmException.fromStatus(res.statusCode, await res.stream.bytesToString(), provider);
+      throw LlmException.fromStatus(res.statusCode, await res.stream.bytesToString(), builtInKey: builtInKey);
     }
     await for (final (_, data) in _sse(res.stream)) {
       if (data == '[DONE]') break;
       final j = jsonDecode(data) as Map<String, dynamic>;
       if (j['error'] != null) {
-        throw LlmException((j['error'] as Map)['message'] as String? ?? L10n.current.llmGenericError(provider));
+        throw LlmException((j['error'] as Map)['message'] as String? ?? L10n.current.llmGenericError(_provider));
       }
       final choices = j['choices'] as List?;
       if (choices == null || choices.isEmpty) continue;
-      final delta = (choices.first as Map)['delta'] as Map?;
+      final choice = choices.first as Map;
+      final delta = choice['delta'] as Map?;
       final content = delta?['content'];
-      if (content is String && content.isNotEmpty) yield content;
-      if ((choices.first as Map)['finish_reason'] == 'content_filter') throw LlmRefusal();
+      final reasoning = delta?['reasoning_content'];
+      if ((content is String && content.isNotEmpty) || (reasoning is String && reasoning.isNotEmpty)) {
+        yield LlmDelta(content: content is String ? content : '', reasoning: reasoning is String ? reasoning : '');
+      }
+      if (choice['finish_reason'] == 'content_filter') throw LlmRefusal();
     }
   }
+
+  /// One non-streaming turn with tool calling (agent mode). Returns the
+  /// assistant message as sent by the API — `content`, `tool_calls` and,
+  /// on thinking models, `reasoning_content`, which callers must send back
+  /// on later turns.
+  Future<Map<String, Object?>> chat({
+    required List<Map<String, Object?>> messages,
+    List<Map<String, Object?>> tools = const [],
+    String? model,
+    int maxTokens = 1024,
+    DeepSeekTaskProfile profile = DeepSeekTaskProfile.agent,
+  }) async {
+    final req = http.Request('POST', Uri.parse('$baseUrl/chat/completions'))
+      ..headers.addAll(_headers)
+      ..body = jsonEncode({
+        'model': model ?? this.model,
+        'max_tokens': maxTokens,
+        ...profile.requestFields,
+        'messages': messages,
+        if (tools.isNotEmpty) 'tools': tools,
+      });
+    final res = await _send(_http, req, timeout);
+    final body = await res.stream.bytesToString();
+    if (res.statusCode != 200) throw LlmException.fromStatus(res.statusCode, body, builtInKey: builtInKey);
+    final j = jsonDecode(body) as Map<String, dynamic>;
+    final choices = j['choices'] as List?;
+    if (choices == null || choices.isEmpty) throw LlmException(L10n.current.llmGenericError(_provider));
+    final choice = choices.first as Map;
+    if (choice['finish_reason'] == 'content_filter') throw LlmRefusal();
+    return (choice['message'] as Map).cast<String, Object?>();
+  }
+
+  /// Plain text, or text + `image_url` parts when there are images.
+  static Object userContent(String text, List<String> images) => images.isEmpty
+      ? text
+      : [
+          {'type': 'text', 'text': text},
+          for (final url in images)
+            {
+              'type': 'image_url',
+              'image_url': {'url': url},
+            },
+        ];
 
   @override
   void close() => _http.close();

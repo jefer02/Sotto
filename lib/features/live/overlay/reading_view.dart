@@ -1,7 +1,9 @@
+import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/theme.dart';
@@ -11,6 +13,7 @@ import '../../../core/widgets/display.dart';
 import '../../../data/models/settings.dart';
 import '../../../domain/following/script_aligner.dart';
 import '../../../domain/following/text_normalizer.dart';
+import '../../../domain/overlay/auto_height.dart';
 import '../live_state.dart';
 import 'meta_strip.dart';
 
@@ -132,11 +135,22 @@ List<ScriptWord> splitWords(String text) {
 // ─────────────────────────── Reading view ───────────────────────────
 
 class ReadingView extends StatelessWidget {
-  const ReadingView({super.key, required this.state, required this.layout, required this.style});
+  const ReadingView({
+    super.key,
+    required this.state,
+    required this.layout,
+    required this.style,
+    this.anchorOffset,
+    this.onFit,
+  });
 
   final LiveState state;
   final ResolvedLayout layout;
   final ReadingStyle style;
+
+  /// See [AnchoredScript.anchorOffset] / [AnchoredScript.onFit].
+  final double? anchorOffset;
+  final ValueChanged<double>? onFit;
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +161,15 @@ class ReadingView extends StatelessWidget {
           ResolvedLayout.ticker => _TickerView(state: state, style: style, width: width),
           ResolvedLayout.rail => _RailView(state: state, style: style, width: width),
           ResolvedLayout.column => _ColumnView(state: state, style: style, width: width),
-          _ => AnchoredScript(state: state, style: style, fontSize: overlayFontSize(width, style.size)),
+          _ => AnchoredScript(
+            state: state,
+            style: style,
+            fontSize: overlayFontSize(width, style.size),
+            anchorOffset: anchorOffset,
+            onFit: onFit,
+            // Auto-height ends just under the last line: fade only the pad.
+            fadeBottom: onFit == null ? 46 : AutoHeight.bottomPad + 4,
+          ),
         };
       },
     );
@@ -167,6 +189,8 @@ class AnchoredScript extends StatefulWidget {
     this.anchor = Layout.overlayAnchor,
     this.fadeTop = 40,
     this.fadeBottom = 46,
+    this.anchorOffset,
+    this.onFit,
   });
 
   final LiveState state;
@@ -177,6 +201,14 @@ class AnchoredScript extends StatefulWidget {
 
   /// Fraction of the overlay height where the current line sits.
   final double anchor;
+
+  /// The eye-line in pixels from the top instead of a fraction — so it stays
+  /// put while the window's height follows the text.
+  final double? anchorOffset;
+
+  /// After each advance: the reading-area height that shows the visible
+  /// lines with nothing empty under the last one ([AutoHeight.fitted]).
+  final ValueChanged<double>? onFit;
   final double fadeTop;
   final double fadeBottom;
 
@@ -195,6 +227,13 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
   bool _measured = false;
   bool _needsMeasure = true;
   double _areaHeight = 0;
+
+  final _h = <int, double>{};
+
+  /// A fixed eye-line stays clear of the top fade.
+  double get _anchorY => widget.anchorOffset == null
+      ? _areaHeight * widget.anchor
+      : math.max(widget.anchorOffset!, widget.fadeTop * 0.75 + _lineHeight / 2);
 
   double get _translate =>
       lerpDouble(_from, _to, (widget.style.glide ? Motion.glideEnter : Motion.shiftMove).transform(_glide.value))!;
@@ -232,15 +271,20 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
     final column = _columnKey.currentContext?.findRenderObject() as RenderBox?;
     if (column == null || !column.hasSize) return;
     _dy.clear();
+    _h.clear();
     for (final e in _keys.entries) {
       final box = e.value.currentContext?.findRenderObject() as RenderBox?;
-      if (box != null && box.attached) _dy[e.key] = box.localToGlobal(Offset.zero, ancestor: column).dy;
+      if (box != null && box.attached) {
+        _dy[e.key] = box.localToGlobal(Offset.zero, ancestor: column).dy;
+        _h[e.key] = box.size.height;
+      }
     }
     final cur = widget.state.position.beat;
     final dy = _dy[cur];
     if (dy == null) return;
-    final target = _areaHeight * widget.anchor - _lineHeight * 0.5 - dy;
+    final target = _anchorY - _lineHeight * 0.5 - dy;
     _needsMeasure = false;
+    _reportFit(cur, dy);
     if (!_measured || widget.style.reduceMotion || !widget.style.glide) {
       setState(() {
         _from = _to = target;
@@ -257,6 +301,27 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
   }
 
   double get _lineHeight => widget.fontSize * 1.34;
+
+  double? _lastFit;
+
+  void _reportFit(int cur, double curTop) {
+    final onFit = widget.onFit;
+    final flat = widget.state.flat;
+    if (onFit == null || flat == null) return;
+    final last = math.min(cur + widget.style.window.$2, flat.length - 1);
+    final top = _dy[last], height = _h[last];
+    if (top == null || height == null) return;
+    // The beat boxes carry the inter-beat gap below them; it isn't content.
+    final gap = widget.fontSize * 0.46;
+    final fit = AutoHeight.fitted(
+      anchorY: _anchorY,
+      lineHeight: _lineHeight,
+      belowCurrent: top + height - gap - curTop,
+    );
+    if (_lastFit != null && (fit - _lastFit!).abs() < 1) return;
+    _lastFit = fit;
+    onFit(fit);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +343,7 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
           _needsMeasure = true;
           SchedulerBinding.instance.addPostFrameCallback((_) => _measure());
         }
-        final anchorY = c.maxHeight * widget.anchor;
+        final anchorY = _anchorY;
         return ShaderMask(
           blendMode: BlendMode.dstIn,
           shaderCallback: (rect) => LinearGradient(
@@ -357,7 +422,7 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
                   },
                 ),
               ),
-              // After Dismiss: a 300 ms tungsten sweep re-anchors the eye.
+              // After Dismiss: a 300 ms cue sweep re-anchors the eye.
               Positioned(
                 left: widget.leftInset,
                 right: widget.rightInset,
@@ -456,7 +521,7 @@ class _BeatLineState extends State<_BeatLine> with SingleTickerProviderStateMixi
   Widget build(BuildContext context) {
     final o = widget.palette;
     final isCurrent = widget.index == widget.current;
-    final base = widget.style.copyWith(color: o.inkAt(_level));
+    final base = widget.style.copyWith(color: o.inkAt(_level), shadows: o.textShadows(_level));
     final cue = widget.beat.beat.cue;
 
     Widget text = AnimatedBuilder(
@@ -481,17 +546,21 @@ class _BeatLineState extends State<_BeatLine> with SingleTickerProviderStateMixi
               for (var i = 0; i < _words.length; i++)
                 TextSpan(
                   text: _words[i].text + (i == _words.length - 1 ? '' : (_words[i].glueNext ? ' ' : ' ')),
-                  style: TextStyle(
-                    fontWeight: _words[i].bold ? FontWeight.w700 : null,
-                    fontVariations: _words[i].bold ? const [FontVariation.weight(700)] : null,
-                    color: !isCurrent
+                  style: () {
+                    final color = !isCurrent
                         ? null
                         : i < _dimFrom
                         ? done
                         : i < widget.spoken
                         ? Color.lerp(o.inkAt(o.readNow), done, _dim.value)
-                        : null,
-                  ),
+                        : null;
+                    return TextStyle(
+                      fontWeight: _words[i].bold ? FontWeight.w700 : null,
+                      fontVariations: _words[i].bold ? const [FontVariation.weight(700)] : null,
+                      color: color,
+                      shadows: o.shadowsFor(color),
+                    );
+                  }(),
                 ),
             ],
           ),
@@ -575,14 +644,14 @@ class _TickerView extends StatelessWidget {
                     if (spoken > 0)
                       TextSpan(
                         text: '…${words[spoken - 1].text} ',
-                        style: TextStyle(color: o.inkAt(o.readDone)),
+                        style: TextStyle(color: o.inkAt(o.readDone), shadows: o.textShadows(o.readDone)),
                       ),
                     TextSpan(text: join(rest)),
                   ],
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: text.copyWith(color: o.ink),
+                style: text.copyWith(color: o.ink, shadows: o.textShadows()),
               ),
             ),
           ),

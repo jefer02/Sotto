@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show Brightness;
 
 import 'package:flutter/animation.dart';
@@ -7,27 +8,32 @@ import 'package:flutter/painting.dart';
 /// Product code should reach for [SottoPalette] (semantic tokens) instead;
 /// primitives exist only to derive them.
 abstract final class Primitives {
-  // Graphite · h 76°
-  static const graphite50 = Color(0xFFF9F7F5);
-  static const graphite100 = Color(0xFFECE9E5);
-  static const graphite200 = Color(0xFFDAD7D2);
-  static const graphite300 = Color(0xFFBDBAB5);
-  static const graphite400 = Color(0xFF928D86);
-  static const graphite500 = Color(0xFF6D6862);
-  static const graphite600 = Color(0xFF423F3C);
-  static const graphite700 = Color(0xFF2F2C29);
-  static const graphite800 = Color(0xFF24221F);
-  static const graphite850 = Color(0xFF1A1816);
-  static const graphite900 = Color(0xFF131210);
-  static const graphite950 = Color(0xFF0D0C0A);
+  // Graphite · neutral with a cold hint — the stage is dark, not brown.
+  static const graphite50 = Color(0xFFF7F8FA);
+  static const graphite100 = Color(0xFFE9ECF1);
+  static const graphite200 = Color(0xFFD5DAE1);
+  static const graphite300 = Color(0xFFB6BDC8);
+  static const graphite400 = Color(0xFF8A919E);
+  static const graphite500 = Color(0xFF636B78);
+  static const graphite600 = Color(0xFF3D4350);
+  static const graphite700 = Color(0xFF2C313B);
+  static const graphite800 = Color(0xFF1F232A);
+  static const graphite850 = Color(0xFF171A1F);
+  static const graphite900 = Color(0xFF111317);
+  static const graphite950 = Color(0xFF0B0C0F);
 
-  // Tungsten · h 72° — "marks where you are"
-  static const tungsten300 = Color(0xFFF4B55C);
-  static const tungsten400 = Color(0xFFF3AA40);
-  static const tungsten700 = Color(0xFF975407);
-  static const tungsten950 = Color(0xFF251807);
-  static const tungstenHover = Color(0xFFF7C173);
-  static const tungstenPressed = Color(0xFFE79E45);
+  // Electric · h 262° — "marks where you are". White on 500 holds 4.5:1.
+  static const electric300 = Color(0xFF6EA8FF);
+  static const electric400 = Color(0xFF4C8DFF);
+  static const electric500 = Color(0xFF2F6BFF);
+  static const electric600 = Color(0xFF2563EB);
+  static const electric700 = Color(0xFF1D4ED8);
+  static const electricHover = Color(0xFF4A7FFF);
+  static const electricPressed = Color(0xFF2458E6);
+
+  // Indigo · h 280° — the deep end of electric gradients; gives it depth.
+  static const indigo400 = Color(0xFF6D5BFF);
+  static const indigoLight = Color(0xFF5B45F0);
 
   // Tally · h 29° — "the mic is capturing the room"
   static const tally400 = Color(0xFFF96050);
@@ -61,8 +67,11 @@ class SottoPalette {
     required this.cuePressed,
     required this.liveCapture,
     required this.confirmed,
+    required this.caution,
     required this.hoverWash,
     required this.pressWash,
+    required this.collectionTones,
+    required this.cueDeep,
   });
 
   final Brightness brightness;
@@ -93,60 +102,158 @@ class SottoPalette {
   final Color liveCapture;
   final Color confirmed;
 
+  /// Amber: worth a look before going live, never an error.
+  final Color caution;
+
   /// Ghost-button washes (rgba(255,244,230,.045 / .08) on dark).
   final Color hoverWash;
   final Color pressWash;
+
+  /// collection/* — orchid, teal, green, sky, iris, rose. Equal lightness
+  /// and full chroma, so each collection is easy to tell apart. No amber or
+  /// coral: those read as caution and the tally (mic live, errors), and
+  /// they were the old tungsten brand's — off-key next to electric.
+  final List<Color> collectionTones;
+
+  /// The deep end of cue gradients (indigo) and the second,
+  /// lower glow on the stage.
+  final Color cueDeep;
+
+  /// A collection's color; null (no collection) reads as quiet ink.
+  Color collectionColor(int? tone) => tone == null ? inkTertiary : collectionTones[tone % collectionTones.length];
 
   bool get isDark => brightness == Brightness.dark;
 
   Color get focusRing => cueFill.withValues(alpha: 0.9);
 
+  // brand/primary — the electric cue is the brand color; these name it.
+  Color get primary => cueFill;
+  Color get primaryText => cueText;
+  Color get onPrimary => onCue;
+  Color get primaryHover => cueHover;
+  Color get primaryPressed => cuePressed;
+
+  /// Electric wash behind selected rows — color without shouting.
+  Color get primaryWash => primary.withValues(alpha: isDark ? 0.16 : 0.10);
+
+  /// The ghost light: a pool of light falling on the stage from above.
+  Color get stageGlow => primary.withValues(alpha: isDark ? 0.18 : 0.10);
+
+  /// Indigo spill low on the opposite side, so the ground has two lights.
+  Color get depthGlow => cueDeep.withValues(alpha: isDark ? 0.12 : 0.06);
+
+  /// Unplayed section segments — an electric track rather than grey.
+  Color get primaryTrack => primary.withValues(alpha: isDark ? 0.30 : 0.22);
+
+  /// Card faces: lit top, settled bottom, and an edge that holds its shape
+  /// against the ground.
+  Color get cardTop => isDark ? float : raised;
+  Color get cardBottom => isDark ? raised : panel;
+  Color get cardEdge => isDark ? Color.lerp(hairline, control, 0.55)! : hairline;
+
+  /// Blends two palettes, so switching theme crossfades every surface and
+  /// ink instead of snapping halfway through.
+  static SottoPalette lerp(SottoPalette a, SottoPalette b, double t) {
+    if (t <= 0) return a;
+    if (t >= 1) return b;
+    Color c(Color x, Color y) => Color.lerp(x, y, t)!;
+    return SottoPalette(
+      brightness: t < 0.5 ? a.brightness : b.brightness,
+      ground: c(a.ground, b.ground),
+      panel: c(a.panel, b.panel),
+      raised: c(a.raised, b.raised),
+      float: c(a.float, b.float),
+      hairline: c(a.hairline, b.hairline),
+      control: c(a.control, b.control),
+      emphasis: c(a.emphasis, b.emphasis),
+      inkPrimary: c(a.inkPrimary, b.inkPrimary),
+      inkSecondary: c(a.inkSecondary, b.inkSecondary),
+      inkTertiary: c(a.inkTertiary, b.inkTertiary),
+      inkDisabled: c(a.inkDisabled, b.inkDisabled),
+      cueFill: c(a.cueFill, b.cueFill),
+      cueText: c(a.cueText, b.cueText),
+      onCue: c(a.onCue, b.onCue),
+      cueHover: c(a.cueHover, b.cueHover),
+      cuePressed: c(a.cuePressed, b.cuePressed),
+      liveCapture: c(a.liveCapture, b.liveCapture),
+      confirmed: c(a.confirmed, b.confirmed),
+      caution: c(a.caution, b.caution),
+      hoverWash: c(a.hoverWash, b.hoverWash),
+      pressWash: c(a.pressWash, b.pressWash),
+      collectionTones: [
+        for (var i = 0; i < a.collectionTones.length; i++)
+          c(a.collectionTones[i], b.collectionTones[i % b.collectionTones.length]),
+      ],
+      cueDeep: c(a.cueDeep, b.cueDeep),
+    );
+  }
+
   static const stage = SottoPalette(
     brightness: Brightness.dark,
-    ground: Color(0xFF0D0C0A),
-    panel: Color(0xFF131210),
-    raised: Color(0xFF1A1816),
-    float: Color(0xFF24221F),
-    hairline: Color(0xFF22201E),
-    control: Color(0xFF2F2C29),
-    emphasis: Color(0xFF423F3C),
-    inkPrimary: Color(0xFFF2EFE9),
-    inkSecondary: Color(0xFFBAB5AE),
-    inkTertiary: Color(0xFF928D86),
-    inkDisabled: Color(0xFF5B5753),
-    cueFill: Primitives.tungsten300,
-    cueText: Primitives.tungsten300,
-    onCue: Primitives.tungsten950,
-    cueHover: Primitives.tungstenHover,
-    cuePressed: Primitives.tungstenPressed,
+    ground: Primitives.graphite950,
+    panel: Primitives.graphite900,
+    raised: Primitives.graphite850,
+    float: Primitives.graphite800,
+    hairline: Color(0xFF22262E),
+    control: Primitives.graphite700,
+    emphasis: Primitives.graphite600,
+    inkPrimary: Color(0xFFEEF1F6),
+    inkSecondary: Color(0xFFA4ABB8),
+    inkTertiary: Primitives.graphite400,
+    inkDisabled: Color(0xFF555B66),
+    cueFill: Primitives.electric500,
+    cueText: Primitives.electric300,
+    onCue: Color(0xFFFFFFFF),
+    cueHover: Primitives.electricHover,
+    cuePressed: Primitives.electricPressed,
     liveCapture: Primitives.tally400,
     confirmed: Primitives.go300,
-    hoverWash: Color(0x0BFFF4E6),
-    pressWash: Color(0x14FFF4E6),
+    caution: Color(0xFFFFB547),
+    hoverWash: Color(0x0BFFFFFF),
+    pressWash: Color(0x14FFFFFF),
+    collectionTones: [
+      Color(0xFFD27BFF),
+      Color(0xFF3FD4C4),
+      Color(0xFF5FD88A),
+      Color(0xFF5AAEFF),
+      Color(0xFFA58BFF),
+      Color(0xFFFF7EB6),
+    ],
+    cueDeep: Primitives.indigo400,
   );
 
   static const houseLights = SottoPalette(
     brightness: Brightness.light,
-    ground: Color(0xFFF9F7F5),
-    panel: Color(0xFFF2F0ED),
+    ground: Primitives.graphite50,
+    panel: Color(0xFFF0F2F5),
     raised: Color(0xFFFFFFFF),
-    float: Color(0xFFECE9E5),
-    hairline: Color(0xFFE8E6E2),
-    control: Color(0xFFDAD7D2),
-    emphasis: Color(0xFFBDBAB5),
-    inkPrimary: Color(0xFF1C1916),
-    inkSecondary: Color(0xFF544F49),
-    inkTertiary: Color(0xFF6D6862),
-    inkDisabled: Color(0xFFABA7A2),
-    cueFill: Primitives.tungsten400,
-    cueText: Primitives.tungsten700,
-    onCue: Primitives.tungsten950,
-    cueHover: Color(0xFFF5B658),
-    cuePressed: Color(0xFFE39A33),
+    float: Primitives.graphite100,
+    hairline: Color(0xFFE3E6EB),
+    control: Primitives.graphite200,
+    emphasis: Primitives.graphite300,
+    inkPrimary: Color(0xFF101318),
+    inkSecondary: Color(0xFF4A5160),
+    inkTertiary: Primitives.graphite500,
+    inkDisabled: Color(0xFFA8AEB8),
+    cueFill: Primitives.electric600,
+    cueText: Primitives.electric700,
+    onCue: Color(0xFFFFFFFF),
+    cueHover: Color(0xFF3B74F0),
+    cuePressed: Color(0xFF1E50C8),
     liveCapture: Primitives.tallyLight,
     confirmed: Primitives.goLight,
-    hoverWash: Color(0x0A1C1916),
-    pressWash: Color(0x141C1916),
+    caution: Color(0xFFB45309),
+    hoverWash: Color(0x0A101318),
+    pressWash: Color(0x14101318),
+    collectionTones: [
+      Color(0xFF9B3FD0),
+      Color(0xFF0E8C80),
+      Color(0xFF1F9150),
+      Color(0xFF1F6FD1),
+      Color(0xFF6B43D6),
+      Color(0xFFC93D82),
+    ],
+    cueDeep: Primitives.indigoLight,
   );
 }
 
@@ -166,7 +273,41 @@ class OverlayPalette {
     required this.readNext,
     required this.readLater,
     required this.readDone,
+    this.textOnly = false,
+    this.outline = const Color(0xFF000000),
+    this.outlineWidth = 0,
+    this.shadowStrength = 0,
+    this.shadowColor = const Color(0xFF000000),
   });
+
+  /// "Text only" style: no ground, no card, no edge — legibility comes from
+  /// an outline and a soft shadow around every glyph.
+  factory OverlayPalette.textOnly({
+    required Color ink,
+    required Color outline,
+    required double outlineWidth,
+    required double shadowStrength,
+    Color shadowColor = const Color(0xFF000000),
+  }) => OverlayPalette(
+    ground: const Color(0x00000000),
+    ink: ink,
+    edge: const Color(0x00000000),
+    shadow: const BoxShadow(color: Color(0x00000000)),
+    innerHighlight: const Color(0x00000000),
+    cue: Primitives.electric400,
+    capture: Primitives.tally400,
+    confirmed: Primitives.go300,
+    // Dimmed words need more weight without a ground behind them.
+    readNow: 1,
+    readNext: 0.78,
+    readLater: 0.6,
+    readDone: 0.5,
+    textOnly: true,
+    outline: outline,
+    outlineWidth: outlineWidth,
+    shadowStrength: shadowStrength,
+    shadowColor: shadowColor,
+  );
 
   final Color ground;
   final Color ink;
@@ -183,7 +324,56 @@ class OverlayPalette {
   final double readLater;
   final double readDone;
 
+  final bool textOnly;
+  final Color outline;
+  final double outlineWidth;
+
+  /// 0..1: how strong the soft drop shadow under text-only glyphs is.
+  final double shadowStrength;
+
+  /// Black under light-on-dark… and dark-on-light text; a soft white glow
+  /// when the backdrop is dark and the text light ("Overlay text color").
+  final Color shadowColor;
+
   Color inkAt(double alpha) => ink.withValues(alpha: alpha);
+
+  /// Behind controls that must stay usable when the overlay has no ground
+  /// (the hover pill, history): a solid dark surface.
+  Color get chromeGround => textOnly ? const Color(0xE6141210) : ground;
+
+  /// Outline + soft shadow for text-only glyphs, faded with the glyph's own
+  /// [alpha]. [small] text (captions, labels) gets a thinner outline so it
+  /// doesn't clog. Null in panel style, so styles inherit nothing.
+  List<Shadow>? textShadows([double alpha = 1, bool small = false]) {
+    if (!textOnly) return null;
+    final a = alpha.clamp(0.0, 1.0);
+    final out = <Shadow>[];
+    final outlineWidth = small ? math.min(this.outlineWidth, 1.2) : this.outlineWidth;
+    if (outlineWidth > 0) {
+      final c = outline.withValues(alpha: outline.a * a);
+      // A ring of hard shadows reads as a stroke that sits behind the fill.
+      const steps = 12;
+      for (var i = 0; i < steps; i++) {
+        final t = 2 * math.pi * i / steps;
+        out.add(
+          Shadow(color: c, offset: Offset(math.cos(t) * outlineWidth, math.sin(t) * outlineWidth), blurRadius: 0.6),
+        );
+      }
+    }
+    if (shadowStrength > 0) {
+      out.add(
+        Shadow(
+          color: shadowColor.withValues(alpha: shadowColor.a * 0.9 * shadowStrength * a),
+          offset: const Offset(0, 1.5),
+          blurRadius: (small ? 2 : 3) + (small ? 5 : 9) * shadowStrength,
+        ),
+      );
+    }
+    return out;
+  }
+
+  /// Shadows matching a span colored [c] (null: inherit from the parent).
+  List<Shadow>? shadowsFor(Color? c) => c == null || !textOnly ? null : textShadows(c.a / (ink.a == 0 ? 1 : ink.a));
 
   /// 80 % ground over a white slide still gives 10.5:1 on the current line.
   static const dark = OverlayPalette(
@@ -192,7 +382,7 @@ class OverlayPalette {
     edge: Color(0x17FFF4E6),
     shadow: BoxShadow(color: Color(0xB3000000), offset: Offset(0, 28), blurRadius: 70, spreadRadius: -18),
     innerHighlight: Color(0x0DFFFFFF),
-    cue: Primitives.tungsten300,
+    cue: Primitives.electric400,
     capture: Primitives.tally400,
     confirmed: Primitives.go300,
     readNow: 1,
@@ -208,7 +398,7 @@ class OverlayPalette {
     edge: Color(0x1A1C1916),
     shadow: BoxShadow(color: Color(0x591C1916), offset: Offset(0, 28), blurRadius: 70, spreadRadius: -20),
     innerHighlight: Color(0xB3FFFFFF),
-    cue: Primitives.tungsten400,
+    cue: Primitives.electric600,
     capture: Primitives.tallyLight,
     confirmed: Primitives.goLight,
     readNow: 1,
@@ -216,6 +406,33 @@ class OverlayPalette {
     readLater: 0.42,
     readDone: 0.36,
   );
+
+  /// Crossfade between two palettes (the text color following the slide).
+  static OverlayPalette lerp(OverlayPalette a, OverlayPalette b, double t) {
+    if (t <= 0) return a;
+    if (t >= 1) return b;
+    Color c(Color x, Color y) => Color.lerp(x, y, t)!;
+    double d(double x, double y) => x + (y - x) * t;
+    return OverlayPalette(
+      ground: c(a.ground, b.ground),
+      ink: c(a.ink, b.ink),
+      edge: c(a.edge, b.edge),
+      shadow: BoxShadow.lerp(a.shadow, b.shadow, t)!,
+      innerHighlight: c(a.innerHighlight, b.innerHighlight),
+      cue: c(a.cue, b.cue),
+      capture: c(a.capture, b.capture),
+      confirmed: c(a.confirmed, b.confirmed),
+      readNow: d(a.readNow, b.readNow),
+      readNext: d(a.readNext, b.readNext),
+      readLater: d(a.readLater, b.readLater),
+      readDone: d(a.readDone, b.readDone),
+      textOnly: t < 0.5 ? a.textOnly : b.textOnly,
+      outline: c(a.outline, b.outline),
+      outlineWidth: d(a.outlineWidth, b.outlineWidth),
+      shadowStrength: d(a.shadowStrength, b.shadowStrength),
+      shadowColor: c(a.shadowColor, b.shadowColor),
+    );
+  }
 
   OverlayPalette withGroundOpacity(double opacity) => OverlayPalette(
     ground: ground.withValues(alpha: opacity),
@@ -230,7 +447,26 @@ class OverlayPalette {
     readNext: readNext,
     readLater: readLater,
     readDone: readDone,
+    textOnly: textOnly,
+    outline: outline,
+    outlineWidth: outlineWidth,
+    shadowStrength: shadowStrength,
+    shadowColor: shadowColor,
   );
+}
+
+/// WCAG 2 contrast thresholds and the ratio itself.
+abstract final class Contrast {
+  /// Body text (AA).
+  static const double aa = 4.5;
+
+  /// Large text and UI parts (AA).
+  static const double large = 3.0;
+
+  static double ratio(Color a, Color b) {
+    final l1 = a.computeLuminance(), l2 = b.computeLuminance();
+    return (math.max(l1, l2) + 0.05) / (math.min(l1, l2) + 0.05);
+  }
 }
 
 /// space-n = n × 4 px. 8 / 16 / 24 do 80 % of the work.
@@ -267,17 +503,49 @@ abstract final class Radii {
 }
 
 /// Motion tokens and curves from "Space, grid, depth, motion".
+///
+/// Micro-interactions (hover, press, focus, toggles) take 120–200 ms;
+/// panels and pages 250–400 ms. [glide] and [settle] are kept for the
+/// signature moments only (curtain, greeting).
 abstract final class Motion {
   static const instant = Duration.zero;
-  static const quick = Duration(milliseconds: 90);
+  static const quick = Duration(milliseconds: 120);
   static const snappy = Duration(milliseconds: 160);
   static const smooth = Duration(milliseconds: 240);
   static const glide = Duration(milliseconds: 420);
   static const settle = Duration(milliseconds: 560);
 
+  /// Hover and press.
+  static const micro = Duration(milliseconds: 120);
+
+  /// Toggles, the segment pill, the focus ring.
+  static const microOut = Duration(milliseconds: 160);
+
+  /// Panels, the sidebar pill, Settings pages.
+  static const panel = Duration(milliseconds: 280);
+
+  /// Route changes.
+  static const page = Duration(milliseconds: 320);
+
+  /// One step of a list's first-time stagger, capped at [staggerCap] items.
+  static const staggerStep = Duration(milliseconds: 30);
+  static const staggerCap = 6;
+
+  /// The delay of item [i] in a staggered list.
+  static Duration stagger(int i) => staggerStep * (i < staggerCap ? i : staggerCap);
+
   static const glideEnter = Cubic(0.22, 1, 0.36, 1);
   static const shiftMove = Cubic(0.65, 0, 0.35, 1);
   static const leaveExit = Cubic(0.55, 0, 1, 0.45);
+
+  /// Things arriving or reacting: fast out, soft landing.
+  static const standard = glideEnter;
+
+  /// Things leaving: they accelerate away.
+  static const exit = leaveExit;
+
+  /// Things moving from one place to another (pills, panels).
+  static const move = Cubic(0.4, 0, 0.2, 1);
 
   // Micro-interaction timings (Motion boards).
   static const wordDim = Duration(milliseconds: 180);
@@ -298,6 +566,12 @@ abstract final class Layout {
   static const double contentMargin = 40;
   static const double titleBar = 52;
   static const Size windowMin = Size(960, 600);
+
+  /// Settings rows are at least this tall, subtitle or not.
+  static const double rowMin = 52;
+
+  /// Below this window height the sidebar's readiness card folds to one line.
+  static const double sidebarCompactBelow = 720;
 
   // Overlay anatomy · 560 × 232 default.
   static const Size overlayDefault = Size(560, 232);

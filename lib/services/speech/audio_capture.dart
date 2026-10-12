@@ -7,7 +7,7 @@ import 'package:record/record.dart';
 import '../../l10n/l10n.dart';
 
 /// 16 kHz mono PCM from the chosen microphone, as float samples in [-1, 1].
-/// Presenter audio never leaves the device unless the cloud engine is on.
+/// Presenter audio never leaves the device.
 class AudioCapture {
   static const sampleRate = 16000;
 
@@ -95,8 +95,8 @@ class AudioCapture {
 }
 
 /// Energy-based voice activity with an adaptive noise floor. Used for the
-/// question silence ring and for segmenting audio for the Whisper and
-/// cloud engines. Cheap enough to run on every 30 ms frame.
+/// question silence ring and for segmenting audio for Whisper. Cheap enough
+/// to run on every 30 ms frame.
 class EnergyVad {
   EnergyVad({this.frameSamples = 480});
 
@@ -133,9 +133,16 @@ class EnergyVad {
       final rms = math.sqrt(sum / frameSamples);
 
       final voiced = rms > math.max(_floor * 3.2, 0.012);
-      // The floor follows quiet frames quickly and loud frames very slowly.
-      _floor = voiced ? _floor * 0.999 + rms * 0.001 : _floor * 0.95 + rms * 0.05;
-      _floor = _floor.clamp(0.001, 0.05);
+      // The floor drops quickly to quieter frames and rises only slowly, and
+      // never on speech: soft syllables inside fluent reading fall under the
+      // threshold, and letting them pull the floor up made the floor chase
+      // the voice until nothing counted as speech any more.
+      if (rms < _floor) {
+        _floor = _floor * 0.9 + rms * 0.1;
+      } else if (!voiced) {
+        _floor = _floor * 0.995 + rms * 0.005;
+      }
+      _floor = _floor.clamp(0.001, 0.02);
 
       if (voiced) {
         _speechMs += frameMs;

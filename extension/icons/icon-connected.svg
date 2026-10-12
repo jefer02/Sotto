@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Sotto Bridge: the Sotto mark (three bars and the cue dot) on a Sotto Violet rounded square. -->
+  <defs>
+    <linearGradient id="violet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6D5CF0"/>
+      <stop offset="1" stop-color="#4A3BC4"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#violet)"/>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="none" stroke="#14112B" stroke-opacity="0.18" stroke-width="2"/>
+  <g transform="translate(14 14) scale(3.125)">
+    <rect x="12" y="6" width="10" height="4" rx="2" fill="#FFFFFF" fill-opacity="0.45"/>
+    <circle cx="6" cy="16" r="3" fill="#FFFFFF"/>
+    <rect x="12" y="14" width="17" height="4" rx="2" fill="#FFFFFF"/>
+    <rect x="12" y="22" width="13" height="4" rx="2" fill="#FFFFFF" fill-opacity="0.72"/>
+  </g>
+  <!-- Connected to Sotto: a champagne dot. -->
+  <circle cx="102" cy="26" r="20" fill="#C9A45C" stroke="#FFFFFF" stroke-width="6"/>
+</svg>

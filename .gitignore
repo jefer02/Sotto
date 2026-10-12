@@ -46,3 +46,14 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Built-in API key (see lib/core/embedded_key.dart and secrets.example.json)
+/lib/core/secrets.dart
+/secrets.json
+
+# Visual renders (local only)
+docs/screenshots/
+*.render.png
+
+# Release packages (tool/package_windows.ps1, CI)
+/dist/

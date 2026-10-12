@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/icons.dart';
@@ -101,10 +102,7 @@ class _ShortcutsPageState extends ConsumerState<ShortcutsPage> {
               ),
             ),
             if (!PlatformKeys.isMac)
-              SettingRow(
-                title: context.l10n.altGrLayouts,
-                subtitle: context.l10n.altGrLayoutsSub,
-              ),
+              SettingRow(title: context.l10n.altGrLayouts, subtitle: context.l10n.altGrLayoutsSub),
           ],
         ),
         if (overlay.isNotEmpty) SettingsGroup(title: context.l10n.groupOverlay, children: overlay),
@@ -352,7 +350,11 @@ class _ShortcutRowState extends ConsumerState<ShortcutRow> {
                       ),
                     ),
                   ),
-                  SottoButton.ghost(label: context.l10n.useAnyway, size: ButtonSize.small, onPressed: () => _save(_pendingKey!)),
+                  SottoButton.ghost(
+                    label: context.l10n.useAnyway,
+                    size: ButtonSize.small,
+                    onPressed: () => _save(_pendingKey!),
+                  ),
                   const SizedBox(width: 6),
                   SottoButton(label: context.l10n.chooseAnother, size: ButtonSize.small, onPressed: _start),
                 ],

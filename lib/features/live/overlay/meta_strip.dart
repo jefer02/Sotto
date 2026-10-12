@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/theme.dart';
@@ -102,7 +103,7 @@ class MetaStrip extends ConsumerWidget {
 }
 
 /// Seven 10 × 3 hairlines: done sections bright, the current one with a
-/// tungsten fill for how far into it you are.
+/// cue fill for how far into it you are.
 class SectionProgress extends StatelessWidget {
   const SectionProgress({super.key, required this.state, this.vertical = false});
 

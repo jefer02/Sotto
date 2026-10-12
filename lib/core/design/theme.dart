@@ -14,7 +14,14 @@ class SottoTheme extends ThemeExtension<SottoTheme> {
       SottoTheme(palette: palette ?? this.palette, overlay: overlay ?? this.overlay);
 
   @override
-  SottoTheme lerp(SottoTheme? other, double t) => t < 0.5 ? this : (other ?? this);
+  SottoTheme lerp(SottoTheme? other, double t) => other == null
+      ? this
+      : SottoTheme(
+          // Light ↔ dark crossfades every surface rather than snapping.
+          palette: SottoPalette.lerp(palette, other.palette, t),
+          // The overlay's text color crossfades when the backdrop changes.
+          overlay: OverlayPalette.lerp(overlay, other.overlay, t),
+        );
 }
 
 extension SottoThemeContext on BuildContext {
@@ -47,10 +54,10 @@ ThemeData buildSottoTheme(SottoPalette p, {OverlayPalette? overlay}) {
     splashColor: Colors.transparent,
     colorScheme: ColorScheme(
       brightness: p.brightness,
-      primary: p.cueFill,
-      onPrimary: p.onCue,
-      secondary: p.cueFill,
-      onSecondary: p.onCue,
+      primary: p.primary,
+      onPrimary: p.onPrimary,
+      secondary: p.primary,
+      onSecondary: p.onPrimary,
       error: p.liveCapture,
       onError: p.ground,
       surface: p.panel,

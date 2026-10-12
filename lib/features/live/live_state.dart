@@ -44,6 +44,9 @@ class LiveState {
     this.sectionSeconds = const {},
     this.wordsSpoken = 0,
     this.manualMode = false,
+    this.capturingScreen = false,
+    this.screenAttached = false,
+    this.listeningForTask = false,
   });
 
   final LivePhase phase;
@@ -83,7 +86,7 @@ class LiveState {
   /// Drives the cue-dot pulse, which plays on advance only.
   final DateTime? lastAdvanceAt;
 
-  /// Drives the 300 ms tungsten sweep that re-anchors the eye after Dismiss.
+  /// Drives the 300 ms cue sweep that re-anchors the eye after Dismiss.
   final DateTime? resumedAt;
 
   /// Hold-to-send ring progress, 0..1.
@@ -93,6 +96,15 @@ class LiveState {
 
   /// No speech engine: advance by hotkey or timer only.
   final bool manualMode;
+
+  /// A screenshot is being taken right now (indicator on the overlay).
+  final bool capturingScreen;
+
+  /// The question being captured or answered carries a screenshot.
+  final bool screenAttached;
+
+  /// The words being captured are an agent task, not a question.
+  final bool listeningForTask;
 
   bool get isLive => phase != LivePhase.idle;
 
@@ -164,6 +176,9 @@ class LiveState {
     Map<String, int>? sectionSeconds,
     int? wordsSpoken,
     bool? manualMode,
+    bool? capturingScreen,
+    bool? screenAttached,
+    bool? listeningForTask,
   }) => LiveState(
     phase: phase ?? this.phase,
     script: script ?? this.script,
@@ -194,5 +209,8 @@ class LiveState {
     sectionSeconds: sectionSeconds ?? this.sectionSeconds,
     wordsSpoken: wordsSpoken ?? this.wordsSpoken,
     manualMode: manualMode ?? this.manualMode,
+    capturingScreen: capturingScreen ?? this.capturingScreen,
+    screenAttached: screenAttached ?? this.screenAttached,
+    listeningForTask: listeningForTask ?? this.listeningForTask,
   );
 }

@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @statusOrganizing.
   ///
   /// In en, this message translates to:
-  /// **'Organizing…'**
+  /// **'Refining…'**
   String get statusOrganizing;
 
   /// No description provided for @statusRehearsedTimes.
@@ -362,12 +362,6 @@ abstract class AppLocalizations {
   /// **'Command'**
   String get modCommand;
 
-  /// No description provided for @providerCompatible.
-  ///
-  /// In en, this message translates to:
-  /// **'OpenAI-compatible'**
-  String get providerCompatible;
-
   /// No description provided for @untitledScript.
   ///
   /// In en, this message translates to:
@@ -503,7 +497,7 @@ abstract class AppLocalizations {
   /// No description provided for @llmTimeout.
   ///
   /// In en, this message translates to:
-  /// **'{provider} did not respond in time.'**
+  /// **'{provider} did not respond — check your connection'**
   String llmTimeout(String provider);
 
   /// No description provided for @llmOffline.
@@ -523,12 +517,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{provider} returned an error.'**
   String llmGenericError(String provider);
-
-  /// No description provided for @llmAiServer.
-  ///
-  /// In en, this message translates to:
-  /// **'The AI server'**
-  String get llmAiServer;
 
   /// No description provided for @modelStreamingEn.
   ///
@@ -614,23 +602,11 @@ abstract class AppLocalizations {
   /// **'On-device · Whisper'**
   String get engineOnDeviceWhisper;
 
-  /// No description provided for @engineCloud.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud'**
-  String get engineCloud;
-
   /// No description provided for @engineModelsMissing.
   ///
   /// In en, this message translates to:
   /// **'Speech models are not installed yet. Download them in Settings → Voice & following.'**
   String get engineModelsMissing;
-
-  /// No description provided for @engineCloudKeyMissing.
-  ///
-  /// In en, this message translates to:
-  /// **'Add a speech-to-text API key in Settings → Integrations to use the cloud engine.'**
-  String get engineCloudKeyMissing;
 
   /// No description provided for @sttEngineFailed.
   ///
@@ -649,18 +625,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Speech engine stopped.'**
   String get sttStopped;
-
-  /// No description provided for @sttBadKey.
-  ///
-  /// In en, this message translates to:
-  /// **'The speech-to-text API key was rejected.'**
-  String get sttBadKey;
-
-  /// No description provided for @sttCloudFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud transcription failed ({status}).'**
-  String sttCloudFailed(int status);
 
   /// No description provided for @micPermission.
   ///
@@ -689,7 +653,7 @@ abstract class AppLocalizations {
   /// No description provided for @answerNeedsKey.
   ///
   /// In en, this message translates to:
-  /// **'Add an API key in Settings → Integrations to draft answers.'**
+  /// **'Answers need a DeepSeek key. Add your own in Settings → Integrations — it\'s free to create.'**
   String get answerNeedsKey;
 
   /// No description provided for @noticeCopiedForChat.
@@ -721,18 +685,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Advance: manual'**
   String get readyAdvanceManual;
-
-  /// No description provided for @readyCloud.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud · {langs}'**
-  String readyCloud(String langs);
-
-  /// No description provided for @readyAddSttKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Add a speech-to-text key in Integrations'**
-  String get readyAddSttKey;
 
   /// No description provided for @readyOnDevice.
   ///
@@ -767,7 +719,7 @@ abstract class AppLocalizations {
   /// No description provided for @readyAddKey.
   ///
   /// In en, this message translates to:
-  /// **'Add one in Integrations to draft answers'**
+  /// **'Add your own DeepSeek key in Integrations to draft answers'**
   String get readyAddKey;
 
   /// No description provided for @readyShareWindow.
@@ -931,6 +883,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recent scripts'**
   String get recentScripts;
+
+  /// No description provided for @greetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning'**
+  String get greetingMorning;
+
+  /// No description provided for @greetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon'**
+  String get greetingAfternoon;
+
+  /// No description provided for @greetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening'**
+  String get greetingEvening;
+
+  /// No description provided for @homeStatScripts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{script} other{scripts}}'**
+  String homeStatScripts(int count);
+
+  /// No description provided for @homeStatReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{ready to go live} other{ready to go live}}'**
+  String homeStatReady(int count);
+
+  /// No description provided for @homeStatMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'min of material'**
+  String get homeStatMinutes;
 
   /// No description provided for @filterAll.
   ///
@@ -1430,12 +1418,6 @@ abstract class AppLocalizations {
   /// **'Add section'**
   String get addSection;
 
-  /// No description provided for @structureSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{sections} sections · {beats} beats · {cues} cues'**
-  String structureSummary(int sections, int beats, int cues);
-
   /// No description provided for @timing.
   ///
   /// In en, this message translates to:
@@ -1501,12 +1483,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Time for “{title}”'**
   String timeForSection(String title);
-
-  /// No description provided for @beatsAndCues.
-  ///
-  /// In en, this message translates to:
-  /// **'{beats} beats · {cues} cues'**
-  String beatsAndCues(int beats, int cues);
 
   /// No description provided for @wordsAtPace.
   ///
@@ -1655,7 +1631,7 @@ abstract class AppLocalizations {
   /// No description provided for @suggestNeedsKey.
   ///
   /// In en, this message translates to:
-  /// **'Add an API key in Settings → Integrations to suggest questions.'**
+  /// **'Suggesting questions needs a DeepSeek key. Add your own in Settings → Integrations.'**
   String get suggestNeedsKey;
 
   /// No description provided for @noQuestionsReturned.
@@ -2732,12 +2708,6 @@ abstract class AppLocalizations {
   /// **'Test with this script'**
   String get testWithScript;
 
-  /// No description provided for @microphone.
-  ///
-  /// In en, this message translates to:
-  /// **'Microphone'**
-  String get microphone;
-
   /// No description provided for @noMicrophoneFound.
   ///
   /// In en, this message translates to:
@@ -2827,24 +2797,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'sherpa-onnx on this computer · no audio leaves it'**
   String get engineOnDeviceSub;
-
-  /// No description provided for @engineCloudSub.
-  ///
-  /// In en, this message translates to:
-  /// **'OpenAI-compatible speech-to-text · audio is uploaded while you speak'**
-  String get engineCloudSub;
-
-  /// No description provided for @onDevice.
-  ///
-  /// In en, this message translates to:
-  /// **'On-device'**
-  String get onDevice;
-
-  /// No description provided for @cloud.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud'**
-  String get cloud;
 
   /// No description provided for @following.
   ///
@@ -3266,30 +3218,6 @@ abstract class AppLocalizations {
   /// **'Delivery'**
   String get delivery;
 
-  /// No description provided for @readAloudThrough.
-  ///
-  /// In en, this message translates to:
-  /// **'Read aloud through'**
-  String get readAloudThrough;
-
-  /// No description provided for @readAloudThroughSub.
-  ///
-  /// In en, this message translates to:
-  /// **'The room never hears it — wear headphones'**
-  String get readAloudThroughSub;
-
-  /// No description provided for @headphonesOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'Headphones only'**
-  String get headphonesOnly;
-
-  /// No description provided for @systemOutput.
-  ///
-  /// In en, this message translates to:
-  /// **'System output'**
-  String get systemOutput;
-
   /// No description provided for @voice.
   ///
   /// In en, this message translates to:
@@ -3335,7 +3263,7 @@ abstract class AppLocalizations {
   /// No description provided for @leavesAudio.
   ///
   /// In en, this message translates to:
-  /// **'Audio — yours or the room’s, when speech runs on-device.'**
+  /// **'Audio — yours and the room’s are transcribed on this computer.'**
   String get leavesAudio;
 
   /// No description provided for @leavesQuestion.
@@ -3485,20 +3413,8 @@ abstract class AppLocalizations {
   /// No description provided for @integrationsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Answers use your own API key. It is stored in the system keychain and sent only to the provider you choose, only when a question is asked.'**
+  /// **'Answers are drafted by DeepSeek. Add your API key; it is stored in the system keychain and sent to DeepSeek only when a question is asked.'**
   String get integrationsDescription;
-
-  /// No description provided for @answersModel.
-  ///
-  /// In en, this message translates to:
-  /// **'Answers model'**
-  String get answersModel;
-
-  /// No description provided for @provider.
-  ///
-  /// In en, this message translates to:
-  /// **'Provider'**
-  String get provider;
 
   /// No description provided for @apiKey.
   ///
@@ -3506,35 +3422,11 @@ abstract class AppLocalizations {
   /// **'API key'**
   String get apiKey;
 
-  /// No description provided for @apiKeyOptional.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional for local servers such as Ollama or LM Studio'**
-  String get apiKeyOptional;
-
   /// No description provided for @model.
   ///
   /// In en, this message translates to:
   /// **'Model'**
   String get model;
-
-  /// No description provided for @modelLowEffort.
-  ///
-  /// In en, this message translates to:
-  /// **'Live answers run at low effort for speed'**
-  String get modelLowEffort;
-
-  /// No description provided for @baseUrl.
-  ///
-  /// In en, this message translates to:
-  /// **'Base URL'**
-  String get baseUrl;
-
-  /// No description provided for @baseUrlSub.
-  ///
-  /// In en, this message translates to:
-  /// **'Leave empty for {url}'**
-  String baseUrlSub(String url);
 
   /// No description provided for @testConnection.
   ///
@@ -3548,28 +3440,10 @@ abstract class AppLocalizations {
   /// **'Test'**
   String get test;
 
-  /// No description provided for @cloudStt.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud speech-to-text'**
-  String get cloudStt;
-
-  /// No description provided for @cloudSttFooter.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional. Used when you choose the Cloud engine, or as a fallback when on-device models are not installed. Falls back to your OpenAI key if this one is empty.'**
-  String get cloudSttFooter;
-
-  /// No description provided for @compatible.
-  ///
-  /// In en, this message translates to:
-  /// **'Compatible'**
-  String get compatible;
-
   /// No description provided for @privacyDescription.
   ///
   /// In en, this message translates to:
-  /// **'Privacy by construction: presenter audio stays on this computer, room audio is captured only on the chord, and only text is sent to answer a question.'**
+  /// **'Privacy by construction: presenter audio stays on this computer, room audio is captured only on the chord, and only text is sent to answer a question — plus one screenshot when you ask about your screen, if you turn that on.'**
   String get privacyDescription;
 
   /// No description provided for @hideFromCapture.
@@ -3695,7 +3569,7 @@ abstract class AppLocalizations {
   /// No description provided for @privVoiceBody.
   ///
   /// In en, this message translates to:
-  /// **'Presenter audio never leaves the device with the on-device engine.'**
+  /// **'Presenter audio never leaves this computer: speech runs on-device.'**
   String get privVoiceBody;
 
   /// No description provided for @privRoom.
@@ -3719,7 +3593,7 @@ abstract class AppLocalizations {
   /// No description provided for @privAnswersBody.
   ///
   /// In en, this message translates to:
-  /// **'Only the question text and the excerpts used are sent to your model provider.'**
+  /// **'Only the question text and the excerpts used are sent to DeepSeek.'**
   String get privAnswersBody;
 
   /// No description provided for @privModels.
@@ -3745,6 +3619,2040 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recording laws vary. Consider telling the room that Q&A assist is on.'**
   String get privConsentBody;
+
+  /// No description provided for @llmNoBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Your DeepSeek balance is empty. Top up at platform.deepseek.com.'**
+  String get llmNoBalance;
+
+  /// No description provided for @integrationsDescriptionBuiltIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers are drafted by DeepSeek with the key built into this copy of Sotto, so they work out of the box. A personal key is optional: add one to use your own account and limits.'**
+  String get integrationsDescriptionBuiltIn;
+
+  /// No description provided for @deepseekFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the question and the excerpts used to answer it are sent.'**
+  String get deepseekFooter;
+
+  /// No description provided for @apiKeyOverrideSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Leave empty to use the built-in key.'**
+  String get apiKeyOverrideSub;
+
+  /// No description provided for @builtInKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in key'**
+  String get builtInKey;
+
+  /// No description provided for @modelsLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading models…'**
+  String get modelsLoading;
+
+  /// No description provided for @modelsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the model list: {error}'**
+  String modelsLoadFailed(String error);
+
+  /// No description provided for @deepseekPlatform.
+  ///
+  /// In en, this message translates to:
+  /// **'Account, balance and keys'**
+  String get deepseekPlatform;
+
+  /// No description provided for @open.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get open;
+
+  /// No description provided for @beatsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 beat} other{{count} beats}}'**
+  String beatsCount(int count);
+
+  /// No description provided for @cuesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{no cues} =1{1 cue} other{{count} cues}}'**
+  String cuesCount(int count);
+
+  /// No description provided for @readAloudTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read aloud'**
+  String get readAloudTitle;
+
+  /// No description provided for @readAloudHeadphones.
+  ///
+  /// In en, this message translates to:
+  /// **'Plays through the system output — wear headphones so the room never hears it.'**
+  String get readAloudHeadphones;
+
+  /// No description provided for @welcomeStep.
+  ///
+  /// In en, this message translates to:
+  /// **'WELCOME · {step} OF {total}'**
+  String welcomeStep(int step, int total);
+
+  /// No description provided for @welcomeSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for now'**
+  String get welcomeSkip;
+
+  /// No description provided for @welcomeNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get welcomeNext;
+
+  /// No description provided for @welcomeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get welcomeBack;
+
+  /// No description provided for @welcomeUseExample.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with the example'**
+  String get welcomeUseExample;
+
+  /// No description provided for @welcomeModelsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the voice models'**
+  String get welcomeModelsTitle;
+
+  /// No description provided for @welcomeModelsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto follows your voice on this computer. These models are downloaded once and then work offline; your audio never leaves the device.'**
+  String get welcomeModelsBody;
+
+  /// No description provided for @welcomeModelsFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads keep going in the background. Without models, the overlay still advances with hotkeys or a timer.'**
+  String get welcomeModelsFooter;
+
+  /// No description provided for @welcomeScriptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bring in your first script'**
+  String get welcomeScriptTitle;
+
+  /// No description provided for @welcomeScriptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto organizes it into sections, one-breath beats and cues. You can also start with the example talk in your library.'**
+  String get welcomeScriptBody;
+
+  /// No description provided for @welcomeImportFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a file'**
+  String get welcomeImportFile;
+
+  /// No description provided for @welcomeImportFileSub.
+  ///
+  /// In en, this message translates to:
+  /// **'.docx, .pdf, .md or .txt'**
+  String get welcomeImportFileSub;
+
+  /// No description provided for @welcomePaste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste text'**
+  String get welcomePaste;
+
+  /// No description provided for @welcomePasteSub.
+  ///
+  /// In en, this message translates to:
+  /// **'From the clipboard'**
+  String get welcomePasteSub;
+
+  /// No description provided for @welcomeWrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Write from scratch'**
+  String get welcomeWrite;
+
+  /// No description provided for @welcomeWriteSub.
+  ///
+  /// In en, this message translates to:
+  /// **'A blank script'**
+  String get welcomeWriteSub;
+
+  /// No description provided for @welcomeBrowserTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser extension (optional)'**
+  String get welcomeBrowserTitle;
+
+  /// No description provided for @welcomeBrowserBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Install the browser extension for precise reading (you can skip it). It reads web forms from the page itself, only when you ask, and never sees passwords or payment details. Without it, Sotto reads the screen.'**
+  String get welcomeBrowserBody;
+
+  /// No description provided for @overlayStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay style'**
+  String get overlayStyle;
+
+  /// No description provided for @overlayStyleTextOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Text only'**
+  String get overlayStyleTextOnly;
+
+  /// No description provided for @overlayStylePanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Panel'**
+  String get overlayStylePanel;
+
+  /// No description provided for @overlayStyleTextOnlySub.
+  ///
+  /// In en, this message translates to:
+  /// **'No background — just outlined words over your slides'**
+  String get overlayStyleTextOnlySub;
+
+  /// No description provided for @overlayStylePanelSub.
+  ///
+  /// In en, this message translates to:
+  /// **'A translucent card behind the text'**
+  String get overlayStylePanelSub;
+
+  /// No description provided for @overlayStyleTextOnlyFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Controls and the status strip appear when you hover the overlay or use a shortcut, then fade after 2 seconds.'**
+  String get overlayStyleTextOnlyFooter;
+
+  /// No description provided for @textColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text color'**
+  String get textColor;
+
+  /// No description provided for @outlineColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline'**
+  String get outlineColor;
+
+  /// No description provided for @outlineAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto — contrasts with the text'**
+  String get outlineAuto;
+
+  /// No description provided for @outlineAutoSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto: dark around light text, light around dark text'**
+  String get outlineAutoSub;
+
+  /// No description provided for @outlineWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline width'**
+  String get outlineWidth;
+
+  /// No description provided for @shadowStrength.
+  ///
+  /// In en, this message translates to:
+  /// **'Shadow'**
+  String get shadowStrength;
+
+  /// No description provided for @modelReadsImages.
+  ///
+  /// In en, this message translates to:
+  /// **'reads screenshots'**
+  String get modelReadsImages;
+
+  /// No description provided for @sourceScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Your screen'**
+  String get sourceScreen;
+
+  /// No description provided for @actionAskScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about the screen'**
+  String get actionAskScreen;
+
+  /// No description provided for @actionAskScreenSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Takes one screenshot, then listens for your question'**
+  String get actionAskScreenSub;
+
+  /// No description provided for @noticeScreenOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen awareness is off — turn it on in Settings → Privacy'**
+  String get noticeScreenOff;
+
+  /// No description provided for @noticeScreenPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto needs Screen Recording permission — see Settings → Privacy'**
+  String get noticeScreenPermission;
+
+  /// No description provided for @defaultScreenQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'What is on my screen right now, and what should I say about it?'**
+  String get defaultScreenQuestion;
+
+  /// No description provided for @capturingScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Capturing screen'**
+  String get capturingScreen;
+
+  /// No description provided for @screenshotAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot attached — sent to DeepSeek with your question'**
+  String get screenshotAttached;
+
+  /// No description provided for @screenAwareness.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen awareness'**
+  String get screenAwareness;
+
+  /// No description provided for @screenAwarenessFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots are taken only when you ask, scaled down, sent to DeepSeek with your question and never saved. Sotto\'s own overlay never appears in them. A red “Capturing screen” light shows each time.'**
+  String get screenAwarenessFooter;
+
+  /// No description provided for @screenAwarenessToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Let Sotto look at my screen when I ask'**
+  String get screenAwarenessToggle;
+
+  /// No description provided for @screenAwarenessToggleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Screenshots are sent to DeepSeek.'**
+  String get screenAwarenessToggleSub;
+
+  /// No description provided for @screenTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture'**
+  String get screenTarget;
+
+  /// No description provided for @screenTargetOverlay.
+  ///
+  /// In en, this message translates to:
+  /// **'The display with the overlay'**
+  String get screenTargetOverlay;
+
+  /// No description provided for @screenTargetCursor.
+  ///
+  /// In en, this message translates to:
+  /// **'The display under the pointer'**
+  String get screenTargetCursor;
+
+  /// No description provided for @attachSlide.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the slide with audience questions'**
+  String get attachSlide;
+
+  /// No description provided for @attachSlideSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Each question also sends one screenshot of what is on screen'**
+  String get attachSlideSub;
+
+  /// No description provided for @screenPermissionMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen Recording permission needed'**
+  String get screenPermissionMissing;
+
+  /// No description provided for @screenPermissionMissingSub.
+  ///
+  /// In en, this message translates to:
+  /// **'System Settings → Privacy & Security → Screen Recording → Sotto'**
+  String get screenPermissionMissingSub;
+
+  /// No description provided for @openSystemSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open System Settings'**
+  String get openSystemSettings;
+
+  /// No description provided for @privScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots'**
+  String get privScreen;
+
+  /// No description provided for @privScreenOffBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Off. Sotto never looks at your screen.'**
+  String get privScreenOffBody;
+
+  /// No description provided for @privScreenOnBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Only when you ask: one screenshot goes to DeepSeek with the question. Never saved.'**
+  String get privScreenOnBody;
+
+  /// No description provided for @readyScreenOk.
+  ///
+  /// In en, this message translates to:
+  /// **'On — one screenshot per question you ask about the screen'**
+  String get readyScreenOk;
+
+  /// No description provided for @actionAgentTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent task'**
+  String get actionAgentTask;
+
+  /// No description provided for @actionAgentTaskSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Say a task; the agent does it on screen, step by step'**
+  String get actionAgentTaskSub;
+
+  /// No description provided for @actionAgentStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the agent'**
+  String get actionAgentStop;
+
+  /// No description provided for @actionAgentStopSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency stop — cancels at once and lets go of every key'**
+  String get actionAgentStopSub;
+
+  /// No description provided for @agentOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent mode is off — turn it on in Settings → Privacy'**
+  String get agentOff;
+
+  /// No description provided for @agentUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent mode works on Windows and macOS.'**
+  String get agentUnsupported;
+
+  /// No description provided for @agentNeedsAccessibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto needs Accessibility permission to control the mouse and keyboard — see Settings → Privacy.'**
+  String get agentNeedsAccessibility;
+
+  /// No description provided for @agentListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the task'**
+  String get agentListening;
+
+  /// No description provided for @agentStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking at the screen…'**
+  String get agentStarting;
+
+  /// No description provided for @agentThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Deciding the next step…'**
+  String get agentThinking;
+
+  /// No description provided for @agentWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for you'**
+  String get agentWaiting;
+
+  /// No description provided for @agentActing.
+  ///
+  /// In en, this message translates to:
+  /// **'Working…'**
+  String get agentActing;
+
+  /// No description provided for @agentInControl.
+  ///
+  /// In en, this message translates to:
+  /// **'AGENT IN CONTROL'**
+  String get agentInControl;
+
+  /// No description provided for @agentStep.
+  ///
+  /// In en, this message translates to:
+  /// **'step {step}/{max}'**
+  String agentStep(int step, int max);
+
+  /// No description provided for @agentStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get agentStop;
+
+  /// No description provided for @agentStopHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency stop: {keys} — works everywhere'**
+  String agentStopHint(String keys);
+
+  /// No description provided for @agentCouldNotStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start'**
+  String get agentCouldNotStart;
+
+  /// No description provided for @agentCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get agentCompleted;
+
+  /// No description provided for @agentStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped — nothing else will run'**
+  String get agentStopped;
+
+  /// No description provided for @agentDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped at your request'**
+  String get agentDeclined;
+
+  /// No description provided for @agentLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped after {max} steps'**
+  String agentLimit(int max);
+
+  /// No description provided for @agentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped by an error'**
+  String get agentFailed;
+
+  /// No description provided for @agentNext.
+  ///
+  /// In en, this message translates to:
+  /// **'NEXT ACTION'**
+  String get agentNext;
+
+  /// No description provided for @agentConfirmSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM — {reason}'**
+  String agentConfirmSensitive(String reason);
+
+  /// No description provided for @agentRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get agentRun;
+
+  /// No description provided for @agentStopTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop task'**
+  String get agentStopTask;
+
+  /// No description provided for @agentCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the agent do it'**
+  String get agentCardTitle;
+
+  /// No description provided for @agentCardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe a task — “fill this form with my details from the prep docs”. The agent works on screen, one step at a time, and asks before anything that submits, sends, pays or deletes.'**
+  String get agentCardBody;
+
+  /// No description provided for @agentTaskPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'What should the agent do?'**
+  String get agentTaskPlaceholder;
+
+  /// No description provided for @agentRunTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get agentRunTask;
+
+  /// No description provided for @agentMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent mode'**
+  String get agentMode;
+
+  /// No description provided for @agentModeFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'The agent sends screenshots to DeepSeek and moves the mouse and keyboard, at most 25 steps per task. It never types into password fields or handles payment data, always asks before submitting, sending, paying, deleting or buying, shows an amber frame while in control, and logs every action in the session. {keys} stops it at once, from anywhere.'**
+  String agentModeFooter(String keys);
+
+  /// No description provided for @agentToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Let Sotto control my mouse and keyboard'**
+  String get agentToggle;
+
+  /// No description provided for @agentToggleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Only for tasks you start.'**
+  String get agentToggleSub;
+
+  /// No description provided for @agentAutonomy.
+  ///
+  /// In en, this message translates to:
+  /// **'Supervision'**
+  String get agentAutonomy;
+
+  /// No description provided for @agentConfirmEach.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm each action'**
+  String get agentConfirmEach;
+
+  /// No description provided for @agentAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Run automatically'**
+  String get agentAuto;
+
+  /// No description provided for @agentConfirmEachSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter runs the shown action, Esc stops'**
+  String get agentConfirmEachSub;
+
+  /// No description provided for @agentAutoSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Still asks before anything that submits, sends, pays, deletes or buys'**
+  String get agentAutoSub;
+
+  /// No description provided for @accessibilityMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Accessibility permission needed'**
+  String get accessibilityMissing;
+
+  /// No description provided for @accessibilityMissingSub.
+  ///
+  /// In en, this message translates to:
+  /// **'System Settings → Privacy & Security → Accessibility → Sotto'**
+  String get accessibilityMissingSub;
+
+  /// No description provided for @sessionAgentTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent: {task}'**
+  String sessionAgentTask(String task);
+
+  /// No description provided for @sessionAgentActions.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 action} other{{count} actions}}'**
+  String sessionAgentActions(int count);
+
+  /// No description provided for @readyAgentOk.
+  ///
+  /// In en, this message translates to:
+  /// **'On — confirm each action'**
+  String get readyAgentOk;
+
+  /// No description provided for @readyAgentAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'On — runs automatically, asks before irreversible steps'**
+  String get readyAgentAuto;
+
+  /// No description provided for @agentDoClick.
+  ///
+  /// In en, this message translates to:
+  /// **'Click “{target}” at {at}'**
+  String agentDoClick(String target, String at);
+
+  /// No description provided for @agentDoDoubleClick.
+  ///
+  /// In en, this message translates to:
+  /// **'Double-click “{target}” at {at}'**
+  String agentDoDoubleClick(String target, String at);
+
+  /// No description provided for @agentDoRightClick.
+  ///
+  /// In en, this message translates to:
+  /// **'Right-click “{target}” at {at}'**
+  String agentDoRightClick(String target, String at);
+
+  /// No description provided for @agentDoMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move the pointer to {at}'**
+  String agentDoMove(String at);
+
+  /// No description provided for @agentDoType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type “{text}” into {target}'**
+  String agentDoType(String text, String target);
+
+  /// No description provided for @agentDoKeys.
+  ///
+  /// In en, this message translates to:
+  /// **'Press {keys}'**
+  String agentDoKeys(String keys);
+
+  /// No description provided for @agentDoScrollDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll down'**
+  String get agentDoScrollDown;
+
+  /// No description provided for @agentDoScrollUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll up'**
+  String get agentDoScrollUp;
+
+  /// No description provided for @agentDoWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait {ms} ms'**
+  String agentDoWait(int ms);
+
+  /// No description provided for @agentDoScreenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Look at the screen again'**
+  String get agentDoScreenshot;
+
+  /// No description provided for @agentDoDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get agentDoDone;
+
+  /// No description provided for @agentWhyPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'the focused field is a password field'**
+  String get agentWhyPassword;
+
+  /// No description provided for @agentWhySecret.
+  ///
+  /// In en, this message translates to:
+  /// **'it looks like a password or security-code field'**
+  String get agentWhySecret;
+
+  /// No description provided for @agentWhyPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'it looks like a payment field'**
+  String get agentWhyPayment;
+
+  /// No description provided for @agentWhyCard.
+  ///
+  /// In en, this message translates to:
+  /// **'the text looks like a card number'**
+  String get agentWhyCard;
+
+  /// No description provided for @agentWhyIrreversible.
+  ///
+  /// In en, this message translates to:
+  /// **'it may submit, send, pay or delete'**
+  String get agentWhyIrreversible;
+
+  /// No description provided for @agentWhySubmitKey.
+  ///
+  /// In en, this message translates to:
+  /// **'it may submit or delete'**
+  String get agentWhySubmitKey;
+
+  /// No description provided for @agentWhyOutside.
+  ///
+  /// In en, this message translates to:
+  /// **'outside the screenshot'**
+  String get agentWhyOutside;
+
+  /// No description provided for @privAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get privAgent;
+
+  /// No description provided for @privAgentOffBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Off. Sotto never moves your mouse or types.'**
+  String get privAgentOffBody;
+
+  /// No description provided for @privAgentOnBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for tasks you start: one screenshot per step goes to DeepSeek; every action is logged in the session.'**
+  String get privAgentOnBody;
+
+  /// No description provided for @refiningProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Refining… {done}/{total}'**
+  String refiningProgress(int done, int total);
+
+  /// No description provided for @refiningHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can read and edit now — parts you change are kept as you left them.'**
+  String get refiningHint;
+
+  /// No description provided for @refinedKeptEdits.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept your edits in {count, plural, =1{1 part} other{{count} parts}}'**
+  String refinedKeptEdits(int count);
+
+  /// No description provided for @refineStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Refining stopped — {reason} The quick organization stays.'**
+  String refineStopped(String reason);
+
+  /// No description provided for @formsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaires on screen are off. Turn them on in Settings → Answers.'**
+  String get formsOff;
+
+  /// No description provided for @formsUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling questionnaires needs Windows or macOS.'**
+  String get formsUnsupported;
+
+  /// No description provided for @formsNoWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Click the questionnaire\'s window first, then press the shortcut.'**
+  String get formsNoWindow;
+
+  /// No description provided for @formsReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read the form in front. Click into it and try again.'**
+  String get formsReadFailed;
+
+  /// No description provided for @formsBadReply.
+  ///
+  /// In en, this message translates to:
+  /// **'DeepSeek\'s answer couldn\'t be read. Try again.'**
+  String get formsBadReply;
+
+  /// No description provided for @formsWhySensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'password or payment field — never filled'**
+  String get formsWhySensitive;
+
+  /// No description provided for @formsWhyNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'the answer isn\'t one of the options'**
+  String get formsWhyNoMatch;
+
+  /// No description provided for @formsWhyNoField.
+  ///
+  /// In en, this message translates to:
+  /// **'field not found'**
+  String get formsWhyNoField;
+
+  /// No description provided for @formsWhyNoAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'no answer'**
+  String get formsWhyNoAnswer;
+
+  /// No description provided for @formsSessionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaire on screen'**
+  String get formsSessionTitle;
+
+  /// No description provided for @formsReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the form…'**
+  String get formsReading;
+
+  /// No description provided for @formsThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Answering the questions…'**
+  String get formsThinking;
+
+  /// No description provided for @formsReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the answers — edit any, then Enter to fill'**
+  String get formsReview;
+
+  /// No description provided for @formsAnswering.
+  ///
+  /// In en, this message translates to:
+  /// **'Answering {done}/{total}…'**
+  String formsAnswering(int done, int total);
+
+  /// No description provided for @formsVerifying.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking every answer stuck…'**
+  String get formsVerifying;
+
+  /// No description provided for @formsNextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Page filled — Enter for “{label}”'**
+  String formsNextPage(String label);
+
+  /// No description provided for @formsDoneSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Done — review and submit'**
+  String get formsDoneSubmit;
+
+  /// No description provided for @formsSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted.'**
+  String get formsSubmitted;
+
+  /// No description provided for @formsStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped. Nothing more was typed.'**
+  String get formsStopped;
+
+  /// No description provided for @formsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t fill this form.'**
+  String get formsFailed;
+
+  /// No description provided for @formsReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 answer filled} other{{count} answers filled}} — review and submit when ready'**
+  String formsReady(int count);
+
+  /// No description provided for @formsFilling.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto is filling'**
+  String get formsFilling;
+
+  /// No description provided for @formsPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page}'**
+  String formsPage(int page);
+
+  /// No description provided for @formsFillThese.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill these'**
+  String get formsFillThese;
+
+  /// No description provided for @formsGoNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get formsGoNext;
+
+  /// No description provided for @formsSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Click “{label}”'**
+  String formsSubmit(String label);
+
+  /// No description provided for @formsIllSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ll submit it'**
+  String get formsIllSubmit;
+
+  /// No description provided for @actionFillForm.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill questionnaire on screen'**
+  String get actionFillForm;
+
+  /// No description provided for @actionFillFormSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads the form in front, answers it and fills it in'**
+  String get actionFillFormSub;
+
+  /// No description provided for @actionOpenChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get actionOpenChat;
+
+  /// No description provided for @actionOpenChatSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens the assistant chat in the overlay'**
+  String get actionOpenChatSub;
+
+  /// No description provided for @actionPushToTalk.
+  ///
+  /// In en, this message translates to:
+  /// **'Talk to chat (hold)'**
+  String get actionPushToTalk;
+
+  /// No description provided for @actionPushToTalkSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold to dictate a chat message'**
+  String get actionPushToTalkSub;
+
+  /// No description provided for @formsGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaires on screen'**
+  String get formsGroup;
+
+  /// No description provided for @formsEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer questionnaires on screen'**
+  String get formsEnable;
+
+  /// No description provided for @formsEnableSub.
+  ///
+  /// In en, this message translates to:
+  /// **'{keys} reads the form in front, answers with DeepSeek\'s own knowledge (not your script) and fills it in.'**
+  String formsEnableSub(String keys);
+
+  /// No description provided for @formsMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode'**
+  String get formsMode;
+
+  /// No description provided for @formsModeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill automatically'**
+  String get formsModeAuto;
+
+  /// No description provided for @formsModeFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Show me the answers first'**
+  String get formsModeFirst;
+
+  /// No description provided for @formsLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer language'**
+  String get formsLanguage;
+
+  /// No description provided for @formsLangSame.
+  ///
+  /// In en, this message translates to:
+  /// **'Same as the questionnaire'**
+  String get formsLangSame;
+
+  /// No description provided for @formsLangApp.
+  ///
+  /// In en, this message translates to:
+  /// **'App language'**
+  String get formsLangApp;
+
+  /// No description provided for @formsStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open answers'**
+  String get formsStyle;
+
+  /// No description provided for @formsStyleShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Short'**
+  String get formsStyleShort;
+
+  /// No description provided for @formsStyleDetailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed'**
+  String get formsStyleDetailed;
+
+  /// No description provided for @formsInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra instructions'**
+  String get formsInstructions;
+
+  /// No description provided for @formsInstructionsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional context for the answers — your name, role, preferences.'**
+  String get formsInstructionsSub;
+
+  /// No description provided for @formsInstructionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. My name is Ana Ruiz, product manager at Acme. Prefer concise answers.'**
+  String get formsInstructionsHint;
+
+  /// No description provided for @formsPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots of the questionnaire are sent to DeepSeek and never saved. Nothing is stored unless history is on: then each filled answer is logged in Sessions.'**
+  String get formsPrivacy;
+
+  /// No description provided for @formsSubmitNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto never submits on its own: auto-fill stops before Submit, and a fill you start waits for Enter. {keys} stops at once.'**
+  String formsSubmitNote(String keys);
+
+  /// No description provided for @historyOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t keep'**
+  String get historyOff;
+
+  /// No description provided for @sessionFormRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaire · {count, plural, =1{1 answer} other{{count} answers}}'**
+  String sessionFormRun(int count);
+
+  /// No description provided for @formsDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaire'**
+  String get formsDialogTitle;
+
+  /// No description provided for @navChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get navChat;
+
+  /// No description provided for @chatNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New chat'**
+  String get chatNew;
+
+  /// No description provided for @chatNoConversations.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations yet.'**
+  String get chatNoConversations;
+
+  /// No description provided for @chatRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get chatRename;
+
+  /// No description provided for @chatUntitled.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled chat'**
+  String get chatUntitled;
+
+  /// No description provided for @chatEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask anything'**
+  String get chatEmptyTitle;
+
+  /// No description provided for @chatEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra questions before or during a talk. Attach your screen, or let it read your script. Thinking is off by default for fast replies — turn on Think deeper when it\'s worth the wait.'**
+  String get chatEmptyBody;
+
+  /// No description provided for @chatPanelEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Type or hold the talk key to ask. Zoom keeps the keyboard until you click the input.'**
+  String get chatPanelEmpty;
+
+  /// No description provided for @chatCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get chatCopy;
+
+  /// No description provided for @chatReadAloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Read aloud'**
+  String get chatReadAloud;
+
+  /// No description provided for @chatScreenAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'screen attached'**
+  String get chatScreenAttached;
+
+  /// No description provided for @chatThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking…'**
+  String get chatThinking;
+
+  /// No description provided for @chatListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening… release to stop'**
+  String get chatListening;
+
+  /// No description provided for @chatTranscribing.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribing…'**
+  String get chatTranscribing;
+
+  /// No description provided for @chatPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Message — Enter to send, Shift+Enter for a new line · hold {keys} to talk'**
+  String chatPlaceholder(String keys);
+
+  /// No description provided for @chatDictate.
+  ///
+  /// In en, this message translates to:
+  /// **'Dictate (hold {keys})'**
+  String chatDictate(String keys);
+
+  /// No description provided for @chatStopDictation.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop dictating'**
+  String get chatStopDictation;
+
+  /// No description provided for @chatAttachScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach screen — sends a screenshot with the next message'**
+  String get chatAttachScreen;
+
+  /// No description provided for @chatStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop generating'**
+  String get chatStop;
+
+  /// No description provided for @chatSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get chatSend;
+
+  /// No description provided for @chatThinkDeeper.
+  ///
+  /// In en, this message translates to:
+  /// **'Think deeper'**
+  String get chatThinkDeeper;
+
+  /// No description provided for @chatUseScript.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my script'**
+  String get chatUseScript;
+
+  /// No description provided for @chatUseScriptNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my script · {title}'**
+  String chatUseScriptNamed(String title);
+
+  /// No description provided for @chatGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get chatGroup;
+
+  /// No description provided for @chatAutoSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send dictation at once'**
+  String get chatAutoSend;
+
+  /// No description provided for @chatAutoSendSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Off: the transcript lands in the input so you can edit it first.'**
+  String get chatAutoSendSub;
+
+  /// No description provided for @chatContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages sent as context'**
+  String get chatContext;
+
+  /// No description provided for @chatContextSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The most recent ones; older messages are trimmed.'**
+  String get chatContextSub;
+
+  /// No description provided for @chatPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved.'**
+  String get chatPrivacy;
+
+  /// No description provided for @formsNeedsAccessibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again.'**
+  String get formsNeedsAccessibility;
+
+  /// No description provided for @formsCouldNotFill.
+  ///
+  /// In en, this message translates to:
+  /// **'could not fill — please fill it yourself'**
+  String get formsCouldNotFill;
+
+  /// No description provided for @overlayTextColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay text color'**
+  String get overlayTextColor;
+
+  /// No description provided for @overlayTextColorAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get overlayTextColorAuto;
+
+  /// No description provided for @overlayTextColorLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Always light'**
+  String get overlayTextColorLight;
+
+  /// No description provided for @overlayTextColorDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Always dark'**
+  String get overlayTextColorDark;
+
+  /// No description provided for @overlayTextColorCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get overlayTextColorCustom;
+
+  /// No description provided for @overlayTextColorAutoSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark text on light slides, light text on dark ones — checked on this computer every 0.8 s, never sent anywhere'**
+  String get overlayTextColorAutoSub;
+
+  /// No description provided for @overlayTextColorFixedSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed; the background isn\'t checked'**
+  String get overlayTextColorFixedSub;
+
+  /// No description provided for @overlayTextColorCustomSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own text and outline colors'**
+  String get overlayTextColorCustomSub;
+
+  /// No description provided for @maxOverlayHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Max overlay height'**
+  String get maxOverlayHeight;
+
+  /// No description provided for @maxOverlayHeightSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The overlay grows and shrinks with the lines showing, up to this share of the screen. Drag its edge to set a height for the session.'**
+  String get maxOverlayHeightSub;
+
+  /// No description provided for @autofillOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-fill ON'**
+  String get autofillOn;
+
+  /// No description provided for @autofillPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get autofillPaused;
+
+  /// No description provided for @autofillPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get autofillPause;
+
+  /// No description provided for @autofillResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get autofillResume;
+
+  /// No description provided for @autofillStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get autofillStop;
+
+  /// No description provided for @autofillHoldToStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold 1 s to stop'**
+  String get autofillHoldToStop;
+
+  /// No description provided for @autofillStopNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop now'**
+  String get autofillStopNow;
+
+  /// No description provided for @autofillFilling.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling… {done}/{total} — {question}'**
+  String autofillFilling(int done, int total, String question);
+
+  /// No description provided for @autofillDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done — review and submit yourself'**
+  String get autofillDone;
+
+  /// No description provided for @autofillOpenSotto.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Sotto'**
+  String get autofillOpenSotto;
+
+  /// No description provided for @autofillLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Log'**
+  String get autofillLog;
+
+  /// No description provided for @autofillLogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers will appear here, with why each was chosen.'**
+  String get autofillLogEmpty;
+
+  /// No description provided for @autofillCountdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to the form… {seconds}'**
+  String autofillCountdown(int seconds);
+
+  /// No description provided for @autofillWatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Watching for questionnaires'**
+  String get autofillWatching;
+
+  /// No description provided for @autofillIndicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto is filling'**
+  String get autofillIndicator;
+
+  /// No description provided for @autofillToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-fill forms'**
+  String get autofillToggle;
+
+  /// No description provided for @autofillToggleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Watches the window in front and fills the forms that appear — sign-ups, surveys, applications. Screenshots go to DeepSeek. Never presses Submit.'**
+  String get autofillToggleSub;
+
+  /// No description provided for @formsScrollTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll to find more questions'**
+  String get formsScrollTitle;
+
+  /// No description provided for @formsScrollSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrolls down, up to 10 times a page, while new questions keep appearing'**
+  String get formsScrollSub;
+
+  /// No description provided for @qtText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get qtText;
+
+  /// No description provided for @qtLongText.
+  ///
+  /// In en, this message translates to:
+  /// **'Long text'**
+  String get qtLongText;
+
+  /// No description provided for @qtMultipleChoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple choice'**
+  String get qtMultipleChoice;
+
+  /// No description provided for @qtTrueFalse.
+  ///
+  /// In en, this message translates to:
+  /// **'True / False'**
+  String get qtTrueFalse;
+
+  /// No description provided for @qtCheckboxes.
+  ///
+  /// In en, this message translates to:
+  /// **'Checkboxes'**
+  String get qtCheckboxes;
+
+  /// No description provided for @qtDropdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Dropdown'**
+  String get qtDropdown;
+
+  /// No description provided for @qtScale.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale'**
+  String get qtScale;
+
+  /// No description provided for @qtMatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching'**
+  String get qtMatching;
+
+  /// No description provided for @qtOrdering.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordering'**
+  String get qtOrdering;
+
+  /// No description provided for @qtImageChoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Image choice'**
+  String get qtImageChoice;
+
+  /// No description provided for @qtReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Read only — answer shown'**
+  String get qtReadOnly;
+
+  /// No description provided for @showChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Show chat'**
+  String get showChat;
+
+  /// No description provided for @showChatSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds Chat to the sidebar and turns on its shortcuts (open chat, push to talk). Off by default: it stays out of the way.'**
+  String get showChatSub;
+
+  /// No description provided for @chatAutoClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the chat panel after'**
+  String get chatAutoClose;
+
+  /// No description provided for @chatAutoCloseSub.
+  ///
+  /// In en, this message translates to:
+  /// **'In the overlay, after this long with no activity — never while a reply is arriving'**
+  String get chatAutoCloseSub;
+
+  /// No description provided for @chatAutoCloseNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get chatAutoCloseNever;
+
+  /// No description provided for @navForms.
+  ///
+  /// In en, this message translates to:
+  /// **'Forms'**
+  String get navForms;
+
+  /// No description provided for @setForms.
+  ///
+  /// In en, this message translates to:
+  /// **'Forms'**
+  String get setForms;
+
+  /// No description provided for @formsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling ordinary forms on screen — registrations, surveys, job applications, contact forms: automatically as they appear, or when you ask. Graded tests and exams are left alone.'**
+  String get formsDescription;
+
+  /// No description provided for @showFormsNav.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Forms in sidebar'**
+  String get showFormsNav;
+
+  /// No description provided for @showFormsNavSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The page with auto-fill, its status and recent fills'**
+  String get showFormsNavSub;
+
+  /// No description provided for @formsStatusOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get formsStatusOff;
+
+  /// No description provided for @formsStatusWatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Watching'**
+  String get formsStatusWatching;
+
+  /// No description provided for @formsStatusFilling.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling… {done}/{total}'**
+  String formsStatusFilling(int done, int total);
+
+  /// No description provided for @formsStatusOffSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on auto-fill above, or fill what\'s on screen once.'**
+  String get formsStatusOffSub;
+
+  /// No description provided for @formsStatusWatchingSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to a form: Sotto fills it and stops before Submit.'**
+  String get formsStatusWatchingSub;
+
+  /// No description provided for @formsStatusPausedSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is watched or filled until you resume.'**
+  String get formsStatusPausedSub;
+
+  /// No description provided for @formsFillNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill what\'s on screen now'**
+  String get formsFillNow;
+
+  /// No description provided for @formsFillNowSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Then switch to the form within 3 seconds — same as {keys}.'**
+  String formsFillNowSub(String keys);
+
+  /// No description provided for @formsRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent fills'**
+  String get formsRecent;
+
+  /// No description provided for @formsRecentEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing filled yet.'**
+  String get formsRecentEmpty;
+
+  /// No description provided for @formsHistoryOff.
+  ///
+  /// In en, this message translates to:
+  /// **'History is off (Privacy → Don\'t keep): fills aren\'t kept.'**
+  String get formsHistoryOff;
+
+  /// No description provided for @formsFieldsFilled.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 field filled} other{{count} fields filled}}'**
+  String formsFieldsFilled(int count);
+
+  /// No description provided for @formsOutcomeCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get formsOutcomeCompleted;
+
+  /// No description provided for @formsOutcomeStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get formsOutcomeStopped;
+
+  /// No description provided for @formsOutcomeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get formsOutcomeError;
+
+  /// No description provided for @formsClearHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear fill history'**
+  String get formsClearHistory;
+
+  /// No description provided for @formsClearHistorySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletes every questionnaire record; live sessions keep the rest.'**
+  String get formsClearHistorySub;
+
+  /// No description provided for @formsHistoryCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill history cleared.'**
+  String get formsHistoryCleared;
+
+  /// No description provided for @formsPrivacyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Each fill sends a screenshot of the window in front, and its form fields, to DeepSeek. Screenshots are never saved. Password and payment fields are never read or filled.'**
+  String get formsPrivacyNote;
+
+  /// No description provided for @formsOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Forms settings'**
+  String get formsOpenSettings;
+
+  /// No description provided for @formsAutofillGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-fill'**
+  String get formsAutofillGroup;
+
+  /// No description provided for @formsAnswersGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers'**
+  String get formsAnswersGroup;
+
+  /// No description provided for @formsHistoryGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get formsHistoryGroup;
+
+  /// No description provided for @formsBrowserTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser integration'**
+  String get formsBrowserTitle;
+
+  /// No description provided for @formsBrowserExtension.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto Bridge extension'**
+  String get formsBrowserExtension;
+
+  /// No description provided for @formsBrowserSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads web forms precisely, from the page itself. Without it, Sotto reads the screen.'**
+  String get formsBrowserSub;
+
+  /// No description provided for @formsBrowserLearnMore.
+  ///
+  /// In en, this message translates to:
+  /// **'What it can and can\'t see'**
+  String get formsBrowserLearnMore;
+
+  /// No description provided for @bridgeConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get bridgeConnected;
+
+  /// No description provided for @bridgeNotInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Not installed'**
+  String get bridgeNotInstalled;
+
+  /// No description provided for @bridgeInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Install extension'**
+  String get bridgeInstall;
+
+  /// No description provided for @bridgeReconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect'**
+  String get bridgeReconnect;
+
+  /// No description provided for @bridgeReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnecting — browsers with the extension come back within a few seconds.'**
+  String get bridgeReconnecting;
+
+  /// No description provided for @hoverOverlayStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay style: {style}'**
+  String hoverOverlayStyle(String style);
+
+  /// No description provided for @hoverTextColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text color: {color}'**
+  String hoverTextColor(String color);
+
+  /// No description provided for @hoverAutoFillOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-fill is on — turn off'**
+  String get hoverAutoFillOn;
+
+  /// No description provided for @hoverAutoFillOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-fill is off — turn on'**
+  String get hoverAutoFillOff;
+
+  /// No description provided for @hoverOpenChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Open chat'**
+  String get hoverOpenChat;
+
+  /// No description provided for @hoverCloseChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Close chat'**
+  String get hoverCloseChat;
+
+  /// No description provided for @hoverEndSessionHold.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold 1 s to end session'**
+  String get hoverEndSessionHold;
+
+  /// No description provided for @practiceBarsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Last {days} days'**
+  String practiceBarsTitle(int days);
+
+  /// No description provided for @practiceDaysCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No practice yet} =1{1 day practiced} other{{count} days practiced}}'**
+  String practiceDaysCount(int count);
+
+  /// No description provided for @practiceRangeStart.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days ago'**
+  String practiceRangeStart(int days);
+
+  /// No description provided for @practiceToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get practiceToday;
+
+  /// No description provided for @practiceDayEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No practice'**
+  String get practiceDayEmpty;
+
+  /// No description provided for @practiceDayRehearsals.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 rehearsal} other{{count} rehearsals}}'**
+  String practiceDayRehearsals(int count);
+
+  /// No description provided for @practiceDayLive.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 live run} other{{count} live runs}}'**
+  String practiceDayLive(int count);
+
+  /// No description provided for @practiceLegendRehearsal.
+  ///
+  /// In en, this message translates to:
+  /// **'Rehearsal'**
+  String get practiceLegendRehearsal;
+
+  /// No description provided for @practiceLegendLive.
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get practiceLegendLive;
+
+  /// No description provided for @llmBuiltInKeyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The DeepSeek key built into Sotto isn\'t working right now. Add your own key in Settings → Integrations to keep drafting answers — voice following and the overlay keep working without it.'**
+  String get llmBuiltInKeyFailed;
+
+  /// No description provided for @readyKeyRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'DeepSeek key not working'**
+  String get readyKeyRejected;
+
+  /// No description provided for @apiKeyRequiredSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Needed for answers, chat and organizing with AI. Voice following works without it.'**
+  String get apiKeyRequiredSub;
+
+  /// No description provided for @getApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Get a key'**
+  String get getApiKey;
+
+  /// No description provided for @getApiKeySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Create one at platform.deepseek.com — paste it above and press Test'**
+  String get getApiKeySub;
+
+  /// No description provided for @usingBuiltInKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Using the built-in key'**
+  String get usingBuiltInKey;
+
+  /// No description provided for @usingYourKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Using your key'**
+  String get usingYourKey;
+
+  /// No description provided for @notOnLinux.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on Linux yet'**
+  String get notOnLinux;
+
+  /// No description provided for @linuxExperimentalSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto on Linux is experimental. Reading the screen, filling forms, agent mode, the browser extension and reading answers aloud need Windows or macOS for now.'**
+  String get linuxExperimentalSub;
+
+  /// No description provided for @screenUnavailableNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the screen isn\'t available on Linux yet.'**
+  String get screenUnavailableNotice;
+
+  /// No description provided for @formsUnavailableNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling forms isn\'t available on Linux yet.'**
+  String get formsUnavailableNotice;
+
+  /// No description provided for @agentUnavailableNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent mode isn\'t available on Linux yet.'**
+  String get agentUnavailableNotice;
+
+  /// No description provided for @readAloudUnavailableNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading answers aloud isn\'t available on Linux yet.'**
+  String get readAloudUnavailableNotice;
+
+  /// No description provided for @formsUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forms aren\'t available on Linux yet'**
+  String get formsUnavailableTitle;
+
+  /// No description provided for @formsUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling forms needs to read and click other apps\' windows, which Sotto can only do on Windows and macOS for now.'**
+  String get formsUnavailableBody;
+
+  /// No description provided for @readyShareVisible.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay shows in screen shares'**
+  String get readyShareVisible;
+
+  /// No description provided for @readyShareVisibleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'On Linux the overlay can\'t hide from screen capture — share only your slides window, not the whole screen.'**
+  String get readyShareVisibleSub;
+
+  /// No description provided for @readyHotkeysWayland.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcuts need an X11 session'**
+  String get readyHotkeysWayland;
+
+  /// No description provided for @readyHotkeysWaylandSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Wayland doesn\'t let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay\'s buttons.'**
+  String get readyHotkeysWaylandSub;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

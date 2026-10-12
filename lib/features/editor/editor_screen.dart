@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../app/app.dart';
@@ -12,6 +13,7 @@ import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
 import '../../core/design/typography.dart';
 import '../../core/platform/platform_keys.dart';
+import '../../core/utils/display_title.dart';
 import '../../core/widgets/buttons.dart';
 import '../../core/widgets/controls.dart';
 import '../../core/widgets/display.dart';
@@ -22,6 +24,8 @@ import '../../data/models/script.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
 import '../library/library_actions.dart';
+import '../library/library_screen.dart' show RefineProgressBar;
+import '../library/organize_jobs.dart';
 import '../library/library_shell.dart' show TitleBarDragSpacer;
 import '../preflight/preflight_dialog.dart';
 import 'editor_controller.dart';
@@ -153,81 +157,104 @@ class _Header extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final collections = ref.watch(collectionsProvider).value ?? const <Collection>[];
     final collection = collections.where((c) => c.id == script.collectionId).firstOrNull;
+    // Nothing to read yet: going live would open an empty overlay.
+    final empty = script.wordCount == 0;
     return TitleBarArea(
       showCaptionButtons: true,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 24, right: 12),
-        child: Row(
-          children: [
-            // The breadcrumb yields space first — tabs and actions stay whole
-            // in longer languages.
-            if (collection != null) ...[
-              Flexible(
-                child: Interactive(
-                  onTap: () => context.go('/collections/${collection.id}'),
-                  builder: (context, s) => Text(
-                    collection.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TypeScale.body.copyWith(color: s.hovered ? p.inkPrimary : p.inkTertiary),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          // Short windows: the save state keeps only its icon and Rehearse
+          // becomes an icon button, so nothing in a longer language overflows.
+          final compact = c.maxWidth < 640;
+          return Padding(
+            padding: const EdgeInsets.only(left: 24, right: 12),
+            child: Row(
+              children: [
+                // The breadcrumb goes first when space is short — tabs, actions
+                // and the title stay whole in longer languages.
+                if (collection != null && c.maxWidth > 1100) ...[
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 180),
+                    child: Interactive(
+                      onTap: () => context.go('/collections/${collection.id}'),
+                      builder: (context, s) => Text(
+                        collection.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TypeScale.body.copyWith(color: s.hovered ? p.inkPrimary : p.inkTertiary),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text('/', style: TypeScale.body.copyWith(color: p.inkDisabled)),
+                  ),
+                ],
+                Flexible(
+                  flex: 4,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 240),
+                    child: _TitleField(scriptId: scriptId, title: script.title),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Text('/', style: TypeScale.body.copyWith(color: p.inkDisabled)),
-              ),
-            ],
-            Flexible(
-              flex: 4,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 240),
-                child: _TitleField(scriptId: scriptId, title: script.title),
-              ),
-            ),
-            const SizedBox(width: 14),
-            AnimatedSwitcher(
-              duration: Motion.snappy,
-              child: save == SaveState.saved
-                  ? Row(
-                      key: const ValueKey('saved'),
-                      children: [
-                        SottoIcon(SottoIcons.check, size: 12, color: p.inkTertiary),
-                        const SizedBox(width: 5),
-                        Text(context.l10n.saved, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
-                      ],
-                    )
-                  : Text(
-                      context.l10n.editing,
-                      key: const ValueKey('dirty'),
-                      style: TypeScale.caption.copyWith(color: p.inkTertiary),
-                    ),
-            ),
-            const Spacer(),
-            SegmentedControl<EditorTab>(
-              segments: [
-                Segment(EditorTab.write, context.l10n.tabWrite),
-                Segment(EditorTab.prep, context.l10n.tabQaPrep),
-                Segment(EditorTab.rehearsals, context.l10n.tabRehearsals),
+                const SizedBox(width: 14),
+                AnimatedSwitcher(
+                  duration: Motion.snappy,
+                  child: save == SaveState.saved
+                      ? Tooltip(
+                          key: const ValueKey('saved'),
+                          message: compact ? context.l10n.saved : '',
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SottoIcon(SottoIcons.check, size: 12, color: p.inkTertiary),
+                              if (!compact) ...[
+                                const SizedBox(width: 5),
+                                Text(context.l10n.saved, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                              ],
+                            ],
+                          ),
+                        )
+                      : Text(
+                          compact ? '•' : context.l10n.editing,
+                          key: const ValueKey('dirty'),
+                          style: TypeScale.caption.copyWith(color: p.inkTertiary),
+                        ),
+                ),
+                const Spacer(),
+                SegmentedControl<EditorTab>(
+                  segments: [
+                    Segment(EditorTab.write, context.l10n.tabWrite),
+                    Segment(EditorTab.prep, context.l10n.tabQaPrep),
+                    Segment(EditorTab.rehearsals, context.l10n.tabRehearsals),
+                  ],
+                  value: tab,
+                  onChanged: onTab,
+                ),
+                const Spacer(),
+                if (compact)
+                  SottoIconButton(
+                    icon: SottoIcons.rehearse,
+                    tooltip: context.l10n.rehearse,
+                    onPressed: empty ? null : () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
+                  )
+                else
+                  SottoButton(
+                    label: context.l10n.rehearse,
+                    icon: SottoIcons.rehearse,
+                    onPressed: empty ? null : () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
+                  ),
+                const SizedBox(width: 8),
+                SottoButton.primary(
+                  label: context.l10n.goLive,
+                  icon: SottoIcons.play,
+                  shortcut: settings.shortcutFor(LiveAction.goLive),
+                  onPressed: empty ? null : () => unawaited(showPreflight(context, ref, script.id)),
+                ),
               ],
-              value: tab,
-              onChanged: onTab,
             ),
-            const Spacer(),
-            SottoButton(
-              label: context.l10n.rehearse,
-              icon: SottoIcons.rehearse,
-              onPressed: () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
-            ),
-            const SizedBox(width: 8),
-            SottoButton.primary(
-              label: context.l10n.goLive,
-              icon: SottoIcons.play,
-              shortcut: settings.shortcutFor(LiveAction.goLive),
-              onPressed: () => unawaited(showPreflight(context, ref, script.id)),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -259,13 +286,43 @@ class _TitleFieldState extends ConsumerState<_TitleField> {
     super.dispose();
   }
 
+  bool _editing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _f.addListener(() {
+      if (!_f.hasFocus && _editing) setState(() => _editing = false);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    // At rest the title is plain text that ellipsizes; a click edits it.
+    if (!_editing) {
+      return Tooltip(
+        message: displayTitle(_c.text),
+        child: Interactive(
+          onTap: () {
+            setState(() => _editing = true);
+            _f.requestFocus();
+          },
+          // At rest the title reads as a title; editing shows what's stored.
+          builder: (context, s) => Text(
+            displayTitle(_c.text),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TypeScale.bodyStrong.copyWith(color: s.hovered ? p.cueText : p.inkPrimary),
+          ),
+        ),
+      );
+    }
     return IntrinsicWidth(
       child: TextField(
         controller: _c,
         focusNode: _f,
+        onSubmitted: (_) => _f.unfocus(),
         style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary),
         decoration: const InputDecoration(isCollapsed: true, border: InputBorder.none),
         onChanged: (t) => ref
@@ -293,6 +350,7 @@ class _StructureSidebar extends ConsumerWidget {
     final sessions = ref.watch(sessionsProvider).value ?? const [];
     final rehearsals = sessions.where((r) => r.scriptId == script.id && r.rehearsal).length;
     final organizing = script.status == ScriptStatus.organizing;
+    final progress = ref.watch(organizeProgressProvider(script.id));
 
     return Container(
       width: 264,
@@ -340,11 +398,19 @@ class _StructureSidebar extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(22, 2, 12, 12),
             child: Text(
               organizing
-                  ? context.l10n.statusOrganizing
-                  : context.l10n.structureSummary(script.sections.length, script.beatCount, script.cueCount),
+                  ? (progress == null
+                        ? context.l10n.statusOrganizing
+                        : context.l10n.refiningProgress(progress.done, progress.total))
+                  : [
+                      context.l10n.sectionsCount(script.sections.length),
+                      context.l10n.beatsCount(script.beatCount),
+                      context.l10n.cuesCount(script.cueCount),
+                      // Wrap between items, never inside one ("3 / cues").
+                    ].map((t) => t.replaceAll(' ', ' ')).join(' · '),
               style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
             ),
           ),
+          if (progress != null) _RefineStatus(progress: progress, organizing: organizing),
           Expanded(
             child: ReorderableListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -585,7 +651,7 @@ class _SectionItem extends StatelessWidget {
                         ),
                       const SizedBox(height: 4),
                       Text(
-                        context.l10n.beatsAndCues(section.beats.length, section.cueCount),
+                        '${context.l10n.beatsCount(section.beats.length)} · ${context.l10n.cuesCount(section.cueCount)}',
                         style: TypeScale.monoSmall.copyWith(color: p.inkTertiary, fontSize: 10),
                       ),
                     ],
@@ -631,6 +697,42 @@ class _Footer extends ConsumerWidget {
             Text(
               context.l10n.beatWords(si + 1, bi + 1, section.beats[bi].wordCount),
               style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Under the structure header while (and shortly after) AI refinement
+/// runs: the progress, then whether any part kept the presenter's edits.
+class _RefineStatus extends StatelessWidget {
+  const _RefineStatus({required this.progress, required this.organizing});
+  final OrganizeProgress progress;
+  final bool organizing;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final l = context.l10n;
+    final lines = [
+      if (organizing && !progress.finished) l.refiningHint,
+      if (progress.kept > 0) l.refinedKeptEdits(progress.kept),
+      if (progress.error != null) l.refineStopped(progress.error!),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 0, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (organizing && !progress.finished) ...[
+            RefineProgressBar(fraction: progress.fraction),
+            const SizedBox(height: 8),
+          ],
+          for (final t in lines)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(t, style: TypeScale.caption.copyWith(color: p.inkSecondary)),
             ),
         ],
       ),

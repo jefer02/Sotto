@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:ffi';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
 import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa;
 
 import '../../l10n/l10n.dart';
@@ -25,6 +26,23 @@ abstract class LiveRecognizer {
 abstract class Transcriber {
   Future<String> transcribe(Float32List audio, {String? language, String? prompt});
   Future<void> dispose();
+}
+
+/// Windows 11 ships an older `onnxruntime.dll` in System32 (1.17), and
+/// sherpa-onnx needs the one bundled next to the app (1.28). Whichever copy
+/// the process loads first wins, so load ours by full path before sherpa
+/// binds; otherwise the engine aborts with "API version [N] is not
+/// available". [dirs] lists where to look — the app folder by default.
+void preloadOnnxRuntime([List<String>? dirs]) {
+  if (!Platform.isWindows) return;
+  for (final dir in dirs ?? [p.dirname(Platform.resolvedExecutable)]) {
+    final dll = p.join(dir, 'onnxruntime.dll');
+    if (!File(dll).existsSync()) continue;
+    try {
+      DynamicLibrary.open(dll);
+      return;
+    } catch (_) {}
+  }
 }
 
 String isoLanguage(String bcp47) => bcp47.split(RegExp('[-_]')).first.toLowerCase();
@@ -50,6 +68,7 @@ void _sherpaWorker((SendPort, _WorkerConfig) args) {
   sherpa.OfflineRecognizer? offline;
 
   try {
+    preloadOnnxRuntime();
     sherpa.initBindings();
     if (cfg.streaming case final s?) {
       online = sherpa.OnlineRecognizer(
@@ -232,74 +251,9 @@ class SherpaEngine implements LiveRecognizer, Transcriber {
   }
 }
 
-// ───────────────────────── Cloud transcription ─────────────────────────
-
-/// OpenAI-compatible `/audio/transcriptions` — the optional cloud fallback.
-class CloudTranscriber implements Transcriber {
-  CloudTranscriber({required this.apiKey, required this.model, required this.baseUrl});
-
-  final String apiKey;
-  final String model;
-  final String baseUrl;
-  final _http = http.Client();
-
-  @override
-  Future<String> transcribe(Float32List audio, {String? language, String? prompt}) async {
-    final uri = Uri.parse('${baseUrl.replaceAll(RegExp(r'/+$'), '')}/audio/transcriptions');
-    final req = http.MultipartRequest('POST', uri)
-      ..headers['authorization'] = 'Bearer $apiKey'
-      ..fields['model'] = model
-      ..fields['response_format'] = 'json'
-      ..files.add(http.MultipartFile.fromBytes('file', encodeWav(audio), filename: 'audio.wav'));
-    if (language != null && language.isNotEmpty) req.fields['language'] = isoLanguage(language);
-    if (prompt != null && prompt.isNotEmpty) req.fields['prompt'] = prompt;
-    final res = await http.Response.fromStream(await _http.send(req).timeout(const Duration(seconds: 30)));
-    if (res.statusCode != 200) {
-      throw StateError(
-        res.statusCode == 401
-            ? L10n.current.sttBadKey
-            : L10n.current.sttCloudFailed(res.statusCode),
-      );
-    }
-    return ((jsonDecode(res.body) as Map)['text'] as String? ?? '').trim();
-  }
-
-  @override
-  Future<void> dispose() async => _http.close();
-}
-
-Uint8List encodeWav(Float32List samples, {int sampleRate = AudioCapture.sampleRate}) {
-  final data = ByteData(44 + samples.length * 2);
-  void str(int o, String s) {
-    for (var i = 0; i < s.length; i++) {
-      data.setUint8(o + i, s.codeUnitAt(i));
-    }
-  }
-
-  str(0, 'RIFF');
-  data.setUint32(4, 36 + samples.length * 2, Endian.little);
-  str(8, 'WAVE');
-  str(12, 'fmt ');
-  data
-    ..setUint32(16, 16, Endian.little)
-    ..setUint16(20, 1, Endian.little)
-    ..setUint16(22, 1, Endian.little)
-    ..setUint32(24, sampleRate, Endian.little)
-    ..setUint32(28, sampleRate * 2, Endian.little)
-    ..setUint16(32, 2, Endian.little)
-    ..setUint16(34, 16, Endian.little);
-  str(36, 'data');
-  data.setUint32(40, samples.length * 2, Endian.little);
-  for (var i = 0; i < samples.length; i++) {
-    data.setInt16(44 + i * 2, (samples[i].clamp(-1.0, 1.0) * 32767).round(), Endian.little);
-  }
-  return data.buffer.asUint8List();
-}
-
 // ─────────────────── Segmented recognition over a Transcriber ───────────────────
 
-/// Pseudo-streaming for engines that only transcribe whole clips (Whisper,
-/// cloud): voice activity cuts the audio into utterances, and the open
+/// Pseudo-streaming for engines that only transcribe whole clips (Whisper): voice activity cuts the audio into utterances, and the open
 /// utterance is re-transcribed about once a second so words keep arriving.
 class SegmentedRecognizer implements LiveRecognizer {
   SegmentedRecognizer(
@@ -317,6 +271,9 @@ class SegmentedRecognizer implements LiveRecognizer {
   final _vad = EnergyVad();
   final _heard = StreamController<String>.broadcast();
   final _segment = <double>[];
+
+  /// Utterances that ended while a transcription was running.
+  final _closed = <Float32List>[];
   final _committed = <String>[];
   String _partial = '';
   bool _busy = false;
@@ -324,6 +281,10 @@ class SegmentedRecognizer implements LiveRecognizer {
   int _generation = 0;
 
   static const _maxSegmentSamples = AudioCapture.sampleRate * 8;
+
+  /// Most audio sent in one catch-up pass (Whisper's window is 30 s).
+  static const _maxPassSamples = AudioCapture.sampleRate * 20;
+  static const _minSamples = AudioCapture.sampleRate ~/ 4;
 
   @override
   Stream<String> get heard => _heard.stream;
@@ -336,20 +297,46 @@ class SegmentedRecognizer implements LiveRecognizer {
     final ended = !_vad.speaking && _vad.silenceMs >= 450 && _segment.isNotEmpty;
     final tooLong = _segment.length >= _maxSegmentSamples;
     if (ended || tooLong) {
-      _run(finalize: true);
+      if (_segment.length >= _minSamples) _closed.add(Float32List.fromList(_segment));
+      _segment.clear();
+      _pump();
     } else if (_vad.speaking && DateTime.now().difference(_lastRun) >= refresh) {
-      _run(finalize: false);
+      _pump();
     }
   }
 
-  Future<void> _run({required bool finalize}) async {
-    if (_busy && !finalize) return;
-    _lastRun = DateTime.now();
-    final audio = Float32List.fromList(_segment);
-    final gen = _generation;
-    if (finalize) _segment.clear();
-    if (audio.length < AudioCapture.sampleRate ~/ 4) return;
+  /// Runs one transcription at a time. Requests never queue up behind a slow
+  /// model: utterances that close meanwhile are transcribed together in the
+  /// next pass, and the open one is only refreshed when nothing is pending.
+  /// A queue made a slow model (Whisper Turbo on a CPU) fall seconds behind
+  /// the presenter and then race through the backlog on the next pause.
+  Future<void> _pump() async {
+    if (_busy || _heard.isClosed) return;
+    final Float32List audio;
+    final bool finalize;
+    if (_closed.isNotEmpty) {
+      var take = 0, length = 0;
+      while (take < _closed.length && (take == 0 || length + _closed[take].length <= _maxPassSamples)) {
+        length += _closed[take++].length;
+      }
+      audio = Float32List(length);
+      var offset = 0;
+      for (final c in _closed.take(take)) {
+        audio.setAll(offset, c);
+        offset += c.length;
+      }
+      _closed.removeRange(0, take);
+      finalize = true;
+    } else if (_segment.length >= _minSamples) {
+      audio = Float32List.fromList(_segment);
+      finalize = false;
+    } else {
+      return;
+    }
+
     _busy = true;
+    _lastRun = DateTime.now();
+    final gen = _generation;
     try {
       final text = await transcriber.transcribe(audio, language: language, prompt: prompt);
       if (gen != _generation || _heard.isClosed) return;
@@ -366,12 +353,14 @@ class SegmentedRecognizer implements LiveRecognizer {
     } finally {
       _busy = false;
     }
+    if (_closed.isNotEmpty) unawaited(_pump());
   }
 
   @override
   void clear() {
     _generation++;
     _segment.clear();
+    _closed.clear();
     _committed.clear();
     _partial = '';
     _vad.reset();

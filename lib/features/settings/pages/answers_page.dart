@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/icons.dart';
@@ -17,6 +18,7 @@ import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
 import '../../../services/tts/tts_service.dart';
 import '../settings_screen.dart';
+import '../../../core/platform/platform_features.dart';
 
 final ttsVoicesProvider = FutureProvider<List<String>>((ref) => ref.read(ttsProvider).voices());
 
@@ -62,8 +64,7 @@ class AnswersPage extends ConsumerWidget {
 
     return SettingsPageScaffold(
       title: context.l10n.pfAnswers,
-      description:
-          context.l10n.answersDescription,
+      description: context.l10n.answersDescription,
       left: [
         SettingsGroup(
           title: context.l10n.grounding,
@@ -149,7 +150,8 @@ class AnswersPage extends ConsumerWidget {
               trailing: SegmentedControl<double>(
                 width: 190,
                 segments: [
-                  for (final v in const [0.8, 1.2, 2.0]) Segment(v, '${NumberFormat('0.#', context.l10n.localeName).format(v)} s'),
+                  for (final v in const [0.8, 1.2, 2.0])
+                    Segment(v, '${NumberFormat('0.#', context.l10n.localeName).format(v)} s'),
                 ],
                 value: s.silenceSeconds,
                 onChanged: (v) => n.update((x) => x.copyWith(silenceSeconds: v)),
@@ -169,16 +171,10 @@ class AnswersPage extends ConsumerWidget {
           title: context.l10n.delivery,
           children: [
             SettingRow(
-              title: context.l10n.readAloudThrough,
-              subtitle: context.l10n.readAloudThroughSub,
-              trailing: SottoSelect<ReadAloudRoute>(
-                value: s.readAloudRoute,
-                options: [
-                  SelectOption(ReadAloudRoute.headphonesOnly, context.l10n.headphonesOnly),
-                  SelectOption(ReadAloudRoute.systemDefault, context.l10n.systemOutput),
-                ],
-                onChanged: (v) => n.update((x) => x.copyWith(readAloudRoute: v)),
-              ),
+              title: context.l10n.readAloudTitle,
+              subtitle: ref.watch(platformFeaturesProvider).readAloud
+                  ? context.l10n.readAloudHeadphones
+                  : context.l10n.notOnLinux,
             ),
             if (voices.isNotEmpty)
               SettingRow(
@@ -206,12 +202,7 @@ class AnswersPage extends ConsumerWidget {
       right: [
         SettingsGroup(
           title: context.l10n.pfMeetingChat,
-          children: [
-            SettingRow(
-              title: context.l10n.copyThenPaste,
-              subtitle: context.l10n.copyThenPasteSub,
-            ),
-          ],
+          children: [SettingRow(title: context.l10n.copyThenPaste, subtitle: context.l10n.copyThenPasteSub)],
         ),
         SurfaceCard(
           child: Column(

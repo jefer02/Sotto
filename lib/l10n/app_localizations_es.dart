@@ -13,7 +13,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appTitle => 'Sotto';
 
   @override
-  String get statusOrganizing => 'Organizando…';
+  String get statusOrganizing => 'Refinando…';
 
   @override
   String statusRehearsedTimes(int count) {
@@ -155,9 +155,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get modCommand => 'Comando';
 
   @override
-  String get providerCompatible => 'Compatible';
-
-  @override
   String get untitledScript => 'Guion sin título';
 
   @override
@@ -237,7 +234,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String llmTimeout(String provider) {
-    return '$provider no respondió a tiempo.';
+    return '$provider no respondió — comprueba tu conexión';
   }
 
   @override
@@ -254,9 +251,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String llmGenericError(String provider) {
     return '$provider devolvió un error.';
   }
-
-  @override
-  String get llmAiServer => 'El servidor de IA';
 
   @override
   String get modelStreamingEn => 'Inglés · en tiempo real';
@@ -305,15 +299,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get engineOnDeviceWhisper => 'En el equipo · Whisper';
 
   @override
-  String get engineCloud => 'Nube';
-
-  @override
   String get engineModelsMissing =>
       'Los modelos de voz aún no están instalados. Descárgalos en Ajustes → Voz y seguimiento.';
-
-  @override
-  String get engineCloudKeyMissing =>
-      'Añade una clave de API de voz a texto en Ajustes → Integraciones para usar el motor en la nube.';
 
   @override
   String sttEngineFailed(String error) {
@@ -325,14 +312,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get sttStopped => 'El motor de voz se detuvo.';
-
-  @override
-  String get sttBadKey => 'La clave de API de voz a texto fue rechazada.';
-
-  @override
-  String sttCloudFailed(int status) {
-    return 'La transcripción en la nube falló ($status).';
-  }
 
   @override
   String get micPermission => 'Sotto necesita acceso al micrófono. Permítelo en Ajustes del sistema → Privacidad.';
@@ -356,7 +335,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noticeNoQuestion => 'No se entendió la pregunta';
 
   @override
-  String get answerNeedsKey => 'Añade una clave de API en Ajustes → Integraciones para redactar respuestas.';
+  String get answerNeedsKey =>
+      'Las respuestas necesitan una clave de DeepSeek. Añade la tuya en Ajustes → Integraciones; crearla es gratis.';
 
   @override
   String get noticeCopiedForChat => 'Copiado — pégalo en el chat de la reunión';
@@ -372,14 +352,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get readyAdvanceManual => 'Avance: manual';
-
-  @override
-  String readyCloud(String langs) {
-    return 'Nube · $langs';
-  }
-
-  @override
-  String get readyAddSttKey => 'Añade una clave de voz a texto en Integraciones';
 
   @override
   String readyOnDevice(String langs) {
@@ -403,7 +375,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get readyNoKey => 'Sin clave de API';
 
   @override
-  String get readyAddKey => 'Añade una en Integraciones para redactar respuestas';
+  String get readyAddKey => 'Añade tu clave de DeepSeek en Integraciones para redactar respuestas';
 
   @override
   String get readyShareWindow => 'Comparte una ventana';
@@ -487,6 +459,35 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get recentScripts => 'Guiones recientes';
+
+  @override
+  String get greetingMorning => 'Buenos días';
+
+  @override
+  String get greetingAfternoon => 'Buenas tardes';
+
+  @override
+  String get greetingEvening => 'Buenas noches';
+
+  @override
+  String homeStatScripts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'guiones', one: 'guion');
+    return '$_temp0';
+  }
+
+  @override
+  String homeStatReady(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'listos para salir en vivo',
+      one: 'listo para salir en vivo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeStatMinutes => 'min de material';
 
   @override
   String get filterAll => 'Todos';
@@ -815,11 +816,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addSection => 'Añadir sección';
 
   @override
-  String structureSummary(int sections, int beats, int cues) {
-    return '$sections secciones · $beats frases · $cues indicaciones';
-  }
-
-  @override
   String get timing => 'Tiempos';
 
   @override
@@ -866,11 +862,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String timeForSection(String title) {
     return 'Tiempo para «$title»';
-  }
-
-  @override
-  String beatsAndCues(int beats, int cues) {
-    return '$beats frases · $cues indicaciones';
   }
 
   @override
@@ -958,7 +949,8 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get suggestNeedsKey => 'Añade una clave de API en Ajustes → Integraciones para sugerir preguntas.';
+  String get suggestNeedsKey =>
+      'Sugerir preguntas necesita una clave de DeepSeek. Añade la tuya en Ajustes → Integraciones.';
 
   @override
   String get noQuestionsReturned => 'El modelo no devolvió preguntas.';
@@ -1539,9 +1531,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get testWithScript => 'Probar con este guion';
 
   @override
-  String get microphone => 'Micrófono';
-
-  @override
   String get noMicrophoneFound => 'No se encontró ningún micrófono';
 
   @override
@@ -1586,15 +1575,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get engineOnDeviceSub => 'sherpa-onnx en este equipo · el audio no sale de él';
-
-  @override
-  String get engineCloudSub => 'Voz a texto compatible con OpenAI · el audio se sube mientras hablas';
-
-  @override
-  String get onDevice => 'En el equipo';
-
-  @override
-  String get cloud => 'Nube';
 
   @override
   String get following => 'Seguimiento';
@@ -1816,18 +1796,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get delivery => 'Entrega';
 
   @override
-  String get readAloudThrough => 'Leer en voz alta por';
-
-  @override
-  String get readAloudThroughSub => 'La sala nunca lo oye — usa auriculares';
-
-  @override
-  String get headphonesOnly => 'Solo auriculares';
-
-  @override
-  String get systemOutput => 'Salida del sistema';
-
-  @override
   String get voice => 'Voz';
 
   @override
@@ -1852,7 +1820,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get whatLeaves => 'Qué sale de este equipo';
 
   @override
-  String get leavesAudio => 'Audio — el tuyo o el de la sala, cuando la voz se procesa en el equipo.';
+  String get leavesAudio => 'Audio — el tuyo y el de la sala se transcriben en este equipo.';
 
   @override
   String get leavesQuestion => 'El texto de la pregunta y los fragmentos usados para responderla.';
@@ -1933,33 +1901,13 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get integrationsDescription =>
-      'Las respuestas usan tu propia clave de API. Se guarda en el llavero del sistema y solo se envía al proveedor que elijas, solo cuando se hace una pregunta.';
-
-  @override
-  String get answersModel => 'Modelo de respuestas';
-
-  @override
-  String get provider => 'Proveedor';
+      'Las respuestas las redacta DeepSeek. Añade tu clave de API; se guarda en el llavero del sistema y solo se envía a DeepSeek cuando se hace una pregunta.';
 
   @override
   String get apiKey => 'Clave de API';
 
   @override
-  String get apiKeyOptional => 'Opcional para servidores locales como Ollama o LM Studio';
-
-  @override
   String get model => 'Modelo';
-
-  @override
-  String get modelLowEffort => 'Las respuestas en vivo usan poco esfuerzo para ser rápidas';
-
-  @override
-  String get baseUrl => 'URL base';
-
-  @override
-  String baseUrlSub(String url) {
-    return 'Déjala vacía para usar $url';
-  }
 
   @override
   String get testConnection => 'Probar conexión';
@@ -1968,18 +1916,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get test => 'Probar';
 
   @override
-  String get cloudStt => 'Voz a texto en la nube';
-
-  @override
-  String get cloudSttFooter =>
-      'Opcional. Se usa si eliges el motor en la nube, o como respaldo si no hay modelos en el equipo. Si está vacía, se usa tu clave de OpenAI.';
-
-  @override
-  String get compatible => 'Compatible';
-
-  @override
   String get privacyDescription =>
-      'Privacidad por diseño: el audio de quien presenta se queda en este equipo, el de la sala solo se captura con la combinación y solo se envía texto para responder una pregunta.';
+      'Privacidad por diseño: el audio de quien presenta se queda en este equipo, el de la sala solo se captura con la combinación y solo se envía texto para responder una pregunta — más una captura cuando preguntas por tu pantalla, si lo activas.';
 
   @override
   String get hideFromCapture => 'Ocultar la superposición de las capturas de pantalla';
@@ -2045,7 +1983,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get privVoice => 'Voz';
 
   @override
-  String get privVoiceBody => 'Con el motor en el equipo, el audio de quien presenta nunca sale del dispositivo.';
+  String get privVoiceBody => 'El audio de quien presenta nunca sale de este equipo: la voz se procesa en local.';
 
   @override
   String get privRoom => 'Audio de la sala';
@@ -2057,7 +1995,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get privAnswers => 'Respuestas';
 
   @override
-  String get privAnswersBody => 'Solo se envía a tu proveedor el texto de la pregunta y los fragmentos usados.';
+  String get privAnswersBody => 'Solo se envían a DeepSeek el texto de la pregunta y los fragmentos usados.';
 
   @override
   String get privModels => 'Modelos de voz';
@@ -2071,4 +2009,1178 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get privConsentBody =>
       'Las leyes sobre grabación varían. Considera avisar a la sala de que la asistencia de preguntas está activa.';
+
+  @override
+  String get llmNoBalance => 'Tu saldo de DeepSeek está vacío. Recárgalo en platform.deepseek.com.';
+
+  @override
+  String get integrationsDescriptionBuiltIn =>
+      'Las respuestas las redacta DeepSeek con la clave integrada en esta copia de Sotto, así que funcionan desde el primer momento. Una clave personal es opcional: añádela para usar tu propia cuenta y tus límites.';
+
+  @override
+  String get deepseekFooter => 'Solo se envían la pregunta y los fragmentos usados para responderla.';
+
+  @override
+  String get apiKeyOverrideSub => 'Opcional. Déjala vacía para usar la clave integrada.';
+
+  @override
+  String get builtInKey => 'Clave integrada';
+
+  @override
+  String get modelsLoading => 'Cargando modelos…';
+
+  @override
+  String modelsLoadFailed(String error) {
+    return 'No se pudo cargar la lista de modelos: $error';
+  }
+
+  @override
+  String get deepseekPlatform => 'Cuenta, saldo y claves';
+
+  @override
+  String get open => 'Abrir';
+
+  @override
+  String beatsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count frases', one: '1 frase');
+    return '$_temp0';
+  }
+
+  @override
+  String cuesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count indicaciones',
+      one: '1 indicación',
+      zero: 'sin indicaciones',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get readAloudTitle => 'Leer en voz alta';
+
+  @override
+  String get readAloudHeadphones => 'Suena por la salida del sistema — usa auriculares para que la sala no lo oiga.';
+
+  @override
+  String welcomeStep(int step, int total) {
+    return 'BIENVENIDA · $step DE $total';
+  }
+
+  @override
+  String get welcomeSkip => 'Omitir por ahora';
+
+  @override
+  String get welcomeNext => 'Siguiente';
+
+  @override
+  String get welcomeBack => 'Atrás';
+
+  @override
+  String get welcomeUseExample => 'Empezar con el ejemplo';
+
+  @override
+  String get welcomeModelsTitle => 'Descarga los modelos de voz';
+
+  @override
+  String get welcomeModelsBody =>
+      'Sotto sigue tu voz en este equipo. Estos modelos se descargan una vez y luego funcionan sin conexión; tu audio nunca sale del dispositivo.';
+
+  @override
+  String get welcomeModelsFooter =>
+      'Las descargas siguen en segundo plano. Sin modelos, la superposición sigue avanzando con atajos o por tiempo.';
+
+  @override
+  String get welcomeScriptTitle => 'Trae tu primer guion';
+
+  @override
+  String get welcomeScriptBody =>
+      'Sotto lo organiza en secciones, frases de una respiración e indicaciones. También puedes empezar con la charla de ejemplo de tu biblioteca.';
+
+  @override
+  String get welcomeImportFile => 'Importar un archivo';
+
+  @override
+  String get welcomeImportFileSub => '.docx, .pdf, .md o .txt';
+
+  @override
+  String get welcomePaste => 'Pegar texto';
+
+  @override
+  String get welcomePasteSub => 'Desde el portapapeles';
+
+  @override
+  String get welcomeWrite => 'Escribir desde cero';
+
+  @override
+  String get welcomeWriteSub => 'Un guion en blanco';
+
+  @override
+  String get welcomeBrowserTitle => 'Extensión del navegador (opcional)';
+
+  @override
+  String get welcomeBrowserBody =>
+      'Instala la extensión del navegador para una lectura precisa (puedes omitirlo). Lee los formularios web desde la propia página, solo cuando lo pides, y nunca ve contraseñas ni datos de pago. Sin ella, Sotto lee la pantalla.';
+
+  @override
+  String get overlayStyle => 'Estilo de la superposición';
+
+  @override
+  String get overlayStyleTextOnly => 'Solo texto';
+
+  @override
+  String get overlayStylePanel => 'Panel';
+
+  @override
+  String get overlayStyleTextOnlySub => 'Sin fondo — solo palabras con contorno sobre tus diapositivas';
+
+  @override
+  String get overlayStylePanelSub => 'Una tarjeta translúcida detrás del texto';
+
+  @override
+  String get overlayStyleTextOnlyFooter =>
+      'Los controles y la barra de estado aparecen al pasar el ratón o al usar un atajo, y se desvanecen a los 2 segundos.';
+
+  @override
+  String get textColor => 'Color del texto';
+
+  @override
+  String get outlineColor => 'Contorno';
+
+  @override
+  String get outlineAuto => 'Auto — contrasta con el texto';
+
+  @override
+  String get outlineAutoSub => 'Auto: oscuro con texto claro, claro con texto oscuro';
+
+  @override
+  String get outlineWidth => 'Grosor del contorno';
+
+  @override
+  String get shadowStrength => 'Sombra';
+
+  @override
+  String get modelReadsImages => 'lee capturas';
+
+  @override
+  String get sourceScreen => 'Tu pantalla';
+
+  @override
+  String get actionAskScreen => 'Preguntar sobre la pantalla';
+
+  @override
+  String get actionAskScreenSub => 'Toma una captura y luego escucha tu pregunta';
+
+  @override
+  String get noticeScreenOff => 'La lectura de pantalla está desactivada — actívala en Ajustes → Privacidad';
+
+  @override
+  String get noticeScreenPermission => 'Sotto necesita permiso de Grabación de pantalla — mira Ajustes → Privacidad';
+
+  @override
+  String get defaultScreenQuestion => '¿Qué hay en mi pantalla ahora y qué debería decir sobre ello?';
+
+  @override
+  String get capturingScreen => 'Capturando pantalla';
+
+  @override
+  String get screenshotAttached => 'Captura adjunta — se envía a DeepSeek con tu pregunta';
+
+  @override
+  String get screenAwareness => 'Lectura de pantalla';
+
+  @override
+  String get screenAwarenessFooter =>
+      'Las capturas se toman solo cuando lo pides, se reducen, se envían a DeepSeek con tu pregunta y nunca se guardan. La superposición de Sotto nunca aparece en ellas. Una luz roja «Capturando pantalla» se muestra cada vez.';
+
+  @override
+  String get screenAwarenessToggle => 'Dejar que Sotto mire mi pantalla cuando lo pida';
+
+  @override
+  String get screenAwarenessToggleSub => 'Desactivado por defecto. Las capturas se envían a DeepSeek.';
+
+  @override
+  String get screenTarget => 'Capturar';
+
+  @override
+  String get screenTargetOverlay => 'La pantalla de la superposición';
+
+  @override
+  String get screenTargetCursor => 'La pantalla bajo el puntero';
+
+  @override
+  String get attachSlide => 'Enviar la diapositiva con las preguntas del público';
+
+  @override
+  String get attachSlideSub => 'Cada pregunta envía también una captura de lo que hay en pantalla';
+
+  @override
+  String get screenPermissionMissing => 'Falta el permiso de Grabación de pantalla';
+
+  @override
+  String get screenPermissionMissingSub =>
+      'Ajustes del Sistema → Privacidad y seguridad → Grabación de pantalla → Sotto';
+
+  @override
+  String get openSystemSettings => 'Abrir Ajustes del Sistema';
+
+  @override
+  String get privScreen => 'Capturas';
+
+  @override
+  String get privScreenOffBody => 'Desactivado. Sotto nunca mira tu pantalla.';
+
+  @override
+  String get privScreenOnBody => 'Solo cuando lo pides: una captura va a DeepSeek con la pregunta. Nunca se guarda.';
+
+  @override
+  String get readyScreenOk => 'Activada — una captura por cada pregunta sobre la pantalla';
+
+  @override
+  String get actionAgentTask => 'Tarea del agente';
+
+  @override
+  String get actionAgentTaskSub => 'Di una tarea; el agente la hace en pantalla, paso a paso';
+
+  @override
+  String get actionAgentStop => 'Detener el agente';
+
+  @override
+  String get actionAgentStopSub => 'Parada de emergencia — cancela al instante y suelta todas las teclas';
+
+  @override
+  String get agentOff => 'El modo agente está desactivado — actívalo en Ajustes → Privacidad';
+
+  @override
+  String get agentUnsupported => 'El modo agente funciona en Windows y macOS.';
+
+  @override
+  String get agentNeedsAccessibility =>
+      'Sotto necesita el permiso de Accesibilidad para controlar el ratón y el teclado — mira Ajustes → Privacidad.';
+
+  @override
+  String get agentListening => 'Describe la tarea';
+
+  @override
+  String get agentStarting => 'Mirando la pantalla…';
+
+  @override
+  String get agentThinking => 'Decidiendo el siguiente paso…';
+
+  @override
+  String get agentWaiting => 'Esperándote';
+
+  @override
+  String get agentActing => 'Trabajando…';
+
+  @override
+  String get agentInControl => 'EL AGENTE TIENE EL CONTROL';
+
+  @override
+  String agentStep(int step, int max) {
+    return 'paso $step/$max';
+  }
+
+  @override
+  String get agentStop => 'Detener';
+
+  @override
+  String agentStopHint(String keys) {
+    return 'Parada de emergencia: $keys — funciona en cualquier sitio';
+  }
+
+  @override
+  String get agentCouldNotStart => 'No se pudo iniciar';
+
+  @override
+  String get agentCompleted => 'Hecho';
+
+  @override
+  String get agentStopped => 'Detenido — no se ejecutará nada más';
+
+  @override
+  String get agentDeclined => 'Detenido a petición tuya';
+
+  @override
+  String agentLimit(int max) {
+    return 'Detenido tras $max pasos';
+  }
+
+  @override
+  String get agentFailed => 'Detenido por un error';
+
+  @override
+  String get agentNext => 'SIGUIENTE ACCIÓN';
+
+  @override
+  String agentConfirmSensitive(String reason) {
+    return 'CONFIRMA — $reason';
+  }
+
+  @override
+  String get agentRun => 'Ejecutar';
+
+  @override
+  String get agentStopTask => 'Detener tarea';
+
+  @override
+  String get agentCardTitle => 'Que lo haga el agente';
+
+  @override
+  String get agentCardBody =>
+      'Describe una tarea — «rellena este formulario con mis datos de los documentos de preparación». El agente trabaja en pantalla, paso a paso, y pregunta antes de enviar, pagar o borrar algo.';
+
+  @override
+  String get agentTaskPlaceholder => '¿Qué debe hacer el agente?';
+
+  @override
+  String get agentRunTask => 'Empezar';
+
+  @override
+  String get agentMode => 'Modo agente';
+
+  @override
+  String agentModeFooter(String keys) {
+    return 'El agente envía capturas a DeepSeek y mueve el ratón y el teclado, como máximo 25 pasos por tarea. Nunca escribe en campos de contraseña ni maneja datos de pago, siempre pregunta antes de enviar, pagar, borrar o comprar, muestra un marco ámbar mientras tiene el control y registra cada acción en la sesión. $keys lo detiene al instante, desde cualquier sitio.';
+  }
+
+  @override
+  String get agentToggle => 'Dejar que Sotto controle mi ratón y teclado';
+
+  @override
+  String get agentToggleSub => 'Desactivado por defecto. Solo para tareas que tú inicias.';
+
+  @override
+  String get agentAutonomy => 'Supervisión';
+
+  @override
+  String get agentConfirmEach => 'Confirmar cada acción';
+
+  @override
+  String get agentAuto => 'Ejecutar automáticamente';
+
+  @override
+  String get agentConfirmEachSub => 'Enter ejecuta la acción mostrada, Esc detiene';
+
+  @override
+  String get agentAutoSub => 'Aun así pregunta antes de enviar, pagar, borrar o comprar';
+
+  @override
+  String get accessibilityMissing => 'Falta el permiso de Accesibilidad';
+
+  @override
+  String get accessibilityMissingSub => 'Ajustes del Sistema → Privacidad y seguridad → Accesibilidad → Sotto';
+
+  @override
+  String sessionAgentTask(String task) {
+    return 'Agente: $task';
+  }
+
+  @override
+  String sessionAgentActions(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count acciones', one: '1 acción');
+    return '$_temp0';
+  }
+
+  @override
+  String get readyAgentOk => 'Activado — confirmar cada acción';
+
+  @override
+  String get readyAgentAuto => 'Activado — automático, pregunta antes de pasos irreversibles';
+
+  @override
+  String agentDoClick(String target, String at) {
+    return 'Clic en «$target» en $at';
+  }
+
+  @override
+  String agentDoDoubleClick(String target, String at) {
+    return 'Doble clic en «$target» en $at';
+  }
+
+  @override
+  String agentDoRightClick(String target, String at) {
+    return 'Clic derecho en «$target» en $at';
+  }
+
+  @override
+  String agentDoMove(String at) {
+    return 'Mover el puntero a $at';
+  }
+
+  @override
+  String agentDoType(String text, String target) {
+    return 'Escribir «$text» en $target';
+  }
+
+  @override
+  String agentDoKeys(String keys) {
+    return 'Pulsar $keys';
+  }
+
+  @override
+  String get agentDoScrollDown => 'Desplazar hacia abajo';
+
+  @override
+  String get agentDoScrollUp => 'Desplazar hacia arriba';
+
+  @override
+  String agentDoWait(int ms) {
+    return 'Esperar $ms ms';
+  }
+
+  @override
+  String get agentDoScreenshot => 'Volver a mirar la pantalla';
+
+  @override
+  String get agentDoDone => 'Terminar';
+
+  @override
+  String get agentWhyPassword => 'el campo con el foco es de contraseña';
+
+  @override
+  String get agentWhySecret => 'parece un campo de contraseña o código de seguridad';
+
+  @override
+  String get agentWhyPayment => 'parece un campo de pago';
+
+  @override
+  String get agentWhyCard => 'el texto parece un número de tarjeta';
+
+  @override
+  String get agentWhyIrreversible => 'puede enviar, pagar o borrar';
+
+  @override
+  String get agentWhySubmitKey => 'puede enviar o borrar';
+
+  @override
+  String get agentWhyOutside => 'fuera de la captura';
+
+  @override
+  String get privAgent => 'Agente';
+
+  @override
+  String get privAgentOffBody => 'Desactivado. Sotto nunca mueve tu ratón ni escribe.';
+
+  @override
+  String get privAgentOnBody =>
+      'Solo en tareas que inicias: una captura por paso va a DeepSeek; cada acción queda registrada en la sesión.';
+
+  @override
+  String refiningProgress(int done, int total) {
+    return 'Refinando… $done/$total';
+  }
+
+  @override
+  String get refiningHint => 'Ya puedes leer y editar: las partes que cambies se quedan como las dejes.';
+
+  @override
+  String refinedKeptEdits(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count partes', one: '1 parte');
+    return 'Se mantuvieron tus cambios en $_temp0';
+  }
+
+  @override
+  String refineStopped(String reason) {
+    return 'Se detuvo el refinado — $reason Se mantiene la organización rápida.';
+  }
+
+  @override
+  String get formsOff => 'Los cuestionarios en pantalla están desactivados. Actívalos en Ajustes → Respuestas.';
+
+  @override
+  String get formsUnsupported => 'Rellenar cuestionarios requiere Windows o macOS.';
+
+  @override
+  String get formsNoWindow => 'Haz clic primero en la ventana del cuestionario y luego pulsa el atajo.';
+
+  @override
+  String get formsReadFailed => 'No se pudo leer el formulario en primer plano. Haz clic en él e inténtalo de nuevo.';
+
+  @override
+  String get formsBadReply => 'No se pudo leer la respuesta de DeepSeek. Inténtalo de nuevo.';
+
+  @override
+  String get formsWhySensitive => 'campo de contraseña o de pago — nunca se rellena';
+
+  @override
+  String get formsWhyNoMatch => 'la respuesta no es una de las opciones';
+
+  @override
+  String get formsWhyNoField => 'no se encontró el campo';
+
+  @override
+  String get formsWhyNoAnswer => 'sin respuesta';
+
+  @override
+  String get formsSessionTitle => 'Cuestionario en pantalla';
+
+  @override
+  String get formsReading => 'Leyendo el formulario…';
+
+  @override
+  String get formsThinking => 'Respondiendo las preguntas…';
+
+  @override
+  String get formsReview => 'Revisa las respuestas — edita las que quieras y pulsa Intro para rellenar';
+
+  @override
+  String formsAnswering(int done, int total) {
+    return 'Respondiendo $done/$total…';
+  }
+
+  @override
+  String get formsVerifying => 'Comprobando que cada respuesta quedó puesta…';
+
+  @override
+  String formsNextPage(String label) {
+    return 'Página rellenada — Intro para «$label»';
+  }
+
+  @override
+  String get formsDoneSubmit => 'Listo — revisa y envía';
+
+  @override
+  String get formsSubmitted => 'Enviado.';
+
+  @override
+  String get formsStopped => 'Detenido. No se escribió nada más.';
+
+  @override
+  String get formsFailed => 'No se pudo rellenar este formulario.';
+
+  @override
+  String formsReady(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count respuestas rellenadas',
+      one: '1 respuesta rellenada',
+    );
+    return '$_temp0 — revisa y envía cuando quieras';
+  }
+
+  @override
+  String get formsFilling => 'Sotto está rellenando';
+
+  @override
+  String formsPage(int page) {
+    return 'Página $page';
+  }
+
+  @override
+  String get formsFillThese => 'Rellenar';
+
+  @override
+  String get formsGoNext => 'Página siguiente';
+
+  @override
+  String formsSubmit(String label) {
+    return 'Pulsar «$label»';
+  }
+
+  @override
+  String get formsIllSubmit => 'Lo envío yo';
+
+  @override
+  String get actionFillForm => 'Rellenar cuestionario en pantalla';
+
+  @override
+  String get actionFillFormSub => 'Lee el formulario en primer plano, lo responde y lo rellena';
+
+  @override
+  String get actionOpenChat => 'Chat';
+
+  @override
+  String get actionOpenChatSub => 'Abre el chat del asistente en la superposición';
+
+  @override
+  String get actionPushToTalk => 'Hablar al chat (mantener)';
+
+  @override
+  String get actionPushToTalkSub => 'Mantén pulsado para dictar un mensaje';
+
+  @override
+  String get formsGroup => 'Cuestionarios en pantalla';
+
+  @override
+  String get formsEnable => 'Responder cuestionarios en pantalla';
+
+  @override
+  String formsEnableSub(String keys) {
+    return '$keys lee el formulario en primer plano, lo responde con el conocimiento propio de DeepSeek (no con tu guion) y lo rellena.';
+  }
+
+  @override
+  String get formsMode => 'Modo';
+
+  @override
+  String get formsModeAuto => 'Rellenar automáticamente';
+
+  @override
+  String get formsModeFirst => 'Mostrarme antes las respuestas';
+
+  @override
+  String get formsLanguage => 'Idioma de las respuestas';
+
+  @override
+  String get formsLangSame => 'El del cuestionario';
+
+  @override
+  String get formsLangApp => 'El de la app';
+
+  @override
+  String get formsStyle => 'Respuestas abiertas';
+
+  @override
+  String get formsStyleShort => 'Breves';
+
+  @override
+  String get formsStyleDetailed => 'Detalladas';
+
+  @override
+  String get formsInstructions => 'Instrucciones adicionales';
+
+  @override
+  String get formsInstructionsSub => 'Contexto opcional para las respuestas: tu nombre, tu puesto, tus preferencias.';
+
+  @override
+  String get formsInstructionsHint =>
+      'p. ej. Me llamo Ana Ruiz, soy product manager en Acme. Prefiero respuestas concisas.';
+
+  @override
+  String get formsPrivacy =>
+      'Las capturas del cuestionario se envían a DeepSeek y nunca se guardan. No se almacena nada salvo que el historial esté activado: entonces cada respuesta rellenada queda registrada en Sesiones.';
+
+  @override
+  String formsSubmitNote(String keys) {
+    return 'Sotto nunca envía por su cuenta: el autorrelleno se detiene antes de Enviar, y un rellenado que inicies espera a que pulses Intro. $keys lo detiene al instante.';
+  }
+
+  @override
+  String get historyOff => 'No guardar';
+
+  @override
+  String sessionFormRun(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count respuestas', one: '1 respuesta');
+    return 'Cuestionario · $_temp0';
+  }
+
+  @override
+  String get formsDialogTitle => 'Cuestionario';
+
+  @override
+  String get navChat => 'Chat';
+
+  @override
+  String get chatNew => 'Nuevo chat';
+
+  @override
+  String get chatNoConversations => 'Aún no hay conversaciones.';
+
+  @override
+  String get chatRename => 'Cambiar nombre';
+
+  @override
+  String get chatUntitled => 'Chat sin título';
+
+  @override
+  String get chatEmptyTitle => 'Pregunta lo que quieras';
+
+  @override
+  String get chatEmptyBody =>
+      'Preguntas extra antes o durante una charla. Adjunta tu pantalla o deja que lea tu guion. El razonamiento está desactivado por defecto para responder rápido: activa Pensar más cuando valga la espera.';
+
+  @override
+  String get chatPanelEmpty =>
+      'Escribe o mantén la tecla de hablar para preguntar. Zoom conserva el teclado hasta que hagas clic en el campo.';
+
+  @override
+  String get chatCopy => 'Copiar';
+
+  @override
+  String get chatReadAloud => 'Leer en voz alta';
+
+  @override
+  String get chatScreenAttached => 'pantalla adjunta';
+
+  @override
+  String get chatThinking => 'Pensando…';
+
+  @override
+  String get chatListening => 'Escuchando… suelta para terminar';
+
+  @override
+  String get chatTranscribing => 'Transcribiendo…';
+
+  @override
+  String chatPlaceholder(String keys) {
+    return 'Mensaje — Intro para enviar, Mayús+Intro para nueva línea · mantén $keys para hablar';
+  }
+
+  @override
+  String chatDictate(String keys) {
+    return 'Dictar (mantén $keys)';
+  }
+
+  @override
+  String get chatStopDictation => 'Terminar de dictar';
+
+  @override
+  String get chatAttachScreen => 'Adjuntar pantalla — envía una captura con el próximo mensaje';
+
+  @override
+  String get chatStop => 'Detener la respuesta';
+
+  @override
+  String get chatSend => 'Enviar';
+
+  @override
+  String get chatThinkDeeper => 'Pensar más';
+
+  @override
+  String get chatUseScript => 'Usar mi guion';
+
+  @override
+  String chatUseScriptNamed(String title) {
+    return 'Usar mi guion · $title';
+  }
+
+  @override
+  String get chatGroup => 'Chat';
+
+  @override
+  String get chatAutoSend => 'Enviar el dictado al momento';
+
+  @override
+  String get chatAutoSendSub => 'Desactivado: la transcripción queda en el campo para que la edites antes.';
+
+  @override
+  String get chatContext => 'Mensajes enviados como contexto';
+
+  @override
+  String get chatContextSub => 'Los más recientes; los anteriores se recortan.';
+
+  @override
+  String get chatPrivacy =>
+      'Los chats se guardan en este equipo durante el periodo de tu historial. Las capturas que adjuntas van a DeepSeek y nunca se guardan.';
+
+  @override
+  String get formsNeedsAccessibility =>
+      'Sotto necesita el permiso de Accesibilidad para leer y rellenar formularios. Permite Sotto en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad y vuelve a pulsar el atajo.';
+
+  @override
+  String get formsCouldNotFill => 'no se pudo rellenar — rellénalo tú';
+
+  @override
+  String get overlayTextColor => 'Color del texto del overlay';
+
+  @override
+  String get overlayTextColorAuto => 'Auto';
+
+  @override
+  String get overlayTextColorLight => 'Siempre claro';
+
+  @override
+  String get overlayTextColorDark => 'Siempre oscuro';
+
+  @override
+  String get overlayTextColorCustom => 'Personalizado';
+
+  @override
+  String get overlayTextColorAutoSub =>
+      'Texto oscuro sobre diapositivas claras y claro sobre oscuras — se comprueba en este equipo cada 0,8 s, nunca se envía';
+
+  @override
+  String get overlayTextColorFixedSub => 'Fijo; no se comprueba el fondo';
+
+  @override
+  String get overlayTextColorCustomSub => 'Tus propios colores de texto y contorno';
+
+  @override
+  String get maxOverlayHeight => 'Altura máxima del overlay';
+
+  @override
+  String get maxOverlayHeightSub =>
+      'El overlay crece y encoge con las líneas visibles, hasta esta parte de la pantalla. Arrastra su borde para fijar una altura durante la sesión.';
+
+  @override
+  String get autofillOn => 'Autorrelleno activado';
+
+  @override
+  String get autofillPaused => 'En pausa';
+
+  @override
+  String get autofillPause => 'Pausar';
+
+  @override
+  String get autofillResume => 'Reanudar';
+
+  @override
+  String get autofillStop => 'Detener';
+
+  @override
+  String get autofillHoldToStop => 'Mantén 1 s para detener';
+
+  @override
+  String get autofillStopNow => 'Parar ya';
+
+  @override
+  String autofillFilling(int done, int total, String question) {
+    return 'Rellenando… $done/$total — $question';
+  }
+
+  @override
+  String get autofillDone => 'Listo — revísalo y envíalo tú';
+
+  @override
+  String get autofillOpenSotto => 'Abrir Sotto';
+
+  @override
+  String get autofillLog => 'Registro';
+
+  @override
+  String get autofillLogEmpty => 'Aquí aparecerán las respuestas, con el porqué de cada una.';
+
+  @override
+  String autofillCountdown(int seconds) {
+    return 'Cambia al formulario… $seconds';
+  }
+
+  @override
+  String get autofillWatching => 'Buscando cuestionarios';
+
+  @override
+  String get autofillIndicator => 'Sotto está rellenando';
+
+  @override
+  String get autofillToggle => 'Rellenar formularios automáticamente';
+
+  @override
+  String get autofillToggleSub =>
+      'Vigila la ventana activa y rellena los formularios que aparezcan — registros, encuestas, solicitudes. Las capturas van a DeepSeek. Nunca pulsa Enviar.';
+
+  @override
+  String get formsScrollTitle => 'Desplazar para buscar más preguntas';
+
+  @override
+  String get formsScrollSub => 'Baja por la página, hasta 10 veces, mientras sigan apareciendo preguntas';
+
+  @override
+  String get qtText => 'Texto';
+
+  @override
+  String get qtLongText => 'Texto largo';
+
+  @override
+  String get qtMultipleChoice => 'Opción múltiple';
+
+  @override
+  String get qtTrueFalse => 'Verdadero / Falso';
+
+  @override
+  String get qtCheckboxes => 'Casillas';
+
+  @override
+  String get qtDropdown => 'Desplegable';
+
+  @override
+  String get qtScale => 'Escala';
+
+  @override
+  String get qtMatching => 'Relacionar';
+
+  @override
+  String get qtOrdering => 'Ordenar';
+
+  @override
+  String get qtImageChoice => 'Elegir imagen';
+
+  @override
+  String get qtReadOnly => 'Solo lectura — respuesta mostrada';
+
+  @override
+  String get showChat => 'Mostrar chat';
+
+  @override
+  String get showChatSub =>
+      'Añade Chat a la barra lateral y activa sus atajos (abrir chat, pulsar para hablar). Desactivado por defecto: no estorba.';
+
+  @override
+  String get chatAutoClose => 'Cerrar el panel de chat tras';
+
+  @override
+  String get chatAutoCloseSub => 'En el overlay, tras este tiempo sin actividad — nunca mientras llega una respuesta';
+
+  @override
+  String get chatAutoCloseNever => 'Nunca';
+
+  @override
+  String get navForms => 'Formularios';
+
+  @override
+  String get setForms => 'Formularios';
+
+  @override
+  String get formsDescription =>
+      'Rellenar formularios corrientes en pantalla — registros, encuestas, solicitudes de empleo, contacto: automáticamente al aparecer, o cuando lo pidas. Los exámenes y pruebas evaluadas no se tocan.';
+
+  @override
+  String get showFormsNav => 'Mostrar Formularios en la barra lateral';
+
+  @override
+  String get showFormsNavSub => 'La página con el autorrelleno, su estado y lo rellenado';
+
+  @override
+  String get formsStatusOff => 'Desactivado';
+
+  @override
+  String get formsStatusWatching => 'Vigilando';
+
+  @override
+  String formsStatusFilling(int done, int total) {
+    return 'Rellenando… $done/$total';
+  }
+
+  @override
+  String get formsStatusOffSub => 'Activa el autorrelleno arriba, o rellena una vez lo que hay en pantalla.';
+
+  @override
+  String get formsStatusWatchingSub => 'Cambia a un formulario: Sotto lo rellena y se detiene antes de Enviar.';
+
+  @override
+  String get formsStatusPausedSub => 'No se vigila ni se rellena nada hasta que reanudes.';
+
+  @override
+  String get formsFillNow => 'Rellenar lo que hay en pantalla';
+
+  @override
+  String formsFillNowSub(String keys) {
+    return 'Después cambia al formulario en 3 segundos — igual que $keys.';
+  }
+
+  @override
+  String get formsRecent => 'Rellenados recientes';
+
+  @override
+  String get formsRecentEmpty => 'Aún no se ha rellenado nada.';
+
+  @override
+  String get formsHistoryOff =>
+      'El historial está desactivado (Privacidad → No guardar): no se guardan los rellenados.';
+
+  @override
+  String formsFieldsFilled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count campos rellenados',
+      one: '1 campo rellenado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get formsOutcomeCompleted => 'Completado';
+
+  @override
+  String get formsOutcomeStopped => 'Detenido';
+
+  @override
+  String get formsOutcomeError => 'Error';
+
+  @override
+  String get formsClearHistory => 'Borrar historial de rellenado';
+
+  @override
+  String get formsClearHistorySub =>
+      'Borra todos los registros de cuestionarios; las sesiones en vivo conservan lo demás.';
+
+  @override
+  String get formsHistoryCleared => 'Historial de rellenado borrado.';
+
+  @override
+  String get formsPrivacyNote =>
+      'Cada rellenado envía a DeepSeek una captura de la ventana activa y sus campos. Las capturas nunca se guardan. Los campos de contraseña y de pago nunca se leen ni se rellenan.';
+
+  @override
+  String get formsOpenSettings => 'Ajustes de formularios';
+
+  @override
+  String get formsAutofillGroup => 'Autorrelleno';
+
+  @override
+  String get formsAnswersGroup => 'Respuestas';
+
+  @override
+  String get formsHistoryGroup => 'Historial';
+
+  @override
+  String get formsBrowserTitle => 'Integración con el navegador';
+
+  @override
+  String get formsBrowserExtension => 'Extensión Sotto Bridge';
+
+  @override
+  String get formsBrowserSub =>
+      'Lee los formularios web con precisión, desde la propia página. Sin ella, Sotto lee la pantalla.';
+
+  @override
+  String get formsBrowserLearnMore => 'Qué puede y qué no puede ver';
+
+  @override
+  String get bridgeConnected => 'Conectada';
+
+  @override
+  String get bridgeNotInstalled => 'No instalada';
+
+  @override
+  String get bridgeInstall => 'Instalar extensión';
+
+  @override
+  String get bridgeReconnect => 'Reconectar';
+
+  @override
+  String get bridgeReconnecting => 'Reconectando: los navegadores con la extensión vuelven en unos segundos.';
+
+  @override
+  String hoverOverlayStyle(String style) {
+    return 'Estilo del overlay: $style';
+  }
+
+  @override
+  String hoverTextColor(String color) {
+    return 'Color del texto: $color';
+  }
+
+  @override
+  String get hoverAutoFillOn => 'El autocompletado está activado — desactivar';
+
+  @override
+  String get hoverAutoFillOff => 'El autocompletado está desactivado — activar';
+
+  @override
+  String get hoverOpenChat => 'Abrir chat';
+
+  @override
+  String get hoverCloseChat => 'Cerrar chat';
+
+  @override
+  String get hoverEndSessionHold => 'Mantén 1 s para terminar la sesión';
+
+  @override
+  String practiceBarsTitle(int days) {
+    return 'Últimos $days días';
+  }
+
+  @override
+  String practiceDaysCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count días de práctica',
+      one: '1 día de práctica',
+      zero: 'Aún sin práctica',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String practiceRangeStart(int days) {
+    return 'Hace $days días';
+  }
+
+  @override
+  String get practiceToday => 'Hoy';
+
+  @override
+  String get practiceDayEmpty => 'Sin práctica';
+
+  @override
+  String practiceDayRehearsals(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count ensayos', one: '1 ensayo');
+    return '$_temp0';
+  }
+
+  @override
+  String practiceDayLive(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sesiones en vivo',
+      one: '1 sesión en vivo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get practiceLegendRehearsal => 'Ensayo';
+
+  @override
+  String get practiceLegendLive => 'En vivo';
+
+  @override
+  String get llmBuiltInKeyFailed =>
+      'La clave de DeepSeek integrada en Sotto no funciona ahora mismo. Añade tu propia clave en Ajustes → Integraciones para seguir redactando respuestas; el seguimiento por voz y la superposición siguen funcionando sin ella.';
+
+  @override
+  String get readyKeyRejected => 'La clave de DeepSeek no funciona';
+
+  @override
+  String get apiKeyRequiredSub =>
+      'Necesaria para respuestas, chat y organizar con IA. El seguimiento por voz funciona sin ella.';
+
+  @override
+  String get getApiKey => 'Conseguir una clave';
+
+  @override
+  String get getApiKeySub => 'Créala en platform.deepseek.com, pégala arriba y pulsa Probar';
+
+  @override
+  String get usingBuiltInKey => 'Usando la clave integrada';
+
+  @override
+  String get usingYourKey => 'Usando tu clave';
+
+  @override
+  String get notOnLinux => 'Aún no disponible en Linux';
+
+  @override
+  String get linuxExperimentalSub =>
+      'Sotto en Linux es experimental. Leer la pantalla, rellenar formularios, el modo agente, la extensión del navegador y leer respuestas en voz alta necesitan, por ahora, Windows o macOS.';
+
+  @override
+  String get screenUnavailableNotice => 'Leer la pantalla aún no está disponible en Linux.';
+
+  @override
+  String get formsUnavailableNotice => 'Rellenar formularios aún no está disponible en Linux.';
+
+  @override
+  String get agentUnavailableNotice => 'El modo agente aún no está disponible en Linux.';
+
+  @override
+  String get readAloudUnavailableNotice => 'Leer respuestas en voz alta aún no está disponible en Linux.';
+
+  @override
+  String get formsUnavailableTitle => 'Los formularios aún no están disponibles en Linux';
+
+  @override
+  String get formsUnavailableBody =>
+      'Rellenar formularios necesita leer y pulsar en las ventanas de otras apps, algo que por ahora Sotto solo puede hacer en Windows y macOS.';
+
+  @override
+  String get readyShareVisible => 'La superposición sale al compartir';
+
+  @override
+  String get readyShareVisibleSub =>
+      'En Linux la superposición no puede ocultarse de las capturas: comparte solo la ventana de las diapositivas, no toda la pantalla.';
+
+  @override
+  String get readyHotkeysWayland => 'Los atajos necesitan una sesión X11';
+
+  @override
+  String get readyHotkeysWaylandSub =>
+      'Wayland no deja registrar atajos globales. Inicia sesión con X11 («en Xorg») o usa los botones de la superposición.';
 }

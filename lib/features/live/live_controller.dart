@@ -14,17 +14,22 @@ import '../../data/models/session_record.dart';
 import '../../data/models/settings.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
-import '../../data/storage/secret_store.dart';
 import '../../domain/following/follow_engine.dart';
 import '../../domain/following/script_aligner.dart';
 import '../../domain/structuring/script_structurer.dart';
 import '../../services/ai/answer_service.dart';
 import '../../services/ai/llm_client.dart';
+import '../../services/screen/screen_service.dart';
 import '../../services/speech/model_manager.dart';
 import '../../services/speech/speech_session.dart';
 import '../../services/tts/tts_service.dart';
 import '../../l10n/l10n.dart';
+import '../agent/agent_controller.dart';
+import '../chat/chat_controller.dart';
+import '../forms/autofill_controller.dart';
+import '../questionnaire/questionnaire_controller.dart';
 import 'live_state.dart';
+import '../../core/platform/platform_features.dart';
 
 /// Called when a session ends, with the ended session's record.
 typedef SessionEnded = void Function(SessionRecord record);
@@ -44,6 +49,23 @@ class LiveController extends Notifier<LiveState> {
   int _questionCount = 0;
   SessionEnded? onEnded;
 
+  /// Screenshot (JPEG data URL) for the question being asked, and whether
+  /// the question is about the screen itself. Held in memory only — never
+  /// written to disk.
+  String? _screenshot;
+  bool _aboutScreen = false;
+
+  /// The spoken question is an agent task (chord + G), not a question.
+  bool _agentTask = false;
+
+  /// Agent tasks and questionnaires run during this session, for its record.
+  final _agentRuns = <AgentRunRecord>[];
+  final _formRuns = <FormRunRecord>[];
+
+  /// Kept for "Regenerate" on an answer that used the screen.
+  String? _lastScreenshot;
+  bool _lastAboutScreen = false;
+
   // Captured in build: teardown also runs from onDispose, where providers
   // can't be read.
   late WindowService _window;
@@ -51,6 +73,9 @@ class LiveController extends Notifier<LiveState> {
   late TtsService _tts;
 
   AppSettings get _settings => ref.read(settingsProvider);
+
+  /// The session's speech engines, for chat dictation while live.
+  SpeechSession? get speech => _speech;
 
   @override
   LiveState build() {
@@ -65,10 +90,12 @@ class LiveController extends Notifier<LiveState> {
 
   // ───────────────────────────── Lifecycle ─────────────────────────────
 
-  /// Idle-time shortcuts: ⌃⌥L works from anywhere to start from pre-flight.
-  Future<void> registerIdleHotkeys(VoidCallback openPreflight) async {
+  /// Idle-time shortcuts: ⌃⌥L works from anywhere to start from pre-flight;
+  /// [extra] adds the ones that also work outside a session (questionnaire,
+  /// chat).
+  Future<void> registerIdleHotkeys(VoidCallback openPreflight, {HotkeyHandlers extra = const {}}) async {
     if (state.isLive) return;
-    await _hotkeys.registerAll(_settings, {LiveAction.goLive: (onDown: openPreflight, onUp: null)});
+    await _hotkeys.registerAll(_settings, {LiveAction.goLive: (onDown: openPreflight, onUp: null), ...extra});
   }
 
   Future<void> start(Script script, {int startSection = 0, bool rehearsal = false}) async {
@@ -96,12 +123,7 @@ class LiveController extends Notifier<LiveState> {
     if (settings.advanceMode != AdvanceMode.manual) {
       try {
         final hints = script.hintWords.isNotEmpty ? script.hintWords : ScriptStructurer.hintWordsFor(script.sections);
-        _speech = await SpeechSession.start(
-          settings: settings,
-          secrets: ref.read(secretStoreProvider),
-          models: ref.read(modelManagerProvider),
-          hints: hints,
-        );
+        _speech = await SpeechSession.start(settings: settings, models: ref.read(modelManagerProvider), hints: hints);
         _subs.add(_speech!.heard.listen(_onHeard));
         _subs.add(
           _speech!.level.listen((l) {
@@ -162,7 +184,18 @@ class LiveController extends Notifier<LiveState> {
       wordsSpoken: s.wordsSpoken,
       questionCount: _questionCount,
       plannedSeconds: s.plannedSeconds(_settings.wordsPerMinute),
+      agentRuns: List.of(_agentRuns),
+      formRuns: List.of(_formRuns),
     );
+    _agentRuns.clear();
+    _formRuns.clear();
+    // Ending the session stops any agent task with it.
+    final agent = ref.read(agentControllerProvider.notifier);
+    if (ref.read(agentControllerProvider).active) unawaited(agent.close());
+    if (ref.read(questionnaireControllerProvider).active) {
+      unawaited(ref.read(questionnaireControllerProvider.notifier).close());
+    }
+    ref.read(chatControllerProvider.notifier).closeOverlay();
     await _teardown();
     state = LiveState(readingSize: _settings.readingSize);
 
@@ -186,6 +219,7 @@ class LiveController extends Notifier<LiveState> {
       });
     }
     unawaited(ref.read(qaRepositoryProvider).prune(_settings.historyRetentionDays));
+    unawaited(ref.read(chatRepositoryProvider).prune(_settings.historyRetentionDays));
     onEnded?.call(record);
     return record;
   }
@@ -227,29 +261,58 @@ class LiveController extends Notifier<LiveState> {
     }
   }
 
+  final _chromePings = StreamController<bool>.broadcast();
+
+  /// True on every live shortcut press, false on release: the text-only
+  /// overlay shows its controls while a shortcut is held.
+  Stream<bool> get chromePings => _chromePings.stream;
+
   Future<void> _registerLiveHotkeys() async {
     final failures = await _hotkeys.registerAll(_settings, {
-      LiveAction.goLive: (onDown: () => unawaited(end()), onUp: null),
-      LiveAction.pauseResume: (onDown: togglePause, onUp: null),
-      LiveAction.nextBeat: (onDown: nextBeat, onUp: null),
-      LiveAction.previousBeat: (onDown: previousBeat, onUp: null),
-      LiveAction.nextSection: (onDown: nextSection, onUp: null),
-      LiveAction.previousSection: (onDown: previousSection, onUp: null),
-      LiveAction.ask: (onDown: askDown, onUp: askUp),
-      LiveAction.sendToChat: (onDown: sendDown, onUp: sendUp),
-      LiveAction.readAloud: (onDown: readAloud, onUp: null),
-      LiveAction.dismiss: (onDown: dismiss, onUp: null),
-      LiveAction.history: (onDown: toggleHistory, onUp: null),
-      LiveAction.hide: (onDown: toggleHidden, onUp: null),
-      LiveAction.clickThrough: (onDown: toggleClickThrough, onUp: null),
-      LiveAction.textBigger: (onDown: () => textSize(1), onUp: null),
-      LiveAction.textSmaller: (onDown: () => textSize(-1), onUp: null),
-      LiveAction.moveDisplay: (onDown: moveDisplay, onUp: null),
+      for (final MapEntry(key: action, value: h) in _liveHandlers.entries)
+        action: (
+          onDown: () {
+            _chromePings.add(true);
+            h.onDown();
+          },
+          onUp: () {
+            _chromePings.add(false);
+            h.onUp?.call();
+          },
+        ),
     });
     if (failures.isNotEmpty) {
       _notice(L10n.current.noticeShortcutsTaken(failures.length));
     }
   }
+
+  HotkeyHandlers get _liveHandlers => {
+    LiveAction.goLive: (onDown: () => unawaited(end()), onUp: null),
+    LiveAction.pauseResume: (onDown: togglePause, onUp: null),
+    LiveAction.nextBeat: (onDown: nextBeat, onUp: null),
+    LiveAction.previousBeat: (onDown: previousBeat, onUp: null),
+    LiveAction.nextSection: (onDown: nextSection, onUp: null),
+    LiveAction.previousSection: (onDown: previousSection, onUp: null),
+    LiveAction.ask: (onDown: askDown, onUp: askUp),
+    LiveAction.askScreen: (onDown: () => unawaited(askScreenDown()), onUp: askUp),
+    LiveAction.agentTask: (onDown: agentTaskDown, onUp: askUp),
+    LiveAction.agentStop: (onDown: emergencyStop, onUp: null),
+    // The chat's shortcuts exist only with the chat turned on.
+    if (_settings.showChat) ...{
+      LiveAction.openChat: (onDown: ref.read(chatControllerProvider.notifier).toggleOverlay, onUp: null),
+      LiveAction.pushToTalk: (onDown: _talkDown, onUp: _talkUp),
+    },
+    LiveAction.fillForm: (onDown: () => unawaited(ref.read(autoFillControllerProvider.notifier).fillNow()), onUp: null),
+    LiveAction.sendToChat: (onDown: sendDown, onUp: sendUp),
+    LiveAction.readAloud: (onDown: readAloud, onUp: null),
+    LiveAction.dismiss: (onDown: dismiss, onUp: null),
+    LiveAction.history: (onDown: toggleHistory, onUp: null),
+    LiveAction.hide: (onDown: toggleHidden, onUp: null),
+    LiveAction.clickThrough: (onDown: toggleClickThrough, onUp: null),
+    LiveAction.textBigger: (onDown: () => textSize(1), onUp: null),
+    LiveAction.textSmaller: (onDown: () => textSize(-1), onUp: null),
+    LiveAction.moveDisplay: (onDown: moveDisplay, onUp: null),
+  };
 
   void _notice(String text, {int seconds = 4}) {
     _noticeTimer?.cancel();
@@ -396,6 +459,100 @@ class LiveController extends Notifier<LiveState> {
     }
   }
 
+  /// "Ask about screen": take a screenshot now, then listen for an
+  /// optional spoken question. Opt-in (Settings → Privacy).
+  Future<void> askScreenDown() async {
+    if (!ref.read(platformFeaturesProvider).screenCapture) {
+      _notice(L10n.current.screenUnavailableNotice, seconds: 6);
+      return;
+    }
+    if (!_settings.screenAwareness) {
+      _notice(L10n.current.noticeScreenOff, seconds: 6);
+      return;
+    }
+    if (state.phase == LivePhase.listening) {
+      if (_aboutScreen && _settings.captureMode == CaptureMode.toggle) unawaited(finishQuestion());
+      return;
+    }
+    if (state.phase == LivePhase.drafting || state.capturingScreen) return;
+    final shot = await _captureScreen();
+    if (shot == null) return;
+    _screenshot = shot;
+    _aboutScreen = true;
+    if (_speech == null) {
+      // No speech engine: answer about the screen straight away.
+      await _answer(L10n.current.defaultScreenQuestion);
+      return;
+    }
+    await _startListening();
+  }
+
+  /// Agent task by voice: listen, then hand the words to the agent.
+  void agentTaskDown() {
+    if (!ref.read(platformFeaturesProvider).agent) {
+      _notice(L10n.current.agentUnavailableNotice, seconds: 6);
+      return;
+    }
+    if (!_settings.agentEnabled) {
+      _notice(L10n.current.agentOff, seconds: 6);
+      return;
+    }
+    if (ref.read(agentControllerProvider).inControl) return;
+    if (state.phase == LivePhase.listening) {
+      if (_agentTask && _settings.captureMode == CaptureMode.toggle) unawaited(finishQuestion());
+      return;
+    }
+    _agentTask = true;
+    unawaited(_startListening());
+  }
+
+  void recordAgentRun(AgentRunRecord run) => _agentRuns.add(run);
+
+  void recordFormRun(FormRunRecord run) => _formRuns.add(run);
+
+  /// Hold chord + V: dictate a chat message (the panel opens if closed).
+  void _talkDown() {
+    if (state.phase == LivePhase.listening || state.phase == LivePhase.drafting) return;
+    final chat = ref.read(chatControllerProvider.notifier);
+    if (!ref.read(chatControllerProvider).overlayOpen) chat.toggleOverlay();
+    unawaited(chat.startDictation());
+  }
+
+  void _talkUp() => unawaited(ref.read(chatControllerProvider.notifier).stopDictation());
+
+  /// Chord + Esc: whatever Sotto is doing on screen stops at once.
+  void emergencyStop() {
+    ref.read(agentControllerProvider.notifier).stop();
+    ref.read(questionnaireControllerProvider.notifier).stop();
+    ref.read(autoFillControllerProvider.notifier).emergencyStop();
+  }
+
+  /// One on-demand screenshot, with the overlay's capture indicator on.
+  Future<String?> _captureScreen() async {
+    state = state.copyWith(capturingScreen: true);
+    try {
+      final shot = await ref
+          .read(screenServiceProvider)
+          .capture(
+            target: _settings.screenTarget == ScreenTarget.cursorDisplay
+                ? CaptureTarget.cursorDisplay
+                : CaptureTarget.overlayDisplay,
+          );
+      return shot.dataUrl;
+    } on ScreenCaptureException catch (e) {
+      _notice(e.permissionDenied ? L10n.current.noticeScreenPermission : e.message, seconds: 6);
+      return null;
+    } finally {
+      if (state.isLive) state = state.copyWith(capturingScreen: false);
+    }
+  }
+
+  void _clearScreenshot() {
+    _screenshot = null;
+    _aboutScreen = false;
+    if (state.screenAttached) state = state.copyWith(screenAttached: false);
+  }
+
   Future<void> _startListening() async {
     final speech = _speech;
     if (speech == null) {
@@ -418,6 +575,8 @@ class LiveController extends Notifier<LiveState> {
       clearAnswer: true,
       question: const QuestionProgress(text: '', silence: 0, elapsed: Duration.zero),
       historyOpen: false,
+      screenAttached: _screenshot != null,
+      listeningForTask: _agentTask,
     );
     await speech.beginQuestion();
     _subs.add(
@@ -438,6 +597,8 @@ class LiveController extends Notifier<LiveState> {
   Future<void> cancelQuestion() async {
     if (state.phase != LivePhase.listening) return;
     await _speech?.cancelQuestion();
+    _agentTask = false;
+    _clearScreenshot();
     _resume();
   }
 
@@ -446,11 +607,25 @@ class LiveController extends Notifier<LiveState> {
     if (speech == null || state.phase != LivePhase.listening) return;
     final live = state.question?.text ?? '';
     state = state.copyWith(phase: LivePhase.drafting, questionText: live, clearQuestion: true);
-    final question = (await speech.endQuestion()).trim();
-    if (question.split(' ').length < 2) {
-      _notice(L10n.current.noticeNoQuestion);
+    var question = (await speech.endQuestion()).trim();
+    if (_agentTask) {
+      _agentTask = false;
       _resume();
+      if (question.split(' ').length < 2) {
+        _notice(L10n.current.noticeNoQuestion);
+      } else {
+        unawaited(ref.read(agentControllerProvider.notifier).start(question, script: state.script!));
+      }
       return;
+    }
+    if (question.split(' ').length < 2) {
+      if (!_aboutScreen) {
+        _notice(L10n.current.noticeNoQuestion);
+        _resume();
+        return;
+      }
+      // "Ask about screen" without words: explain what's on it.
+      question = L10n.current.defaultScreenQuestion;
     }
     await _answer(question);
   }
@@ -459,10 +634,14 @@ class LiveController extends Notifier<LiveState> {
     final script = state.script!;
     final settings = _settings;
     final started = DateTime.now();
+    var screenshot = _screenshot;
+    final aboutScreen = _aboutScreen;
+    _screenshot = null;
+    _aboutScreen = false;
     state = state.copyWith(phase: LivePhase.drafting, questionText: question, draftStartedAt: started);
 
     // Pre-drafted answers from Q&A prep appear instantly.
-    if (settings.predraft) {
+    if (settings.predraft && !aboutScreen) {
       final hit = AnswerService.matchPredrafted(script, question);
       if (hit != null) {
         _completeAnswer(question, hit, started);
@@ -472,15 +651,26 @@ class LiveController extends Notifier<LiveState> {
 
     final llm = await _client();
     if (llm == null) {
-      state = state.copyWith(
-        phase: LivePhase.answer,
-        answerError: L10n.current.answerNeedsKey,
-      );
+      state = state.copyWith(phase: LivePhase.answer, answerError: L10n.current.answerNeedsKey);
       return;
     }
+    // Opt-in: an audience question also sees the slide on screen.
+    if (screenshot == null && settings.screenAwareness && settings.attachSlideToAnswers) {
+      screenshot = await _captureScreen();
+    }
+    _lastScreenshot = screenshot;
+    _lastAboutScreen = aboutScreen;
+    state = state.copyWith(screenAttached: screenshot != null);
     final service = AnswerService(llm);
     _draftSub = service
-        .draft(script: script, question: question, settings: settings, currentSection: state.sectionIndex)
+        .draft(
+          script: script,
+          question: question,
+          settings: settings,
+          currentSection: state.sectionIndex,
+          screenshot: screenshot,
+          aboutScreen: aboutScreen,
+        )
         .listen(
           (d) {
             if (!state.isLive) return;
@@ -522,15 +712,7 @@ class LiveController extends Notifier<LiveState> {
 
   Future<LlmClient?> _client() async {
     if (_llm != null) return _llm;
-    final s = _settings;
-    final secrets = ref.read(secretStoreProvider);
-    final key = await secrets.read(switch (s.aiProvider) {
-      AiProvider.anthropic => SecretKey.anthropicApiKey,
-      AiProvider.openai => SecretKey.openaiApiKey,
-      AiProvider.openaiCompatible => SecretKey.compatibleApiKey,
-    });
-    if (key == null && s.aiProvider != AiProvider.openaiCompatible) return null;
-    return _llm = LlmClient.create(s, key ?? '');
+    return _llm = await LlmClient.forSettings(_settings, ref.read(secretStoreProvider));
   }
 
   /// Returns to the script at the exact word, with a sweep to re-anchor.
@@ -547,6 +729,8 @@ class LiveController extends Notifier<LiveState> {
       unawaited(ref.read(qaRepositoryProvider).save(qa.copyWith(outcome: AnswerOutcome.dismissed)));
     }
     unawaited(_tts.stop());
+    _clearScreenshot();
+    _lastScreenshot = null;
     _resume();
   }
 
@@ -614,6 +798,10 @@ class LiveController extends Notifier<LiveState> {
   Future<void> readAloud() async {
     final qa = state.currentQa;
     if (state.phase != LivePhase.answer || qa == null) return;
+    if (!ref.read(platformFeaturesProvider).readAloud) {
+      _notice(L10n.current.readAloudUnavailableNotice, seconds: 6);
+      return;
+    }
     final tts = _tts;
     if (tts.isSpeaking) {
       await tts.stop();
@@ -637,6 +825,9 @@ class LiveController extends Notifier<LiveState> {
     state = state.copyWith(clearAnswer: true, phase: LivePhase.drafting, questionText: q);
     final llm = await _client();
     if (llm == null) return;
+    // Same screenshot as the first draft, if there was one.
+    _screenshot = _lastScreenshot;
+    _aboutScreen = _lastAboutScreen;
     await _answer(q);
   }
 
@@ -686,15 +877,22 @@ class LiveController extends Notifier<LiveState> {
     await _window.moveToNextDisplay(settings);
   }
 
-  /// Remembers the overlay's geometry after the user drags or resizes it.
-  Future<void> rememberGeometry() async {
+  /// Remembers the overlay's geometry after the user drags or resizes it —
+  /// never a frame the OS forced on it (maximised, full screen), which would
+  /// otherwise come back at the start of every session.
+  ///
+  /// [height] is the height the presenter chose, when the window's current
+  /// one is auto-height's (it follows the text).
+  Future<void> rememberGeometry({double? height}) async {
+    if (!await _window.ownsFrame()) return;
     final b = await _window.bounds();
+    _window.noteFrame(b);
     final display = _window.displayId;
     ref
         .read(settingsProvider.notifier)
         .update(
           (s) => s.copyWith(
-            overlaySize: state.phase == LivePhase.answer ? s.overlaySize : (b.width, b.height),
+            overlaySize: state.phase == LivePhase.answer ? s.overlaySize : (b.width, height ?? b.height),
             overlayPositions: display == null || !s.rememberPositionPerDisplay
                 ? s.overlayPositions
                 : {...s.overlayPositions, display: (b.left, b.top)},

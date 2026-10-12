@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/icons.dart';
@@ -13,11 +14,13 @@ import '../../../core/design/typography.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/display.dart';
 import '../../../core/widgets/keycap.dart';
+import '../../../core/widgets/ping_dot.dart';
 import '../../../data/models/qa_entry.dart';
 import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
 import '../live_controller.dart';
 import '../live_state.dart';
+import '../../../core/platform/platform_features.dart';
 
 // ─────────────────────────── Listening ───────────────────────────
 
@@ -41,10 +44,10 @@ class ListeningView extends ConsumerWidget {
             height: 20,
             child: Row(
               children: [
-                _TallyDot(silence: q?.silence ?? 0),
+                _TallyDot(silence: q?.silence ?? 0, ping: !settings.reduceMotion),
                 const SizedBox(width: 10),
                 Text(
-                  context.l10n.listening,
+                  state.listeningForTask ? context.l10n.agentListening : context.l10n.listening,
                   style: withWeight(TypeScale.caption, 600).copyWith(color: o.capture, letterSpacing: 0.12),
                 ),
                 const SizedBox(width: 10),
@@ -67,6 +70,16 @@ class ListeningView extends ConsumerWidget {
               ],
             ),
           ),
+          if (state.screenAttached) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                SottoIcon(SottoIcons.display, size: 12, color: o.inkAt(0.6)),
+                const SizedBox(width: 6),
+                Text(context.l10n.screenshotAttached, style: TypeScale.caption.copyWith(color: o.inkAt(0.6))),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           Expanded(child: _StreamedQuestion(text: q?.text ?? '')),
           SizedBox(
@@ -110,9 +123,12 @@ class _KeyAction extends StatelessWidget {
 
 /// Tally dot with the silence ring: after speech stops, a ring fills around
 /// the dot; talking again resets it.
+/// Pings while the room is talking; once it goes quiet, the ring counts
+/// down the silence that ends the question.
 class _TallyDot extends StatelessWidget {
-  const _TallyDot({required this.silence});
+  const _TallyDot({required this.silence, this.ping = true});
   final double silence;
+  final bool ping;
 
   @override
   Widget build(BuildContext context) {
@@ -123,15 +139,7 @@ class _TallyDot extends StatelessWidget {
       child: CustomPaint(
         painter: _RingPainter(progress: silence, color: o.capture, track: o.capture.withValues(alpha: 0.18)),
         child: Center(
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: o.capture,
-              boxShadow: [BoxShadow(color: o.capture.withValues(alpha: 0.14), spreadRadius: 3)],
-            ),
-          ),
+          child: PingDot(color: o.capture, active: ping && silence <= 0),
         ),
       ),
     );
@@ -170,7 +178,7 @@ class _StreamedQuestion extends StatelessWidget {
   Widget build(BuildContext context) {
     final o = context.overlayPalette;
     final words = text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-    final style = ReadingType.question.copyWith(color: o.ink);
+    final style = ReadingType.question.copyWith(color: o.ink, shadows: o.textShadows());
     if (words.isEmpty) {
       return Text(context.l10n.askAway, style: style.copyWith(color: o.inkAt(0.36)));
     }
@@ -411,27 +419,31 @@ class AnswerView extends ConsumerWidget {
                     color: o.confirmed,
                   )
                 else
-                  _Provenance(
-                    icon: SottoIcons.globe,
-                    label: context.l10n.provGeneral,
-                    color: o.inkAt(0.7),
-                  ),
+                  _Provenance(icon: SottoIcons.globe, label: context.l10n.provGeneral, color: o.inkAt(0.7)),
                 const Spacer(),
                 if (d.complete)
                   Text(
                     d.predrafted
                         ? context.l10n.predraftedInstant
-                        : context.l10n.draftedIn(NumberFormat('0.0', context.l10n.localeName).format((state.draftMillis ?? 0) / 1000)),
+                        : context.l10n.draftedIn(
+                            NumberFormat('0.0', context.l10n.localeName).format((state.draftMillis ?? 0) / 1000),
+                          ),
                     style: TypeScale.mono.copyWith(fontSize: 11, fontWeight: FontWeight.w400, color: o.inkAt(0.55)),
                   ),
               ],
             ),
             if ((state.questionText ?? '').isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('“${state.questionText}”', style: ReadingType.answerQuote.copyWith(color: o.inkAt(0.62))),
+              Text(
+                '“${state.questionText}”',
+                style: ReadingType.answerQuote.copyWith(color: o.inkAt(0.62), shadows: o.textShadows(0.62)),
+              ),
             ],
             const SizedBox(height: 10),
-            Text(d.headline, style: ReadingType.answerHeadline.copyWith(color: o.ink)),
+            Text(
+              d.headline,
+              style: ReadingType.answerHeadline.copyWith(color: o.ink, shadows: o.textShadows()),
+            ),
             if (d.points.isNotEmpty) const SizedBox(height: 12),
             for (var i = 0; i < d.points.length; i++)
               _StaggerIn(
@@ -458,12 +470,15 @@ class AnswerView extends ConsumerWidget {
                             children: [
                               TextSpan(
                                 text: d.points[i].lead,
-                                style: withWeight(ReadingType.answerPoint, 600).copyWith(color: o.ink),
+                                style: withWeight(
+                                  ReadingType.answerPoint,
+                                  600,
+                                ).copyWith(color: o.ink, shadows: o.textShadows()),
                               ),
                               if (d.points[i].rest.isNotEmpty) TextSpan(text: ' ${d.points[i].rest}'),
                             ],
                           ),
-                          style: ReadingType.answerPoint.copyWith(color: o.inkAt(0.74)),
+                          style: ReadingType.answerPoint.copyWith(color: o.inkAt(0.74), shadows: o.textShadows(0.74)),
                         ),
                       ),
                     ],
@@ -574,7 +589,7 @@ class _AnswerActions extends ConsumerWidget {
               ),
             ),
           const SizedBox(width: 2),
-          if (hasAnswer)
+          if (hasAnswer && ref.watch(platformFeaturesProvider).readAloud)
             _GhostOverlayButton(
               icon: SottoIcons.speaker,
               label: context.l10n.readAloud,

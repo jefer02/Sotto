@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
+
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/icons.dart';
@@ -13,14 +15,22 @@ import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
 import '../../../core/design/typography.dart';
 import '../../../core/widgets/buttons.dart';
+import '../../../core/platform/platform_keys.dart';
 import '../../../core/widgets/controls.dart';
 import '../../../core/widgets/display.dart';
 import '../../../data/models/settings.dart';
+import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
 import '../../../data/storage/secret_store.dart';
+import '../../../core/platform/external_links.dart';
+import '../../../core/embedded_key.dart';
+import '../../../services/ai/deepseek_models.dart';
+import '../../../services/agent/input_service.dart';
 import '../../../services/ai/llm_client.dart';
+import '../../../services/screen/screen_service.dart';
 import '../../library/readiness.dart';
 import '../settings_screen.dart';
+import '../../../core/platform/platform_features.dart';
 
 // ─────────────────────────── General ───────────────────────────
 
@@ -57,8 +67,70 @@ class GeneralPage extends ConsumerWidget {
                 onChanged: (v) => n.update((x) => x.copyWith(uiLanguage: v)),
               ),
             ),
+            SettingRow(
+              title: context.l10n.showChat,
+              subtitle: context.l10n.showChatSub,
+              trailing: SottoToggle(
+                value: s.showChat,
+                onChanged: (v) => n.update((x) => x.copyWith(showChat: v)),
+              ),
+            ),
+            if (s.showChat)
+              SettingRow(
+                title: context.l10n.chatAutoClose,
+                subtitle: context.l10n.chatAutoCloseSub,
+                trailing: SegmentedControl<int>(
+                  width: 300,
+                  segments: [
+                    const Segment(30, '30 s'),
+                    const Segment(60, '1 min'),
+                    const Segment(120, '2 min'),
+                    const Segment(300, '5 min'),
+                    Segment(0, context.l10n.chatAutoCloseNever),
+                  ],
+                  value: s.chatAutoClose,
+                  onChanged: (v) => n.update((x) => x.copyWith(chatAutoClose: v)),
+                ),
+              ),
+            if (ref.watch(platformFeaturesProvider).formFilling)
+              SettingRow(
+                title: context.l10n.showFormsNav,
+                subtitle: context.l10n.showFormsNavSub,
+                trailing: SottoToggle(
+                  value: s.showFormsNav,
+                  onChanged: (v) => n.update((x) => x.copyWith(showFormsNav: v)),
+                ),
+              ),
           ],
         ),
+        if (s.showChat)
+          SettingsGroup(
+            title: context.l10n.chatGroup,
+            children: [
+              SettingRow(
+                title: context.l10n.chatAutoSend,
+                subtitle: context.l10n.chatAutoSendSub,
+                trailing: SottoToggle(
+                  value: s.chatAutoSend,
+                  onChanged: (v) => n.update((x) => x.copyWith(chatAutoSend: v)),
+                ),
+              ),
+              SettingRow(
+                title: context.l10n.chatContext,
+                subtitle: context.l10n.chatContextSub,
+                trailing: SegmentedControl<int>(
+                  width: 170,
+                  segments: [
+                    for (final v in const [10, 20, 40]) Segment(v, '$v'),
+                  ],
+                  value: s.chatContextMessages,
+                  onChanged: (v) => n.update((x) => x.copyWith(chatContextMessages: v)),
+                ),
+              ),
+              SettingRow(title: context.l10n.chatPrivacy),
+            ],
+          ),
+
         SettingsGroup(
           title: context.l10n.pace,
           children: [
@@ -90,10 +162,7 @@ class GeneralPage extends ConsumerWidget {
                 onPressed: dir == null ? null : () => Clipboard.setData(ClipboardData(text: dir)),
               ),
             ),
-            SettingRow(
-              title: context.l10n.format,
-              subtitle: context.l10n.formatSub,
-            ),
+            SettingRow(title: context.l10n.format, subtitle: context.l10n.formatSub),
           ],
         ),
         SettingsGroup(
@@ -118,17 +187,11 @@ class GeneralPage extends ConsumerWidget {
             children: [
               Text(context.l10n.aboutSotto, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
               const SizedBox(height: 6),
-              Text(
-                context.l10n.aboutSottoBody,
-                style: TypeScale.body.copyWith(color: p.inkSecondary),
-              ),
+              Text(context.l10n.aboutSottoBody, style: TypeScale.body.copyWith(color: p.inkSecondary)),
               const SizedBox(height: 12),
               Text(context.l10n.versionLine, style: TypeScale.monoSmall.copyWith(color: p.inkTertiary)),
               const SizedBox(height: 4),
-              Text(
-                context.l10n.typefaces,
-                style: TypeScale.caption.copyWith(color: p.inkTertiary),
-              ),
+              Text(context.l10n.typefaces, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
             ],
           ),
         ),
@@ -147,69 +210,46 @@ class IntegrationsPage extends ConsumerStatefulWidget {
 }
 
 class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
-  final _aiKey = TextEditingController();
-  final _sttKey = TextEditingController();
-  final _model = TextEditingController();
-  final _baseUrl = TextEditingController();
-  final _sttModel = TextEditingController();
-  final _sttBase = TextEditingController();
-  bool _aiSaved = false;
-  bool _sttSaved = false;
+  final _key = TextEditingController();
+  bool _saved = false;
   String? _testResult;
   bool _testOk = false;
   bool _testing = false;
 
-  SecretKey _keyFor(AiProvider p) => switch (p) {
-    AiProvider.anthropic => SecretKey.anthropicApiKey,
-    AiProvider.openai => SecretKey.openaiApiKey,
-    AiProvider.openaiCompatible => SecretKey.compatibleApiKey,
-  };
-
   @override
   void initState() {
     super.initState();
-    final s = ref.read(settingsProvider);
-    _model.text = s.aiModel;
-    _baseUrl.text = s.aiBaseUrl;
-    _sttModel.text = s.cloudSttModel;
-    _sttBase.text = s.cloudSttBaseUrl;
-    unawaited(_loadKeys());
+    unawaited(_loadKey());
   }
 
-  Future<void> _loadKeys() async {
-    final secrets = ref.read(secretStoreProvider);
-    final s = ref.read(settingsProvider);
-    final ai = await secrets.read(_keyFor(s.aiProvider));
-    final stt = await secrets.read(SecretKey.cloudSttApiKey);
+  Future<void> _loadKey() async {
+    final saved = await ref.read(secretStoreProvider).read(SecretKey.deepseekApiKey);
     if (!mounted) return;
     setState(() {
-      _aiKey.text = ai ?? '';
-      _sttKey.text = stt ?? '';
-      _aiSaved = ai != null;
-      _sttSaved = stt != null;
+      _key.text = saved ?? '';
+      _saved = saved != null;
     });
   }
 
   @override
   void dispose() {
-    for (final c in [_aiKey, _sttKey, _model, _baseUrl, _sttModel, _sttBase]) {
-      c.dispose();
-    }
+    _key.dispose();
     super.dispose();
   }
 
-  Future<void> _saveAiKey() async {
-    final s = ref.read(settingsProvider);
-    await ref.read(secretStoreProvider).write(_keyFor(s.aiProvider), _aiKey.text);
-    ref.invalidate(readinessProvider);
-    if (mounted) setState(() => _aiSaved = _aiKey.text.trim().isNotEmpty);
+  Future<void> _saveKey() async {
+    await ref.read(secretStoreProvider).write(SecretKey.deepseekApiKey, _key.text);
+    ref
+      ..invalidate(readinessProvider)
+      ..invalidate(deepSeekModelsProvider);
+    if (mounted) setState(() => _saved = _key.text.trim().isNotEmpty);
   }
 
   Future<void> _test() async {
-    await _saveAiKey();
-    final s = ref.read(settingsProvider);
-    final key = await ref.read(secretStoreProvider).read(_keyFor(s.aiProvider));
-    if (key == null && s.aiProvider != AiProvider.openaiCompatible) {
+    await _saveKey();
+    final client = await LlmClient.forSettings(ref.read(settingsProvider), ref.read(secretStoreProvider));
+    if (!mounted) return;
+    if (client == null) {
       setState(() {
         _testOk = false;
         _testResult = L10n.current.addKeyFirst;
@@ -220,27 +260,25 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
       _testing = true;
       _testResult = null;
     });
-    final client = LlmClient.create(s, key ?? '');
     final sw = Stopwatch()..start();
     try {
       int? firstToken;
-      final buf = StringBuffer();
-      await for (final t in client.stream(
+      await for (final _ in client.stream(
         system: 'Reply with the single word: ready',
         user: 'Are you there?',
         maxTokens: 16,
       )) {
         firstToken ??= sw.elapsedMilliseconds;
-        buf.write(t);
       }
+      if (!mounted) return;
       setState(() {
         _testOk = true;
-        _testResult =
-            L10n.current.connectedFirstToken(
-              NumberFormat('0.00', L10n.current.localeName).format((firstToken ?? sw.elapsedMilliseconds) / 1000),
-            );
+        _testResult = L10n.current.connectedFirstToken(
+          NumberFormat('0.00', L10n.current.localeName).format((firstToken ?? sw.elapsedMilliseconds) / 1000),
+        );
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _testOk = false;
         _testResult = e is LlmException ? e.message : '$e';
@@ -254,88 +292,79 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = context.l10n;
     final s = ref.watch(settingsProvider);
-    final n = ref.read(settingsProvider.notifier);
-
-    Widget saved(bool v) => v
-        ? Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SottoIcon(SottoIcons.lock, size: 12, color: p.confirmed),
-              const SizedBox(width: 5),
-              Text(context.l10n.inKeychain, style: TypeScale.caption.copyWith(color: p.confirmed)),
-            ],
-          )
-        : const SizedBox.shrink();
+    final models = ref.watch(deepSeekModelsProvider);
+    // The saved model stays selectable even if the list doesn't have it (yet).
+    final available = models.value ?? const <DeepSeekModel>[];
+    final readsImages = {for (final m in available) m.id: m.images};
+    final ids = {...readsImages.keys, s.aiModel}.toList()..sort();
 
     return SettingsPageScaffold(
-      title: context.l10n.setIntegrations,
-      description: context.l10n.integrationsDescription,
+      title: l.setIntegrations,
+      description: kEmbeddedDeepSeekKey.isEmpty ? l.integrationsDescription : l.integrationsDescriptionBuiltIn,
       left: [
         SettingsGroup(
-          title: context.l10n.answersModel,
+          title: 'DeepSeek',
+          footer: l.deepseekFooter,
           children: [
             SettingRow(
-              title: context.l10n.provider,
-              trailing: SegmentedControl<AiProvider>(
-                width: 330,
-                segments: [for (final a in AiProvider.values) Segment(a, a.label)],
-                value: s.aiProvider,
-                onChanged: (v) {
-                  n.update((x) => x.copyWith(aiProvider: v, aiModel: v.defaultModel, aiBaseUrl: ''));
-                  _model.text = v.defaultModel;
-                  _baseUrl.text = '';
-                  unawaited(_loadKeys());
-                },
-              ),
-            ),
-            SettingRow(
-              title: context.l10n.apiKey,
-              subtitle: s.aiProvider == AiProvider.openaiCompatible
-                  ? context.l10n.apiKeyOptional
-                  : null,
+              title: l.apiKey,
+              subtitle: kEmbeddedDeepSeekKey.isEmpty ? l.apiKeyRequiredSub : l.apiKeyOverrideSub,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  saved(_aiSaved),
-                  const SizedBox(width: 10),
+                  if (_saved) ...[
+                    Tooltip(
+                      message: l.inKeychain,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SottoIcon(SottoIcons.lock, size: 12, color: p.confirmed),
+                          const SizedBox(width: 5),
+                          Text(l.usingYourKey, style: TypeScale.caption.copyWith(color: p.confirmed)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                  ] else if (kEmbeddedDeepSeekKey.isNotEmpty) ...[
+                    Text(l.usingBuiltInKey, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
+                    const SizedBox(width: 10),
+                  ],
                   SottoTextField(
                     width: 240,
-                    controller: _aiKey,
+                    controller: _key,
                     obscure: true,
                     mono: true,
-                    placeholder: s.aiProvider == AiProvider.anthropic ? 'sk-ant-…' : 'sk-…',
-                    onSubmitted: (_) => unawaited(_saveAiKey()),
+                    placeholder: kEmbeddedDeepSeekKey.isEmpty ? 'sk-…' : l.builtInKey,
+                    onSubmitted: (_) => unawaited(_saveKey()),
                   ),
                   const SizedBox(width: 8),
-                  SottoButton(label: context.l10n.save, size: ButtonSize.small, onPressed: () => unawaited(_saveAiKey())),
+                  SottoButton(label: l.save, size: ButtonSize.small, onPressed: () => unawaited(_saveKey())),
                 ],
               ),
             ),
             SettingRow(
-              title: context.l10n.model,
-              subtitle: s.aiProvider == AiProvider.anthropic ? context.l10n.modelLowEffort : null,
-              trailing: SottoTextField(
+              title: l.model,
+              subtitle: switch (models) {
+                AsyncLoading() => l.modelsLoading,
+                AsyncError(:final error) => l.modelsLoadFailed(error is LlmException ? error.message : '$error'),
+                _ => null,
+              },
+              trailing: SottoSelect<String>(
                 width: 240,
-                controller: _model,
-                mono: true,
-                placeholder: s.aiProvider.defaultModel,
-                onChanged: (v) => n.update((x) => x.copyWith(aiModel: v.trim())),
+                value: s.aiModel,
+                options: [
+                  for (final id in ids)
+                    SelectOption(id, id, detail: readsImages[id] == true ? l.modelReadsImages : null),
+                ],
+                onChanged: (v) => ref
+                    .read(settingsProvider.notifier)
+                    .update((x) => x.copyWith(aiModel: v, visionModel: pickVisionModel(available, v) ?? x.visionModel)),
               ),
             ),
             SettingRow(
-              title: context.l10n.baseUrl,
-              subtitle: context.l10n.baseUrlSub(s.aiProvider.defaultBaseUrl),
-              trailing: SottoTextField(
-                width: 240,
-                controller: _baseUrl,
-                mono: true,
-                placeholder: s.aiProvider.defaultBaseUrl,
-                onChanged: (v) => n.update((x) => x.copyWith(aiBaseUrl: v.trim())),
-              ),
-            ),
-            SettingRow(
-              title: context.l10n.testConnection,
+              title: l.testConnection,
               subtitle: _testResult,
               trailing: _testing
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.5))
@@ -350,7 +379,7 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
                           ),
                         const SizedBox(width: 10),
                         SottoButton(
-                          label: context.l10n.test,
+                          label: l.test,
                           size: ButtonSize.small,
                           icon: SottoIcons.plug,
                           onPressed: () => unawaited(_test()),
@@ -358,78 +387,16 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
                       ],
                     ),
             ),
-          ],
-        ),
-      ],
-      right: [
-        SettingsGroup(
-          title: context.l10n.cloudStt,
-          footer: context.l10n.cloudSttFooter,
-          children: [
             SettingRow(
-              title: context.l10n.provider,
-              trailing: SegmentedControl<CloudSttProvider>(
-                width: 230,
-                segments: [
-                  Segment(CloudSttProvider.openai, 'OpenAI'),
-                  Segment(CloudSttProvider.openaiCompatible, context.l10n.compatible),
-                ],
-                value: s.cloudSttProvider,
-                onChanged: (v) => n.update((x) => x.copyWith(cloudSttProvider: v)),
+              title: l.getApiKey,
+              subtitle: l.getApiKeySub,
+              trailing: SottoButton(
+                label: l.open,
+                icon: SottoIcons.link,
+                size: ButtonSize.small,
+                onPressed: () => unawaited(openExternal(deepSeekKeysUrl)),
               ),
             ),
-            SettingRow(
-              title: context.l10n.apiKey,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  saved(_sttSaved),
-                  const SizedBox(width: 10),
-                  SottoTextField(
-                    width: 200,
-                    controller: _sttKey,
-                    obscure: true,
-                    mono: true,
-                    placeholder: 'sk-…',
-                    onSubmitted: (_) async {
-                      await ref.read(secretStoreProvider).write(SecretKey.cloudSttApiKey, _sttKey.text);
-                      setState(() => _sttSaved = _sttKey.text.trim().isNotEmpty);
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  SottoButton(
-                    label: context.l10n.save,
-                    size: ButtonSize.small,
-                    onPressed: () async {
-                      await ref.read(secretStoreProvider).write(SecretKey.cloudSttApiKey, _sttKey.text);
-                      ref.invalidate(readinessProvider);
-                      setState(() => _sttSaved = _sttKey.text.trim().isNotEmpty);
-                    },
-                  ),
-                ],
-              ),
-            ),
-            SettingRow(
-              title: context.l10n.model,
-              trailing: SottoTextField(
-                width: 200,
-                controller: _sttModel,
-                mono: true,
-                placeholder: 'whisper-1',
-                onChanged: (v) => n.update((x) => x.copyWith(cloudSttModel: v.trim().isEmpty ? 'whisper-1' : v.trim())),
-              ),
-            ),
-            if (s.cloudSttProvider == CloudSttProvider.openaiCompatible)
-              SettingRow(
-                title: context.l10n.baseUrl,
-                trailing: SottoTextField(
-                  width: 200,
-                  controller: _sttBase,
-                  mono: true,
-                  placeholder: 'https://…/v1',
-                  onChanged: (v) => n.update((x) => x.copyWith(cloudSttBaseUrl: v.trim())),
-                ),
-              ),
           ],
         ),
       ],
@@ -485,6 +452,8 @@ class PrivacyPage extends ConsumerWidget {
             ),
           ],
         ),
+        const _ScreenAwarenessGroup(),
+        const _AgentGroup(),
         SettingsGroup(
           title: context.l10n.retention,
           children: [
@@ -494,6 +463,7 @@ class PrivacyPage extends ConsumerWidget {
                 width: 140,
                 value: s.historyRetentionDays,
                 options: [
+                  SelectOption(0, context.l10n.historyOff),
                   SelectOption(7, context.l10n.daysCount(7)),
                   SelectOption(30, context.l10n.daysCount(30)),
                   SelectOption(90, context.l10n.daysCount(90)),
@@ -502,6 +472,7 @@ class PrivacyPage extends ConsumerWidget {
                 onChanged: (v) {
                   n.update((x) => x.copyWith(historyRetentionDays: v));
                   unawaited(ref.read(qaRepositoryProvider).prune(v));
+                  unawaited(ref.read(chatRepositoryProvider).prune(v));
                 },
               ),
             ),
@@ -511,11 +482,7 @@ class PrivacyPage extends ConsumerWidget {
                 label: context.l10n.delete,
                 size: ButtonSize.small,
                 onPressed: () async {
-                  if (await _confirm(
-                    context,
-                    context.l10n.deleteQaHistoryConfirm,
-                    context.l10n.deleteQaHistoryBody,
-                  )) {
+                  if (await _confirm(context, context.l10n.deleteQaHistoryConfirm, context.l10n.deleteQaHistoryBody)) {
                     await ref.read(qaRepositoryProvider).clear();
                   }
                 },
@@ -547,11 +514,7 @@ class PrivacyPage extends ConsumerWidget {
                 label: context.l10n.deleteEverything,
                 size: ButtonSize.small,
                 onPressed: () async {
-                  if (await _confirm(
-                    context,
-                    context.l10n.deleteAllDataConfirm,
-                    context.l10n.deleteAllDataBody,
-                  )) {
+                  if (await _confirm(context, context.l10n.deleteAllDataConfirm, context.l10n.deleteAllDataBody)) {
                     await ref.read(localStoreProvider).wipe();
                     if (context.mounted) context.go('/');
                   }
@@ -572,6 +535,11 @@ class PrivacyPage extends ConsumerWidget {
                 (context.l10n.privVoice, context.l10n.privVoiceBody),
                 (context.l10n.privRoom, context.l10n.privRoomBody),
                 (context.l10n.privAnswers, context.l10n.privAnswersBody),
+                (
+                  context.l10n.privScreen,
+                  s.screenAwareness ? context.l10n.privScreenOnBody : context.l10n.privScreenOffBody,
+                ),
+                (context.l10n.privAgent, s.agentEnabled ? context.l10n.privAgentOnBody : context.l10n.privAgentOffBody),
                 (context.l10n.privModels, context.l10n.privModelsBody),
                 (context.l10n.privConsent, context.l10n.privConsentBody),
               ])
@@ -593,6 +561,179 @@ class PrivacyPage extends ConsumerWidget {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Opt-in for screenshots. Off by default; nothing is captured until the
+/// presenter asks, and nothing is kept.
+class _ScreenAwarenessGroup extends ConsumerStatefulWidget {
+  const _ScreenAwarenessGroup();
+
+  @override
+  ConsumerState<_ScreenAwarenessGroup> createState() => _ScreenAwarenessGroupState();
+}
+
+class _ScreenAwarenessGroupState extends ConsumerState<_ScreenAwarenessGroup> {
+  ScreenPermission? _permission;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_check());
+  }
+
+  Future<void> _check() async {
+    final p = await ref.read(screenServiceProvider).permission();
+    if (mounted) setState(() => _permission = p);
+  }
+
+  Future<void> _toggle(bool on) async {
+    ref.read(settingsProvider.notifier).update((x) => x.copyWith(screenAwareness: on));
+    // macOS asks once, the first time it is turned on.
+    if (on && _permission == ScreenPermission.denied) {
+      await ref.read(screenServiceProvider).requestPermission();
+      await _check();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final p = context.palette;
+    final s = ref.watch(settingsProvider);
+    final n = ref.read(settingsProvider.notifier);
+    final on = s.screenAwareness;
+    final supported = ref.watch(platformFeaturesProvider).screenCapture;
+    return SettingsGroup(
+      title: l.screenAwareness,
+      footer: supported ? l.screenAwarenessFooter : l.linuxExperimentalSub,
+      children: [
+        SettingRow(
+          title: l.screenAwarenessToggle,
+          subtitle: supported ? l.screenAwarenessToggleSub : l.notOnLinux,
+          trailing: SottoToggle(value: on, onChanged: supported ? (v) => unawaited(_toggle(v)) : null),
+        ),
+        if (on) ...[
+          SettingRow(
+            title: l.screenTarget,
+            trailing: SottoSelect<ScreenTarget>(
+              width: 220,
+              value: s.screenTarget,
+              options: [
+                SelectOption(ScreenTarget.overlayDisplay, l.screenTargetOverlay),
+                SelectOption(ScreenTarget.cursorDisplay, l.screenTargetCursor),
+              ],
+              onChanged: (v) => n.update((x) => x.copyWith(screenTarget: v)),
+            ),
+          ),
+          SettingRow(
+            title: l.attachSlide,
+            subtitle: l.attachSlideSub,
+            trailing: SottoToggle(
+              value: s.attachSlideToAnswers,
+              onChanged: (v) => n.update((x) => x.copyWith(attachSlideToAnswers: v)),
+            ),
+          ),
+          if (Platform.isMacOS && _permission == ScreenPermission.denied)
+            SettingRow(
+              title: l.screenPermissionMissing,
+              subtitle: l.screenPermissionMissingSub,
+              leading: SottoIcon(SottoIcons.alert, size: 14, color: p.cueText),
+              trailing: SottoButton(
+                label: l.openSystemSettings,
+                size: ButtonSize.small,
+                onPressed: () async {
+                  await ref.read(screenServiceProvider).openPrivacySettings('screen');
+                },
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Opt-in for agent mode (mouse and keyboard control).
+class _AgentGroup extends ConsumerStatefulWidget {
+  const _AgentGroup();
+
+  @override
+  ConsumerState<_AgentGroup> createState() => _AgentGroupState();
+}
+
+class _AgentGroupState extends ConsumerState<_AgentGroup> {
+  bool? _trusted;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_check());
+  }
+
+  Future<void> _check() async {
+    final ok = await ref.read(inputServiceProvider).hasPermission();
+    if (mounted) setState(() => _trusted = ok);
+  }
+
+  Future<void> _toggle(bool on) async {
+    ref.read(settingsProvider.notifier).update((x) => x.copyWith(agentEnabled: on));
+    if (on && _trusted == false) {
+      await ref.read(inputServiceProvider).requestPermission();
+      await _check();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final p = context.palette;
+    final s = ref.watch(settingsProvider);
+    final n = ref.read(settingsProvider.notifier);
+    final stop = PlatformKeys.describe(s.shortcutFor(LiveAction.agentStop));
+    final features = ref.watch(platformFeaturesProvider);
+    final supported = features.agent;
+    return SettingsGroup(
+      title: l.agentMode,
+      footer: l.agentModeFooter(stop),
+      children: [
+        SettingRow(
+          title: l.agentToggle,
+          subtitle: supported ? l.agentToggleSub : (features.isLinux ? l.notOnLinux : l.agentUnsupported),
+          trailing: SottoToggle(
+            value: s.agentEnabled && supported,
+            onChanged: supported ? (v) => unawaited(_toggle(v)) : null,
+          ),
+        ),
+        if (s.agentEnabled && supported) ...[
+          SettingRow(
+            title: l.agentAutonomy,
+            subtitle: s.agentAutonomy == AgentAutonomy.auto ? l.agentAutoSub : l.agentConfirmEachSub,
+            trailing: SottoSelect<AgentAutonomy>(
+              width: 220,
+              value: s.agentAutonomy,
+              options: [
+                SelectOption(AgentAutonomy.confirmEach, l.agentConfirmEach),
+                SelectOption(AgentAutonomy.auto, l.agentAuto),
+              ],
+              onChanged: (v) => n.update((x) => x.copyWith(agentAutonomy: v)),
+            ),
+          ),
+          if (Platform.isMacOS && _trusted == false)
+            SettingRow(
+              title: l.accessibilityMissing,
+              subtitle: l.accessibilityMissingSub,
+              leading: SottoIcon(SottoIcons.alert, size: 14, color: p.cueText),
+              trailing: SottoButton(
+                label: l.openSystemSettings,
+                size: ButtonSize.small,
+                onPressed: () async {
+                  await ref.read(screenServiceProvider).openPrivacySettings('accessibility');
+                },
+              ),
+            ),
+        ],
       ],
     );
   }

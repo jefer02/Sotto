@@ -15,12 +15,7 @@ enum ModelRole { streaming, transcription }
 /// On-device speech models (sherpa-onnx). Fetched once, before the first
 /// live session; everything after that works offline.
 class SpeechModel {
-  const SpeechModel({
-    required this.id,
-    required this.role,
-    required this.sizeMb,
-    required this.languages,
-  });
+  const SpeechModel({required this.id, required this.role, required this.sizeMb, required this.languages});
 
   final String id;
   final ModelRole role;
@@ -235,6 +230,8 @@ class ModelStatusNotifier extends Notifier<Map<String, ModelStatus>> {
     for (final m in ModelCatalog.all) {
       if (next[m.id] is ModelDownloading) continue;
       final files = await mgr.locate(m);
+      // Disposed while looking (a settings rebuild, the app closing).
+      if (!ref.mounted) return;
       next[m.id] = files == null ? const ModelMissing() : ModelReady(files);
     }
     state = next;

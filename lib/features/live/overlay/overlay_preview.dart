@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
 import '../../../core/design/typography.dart';
 import '../../../data/models/script.dart';
 import '../../../data/models/settings.dart';
+import '../../../domain/overlay/backdrop_tone.dart';
 import '../../../data/repositories.dart';
 import '../../../domain/following/follow_engine.dart';
 import '../../../domain/following/script_aligner.dart';
+import '../../../l10n/l10n.dart';
 import '../live_state.dart';
+import '../overlay_palette.dart';
 import 'meta_strip.dart';
 import 'reading_view.dart';
 
@@ -65,8 +69,12 @@ class OverlayPreview extends ConsumerWidget {
           OverlayThemeMode.light => false,
           OverlayThemeMode.matchApp => context.palette.isDark,
         };
-    final overlay = (isDark ? OverlayPalette.dark : OverlayPalette.light).withGroundOpacity(
-      opacity ?? settings.overlayOpacity,
+    // "Auto" text color: the preview slide stands in for the live backdrop.
+    final overlay = overlayPaletteFor(
+      settings,
+      dark: isDark,
+      opacity: opacity,
+      backdrop: background == PreviewBackground.lightSlide ? BackdropTone.light : BackdropTone.dark,
     );
     final size = readingSize ?? settings.readingSize;
 
@@ -85,7 +93,7 @@ class OverlayPreview extends ConsumerWidget {
       linesShown: settings.linesShown,
       glide: settings.scrollStyle == ScrollStyle.glide,
       reduceMotion: settings.reduceMotion,
-      plate: (opacity ?? settings.overlayOpacity) < 0.7,
+      plate: !overlay.textOnly && (opacity ?? settings.overlayOpacity) < 0.7,
       wpm: settings.wordsPerMinute,
     );
     final card = cardSize(layout);
@@ -136,16 +144,23 @@ class OverlayPreview extends ConsumerWidget {
                             border: Border.all(color: o.edge),
                             boxShadow: [o.shadow],
                           ),
-                          child: Column(
-                            children: [
-                              MetaStrip(state: state, density: metaDensityFor(layout)),
-                              Expanded(
-                                child: MediaQuery(
-                                  data: MediaQuery.of(context).copyWith(disableAnimations: true),
-                                  child: ReadingView(state: state, layout: layout, style: style),
+                          child: DefaultTextStyle.merge(
+                            style: TextStyle(shadows: o.textShadows(1, true)),
+                            child: Column(
+                              children: [
+                                // Text only: the strip shows on hover, so the still frame hides it.
+                                Opacity(
+                                  opacity: o.textOnly ? 0 : 1,
+                                  child: MetaStrip(state: state, density: metaDensityFor(layout)),
                                 ),
-                              ),
-                            ],
+                                Expanded(
+                                  child: MediaQuery(
+                                    data: MediaQuery.of(context).copyWith(disableAnimations: true),
+                                    child: ReadingView(state: state, layout: layout, style: style),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -217,7 +232,10 @@ class _SlideBackdrop extends StatelessWidget {
                   ),
                 ),
               const Spacer(),
-              Text('31.4%', style: TypeScale.title1.copyWith(color: ink, fontSize: 24)),
+              Text(
+                NumberFormat.decimalPercentPattern(locale: L10n.current.localeName, decimalDigits: 1).format(0.314),
+                style: TypeScale.title1.copyWith(color: ink, fontSize: 24),
+              ),
             ],
           ),
         );
