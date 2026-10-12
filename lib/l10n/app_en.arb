@@ -225,7 +225,7 @@
   },
   "noticeNoSpeechForQuestions": "Questions need a speech engine — see Settings → Voice & following.",
   "noticeNoQuestion": "Didn't catch a question",
-  "answerNeedsKey": "Add an API key in Settings → Integrations to draft answers.",
+  "answerNeedsKey": "Answers need a DeepSeek key. Add your own in Settings → Integrations — it's free to create.",
   "noticeCopiedForChat": "Copied — paste into the meeting chat",
   "noticeAnswerCopied": "Answer copied",
   "readyNoMic": "No microphone",
@@ -257,7 +257,7 @@
     }
   },
   "readyNoKey": "No API key",
-  "readyAddKey": "Add one in Integrations to draft answers",
+  "readyAddKey": "Add your own DeepSeek key in Integrations to draft answers",
   "readyShareWindow": "Share a window",
   "readyShareWarning": "Sharing your entire screen can capture the overlay on macOS 15+",
   "sourceQaPrep": "Q&A prep",
@@ -672,7 +672,7 @@
       }
     }
   },
-  "suggestNeedsKey": "Add an API key in Settings → Integrations to suggest questions.",
+  "suggestNeedsKey": "Suggesting questions needs a DeepSeek key. Add your own in Settings → Integrations.",
   "noQuestionsReturned": "The model returned no questions.",
   "likelyQuestions": "Likely questions",
   "suggestWithAi": "Suggest with AI",
@@ -1149,7 +1149,7 @@
   "privConsent": "Consent",
   "privConsentBody": "Recording laws vary. Consider telling the room that Q&A assist is on.",
   "llmNoBalance": "Your DeepSeek balance is empty. Top up at platform.deepseek.com.",
-  "integrationsDescriptionBuiltIn": "Answers are drafted by DeepSeek with the key built into this copy of Sotto. You can override it with your own key.",
+  "integrationsDescriptionBuiltIn": "Answers are drafted by DeepSeek with the key built into this copy of Sotto, so they work out of the box. A personal key is optional: add one to use your own account and limits.",
   "deepseekFooter": "Only the question and the excerpts used to answer it are sent.",
   "apiKeyOverrideSub": "Optional. Leave empty to use the built-in key.",
   "builtInKey": "Built-in key",
@@ -1796,5 +1796,24 @@
     }
   },
   "practiceLegendRehearsal": "Rehearsal",
-  "practiceLegendLive": "Live"
+  "practiceLegendLive": "Live",
+  "llmBuiltInKeyFailed": "The DeepSeek key built into Sotto isn't working right now. Add your own key in Settings → Integrations to keep drafting answers — voice following and the overlay keep working without it.",
+  "readyKeyRejected": "DeepSeek key not working",
+  "apiKeyRequiredSub": "Needed for answers, chat and organizing with AI. Voice following works without it.",
+  "getApiKey": "Get a key",
+  "getApiKeySub": "Create one at platform.deepseek.com — paste it above and press Test",
+  "usingBuiltInKey": "Using the built-in key",
+  "usingYourKey": "Using your key",
+  "notOnLinux": "Not available on Linux yet",
+  "linuxExperimentalSub": "Sotto on Linux is experimental. Reading the screen, filling forms, agent mode, the browser extension and reading answers aloud need Windows or macOS for now.",
+  "screenUnavailableNotice": "Reading the screen isn't available on Linux yet.",
+  "formsUnavailableNotice": "Filling forms isn't available on Linux yet.",
+  "agentUnavailableNotice": "Agent mode isn't available on Linux yet.",
+  "readAloudUnavailableNotice": "Reading answers aloud isn't available on Linux yet.",
+  "formsUnavailableTitle": "Forms aren't available on Linux yet",
+  "formsUnavailableBody": "Filling forms needs to read and click other apps' windows, which Sotto can only do on Windows and macOS for now.",
+  "readyShareVisible": "Overlay shows in screen shares",
+  "readyShareVisibleSub": "On Linux the overlay can't hide from screen capture — share only your slides window, not the whole screen.",
+  "readyHotkeysWayland": "Shortcuts need an X11 session",
+  "readyHotkeysWaylandSub": "Wayland doesn't let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay's buttons."
 }
