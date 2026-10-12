@@ -332,7 +332,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noticeNoQuestion => 'Didn\'t catch a question';
 
   @override
-  String get answerNeedsKey => 'Add an API key in Settings → Integrations to draft answers.';
+  String get answerNeedsKey =>
+      'Answers need a DeepSeek key. Add your own in Settings → Integrations — it\'s free to create.';
 
   @override
   String get noticeCopiedForChat => 'Copied — paste into the meeting chat';
@@ -371,7 +372,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readyNoKey => 'No API key';
 
   @override
-  String get readyAddKey => 'Add one in Integrations to draft answers';
+  String get readyAddKey => 'Add your own DeepSeek key in Integrations to draft answers';
 
   @override
   String get readyShareWindow => 'Share a window';
@@ -940,7 +941,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get suggestNeedsKey => 'Add an API key in Settings → Integrations to suggest questions.';
+  String get suggestNeedsKey => 'Suggesting questions needs a DeepSeek key. Add your own in Settings → Integrations.';
 
   @override
   String get noQuestionsReturned => 'The model returned no questions.';
@@ -2006,7 +2007,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get integrationsDescriptionBuiltIn =>
-      'Answers are drafted by DeepSeek with the key built into this copy of Sotto. You can override it with your own key.';
+      'Answers are drafted by DeepSeek with the key built into this copy of Sotto, so they work out of the box. A personal key is optional: add one to use your own account and limits.';
 
   @override
   String get deepseekFooter => 'Only the question and the excerpts used to answer it are sent.';
@@ -3100,4 +3101,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get practiceLegendLive => 'Live';
+
+  @override
+  String get llmBuiltInKeyFailed =>
+      'The DeepSeek key built into Sotto isn\'t working right now. Add your own key in Settings → Integrations to keep drafting answers — voice following and the overlay keep working without it.';
+
+  @override
+  String get readyKeyRejected => 'DeepSeek key not working';
+
+  @override
+  String get apiKeyRequiredSub => 'Needed for answers, chat and organizing with AI. Voice following works without it.';
+
+  @override
+  String get getApiKey => 'Get a key';
+
+  @override
+  String get getApiKeySub => 'Create one at platform.deepseek.com — paste it above and press Test';
+
+  @override
+  String get usingBuiltInKey => 'Using the built-in key';
+
+  @override
+  String get usingYourKey => 'Using your key';
+
+  @override
+  String get notOnLinux => 'Not available on Linux yet';
+
+  @override
+  String get linuxExperimentalSub =>
+      'Sotto on Linux is experimental. Reading the screen, filling forms, agent mode, the browser extension and reading answers aloud need Windows or macOS for now.';
+
+  @override
+  String get screenUnavailableNotice => 'Reading the screen isn\'t available on Linux yet.';
+
+  @override
+  String get formsUnavailableNotice => 'Filling forms isn\'t available on Linux yet.';
+
+  @override
+  String get agentUnavailableNotice => 'Agent mode isn\'t available on Linux yet.';
+
+  @override
+  String get readAloudUnavailableNotice => 'Reading answers aloud isn\'t available on Linux yet.';
+
+  @override
+  String get formsUnavailableTitle => 'Forms aren\'t available on Linux yet';
+
+  @override
+  String get formsUnavailableBody =>
+      'Filling forms needs to read and click other apps\' windows, which Sotto can only do on Windows and macOS for now.';
+
+  @override
+  String get readyShareVisible => 'Overlay shows in screen shares';
+
+  @override
+  String get readyShareVisibleSub =>
+      'On Linux the overlay can\'t hide from screen capture — share only your slides window, not the whole screen.';
+
+  @override
+  String get readyHotkeysWayland => 'Shortcuts need an X11 session';
+
+  @override
+  String get readyHotkeysWaylandSub =>
+      'Wayland doesn\'t let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay\'s buttons.';
 }

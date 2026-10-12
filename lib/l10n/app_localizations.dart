@@ -653,7 +653,7 @@ abstract class AppLocalizations {
   /// No description provided for @answerNeedsKey.
   ///
   /// In en, this message translates to:
-  /// **'Add an API key in Settings → Integrations to draft answers.'**
+  /// **'Answers need a DeepSeek key. Add your own in Settings → Integrations — it\'s free to create.'**
   String get answerNeedsKey;
 
   /// No description provided for @noticeCopiedForChat.
@@ -719,7 +719,7 @@ abstract class AppLocalizations {
   /// No description provided for @readyAddKey.
   ///
   /// In en, this message translates to:
-  /// **'Add one in Integrations to draft answers'**
+  /// **'Add your own DeepSeek key in Integrations to draft answers'**
   String get readyAddKey;
 
   /// No description provided for @readyShareWindow.
@@ -1631,7 +1631,7 @@ abstract class AppLocalizations {
   /// No description provided for @suggestNeedsKey.
   ///
   /// In en, this message translates to:
-  /// **'Add an API key in Settings → Integrations to suggest questions.'**
+  /// **'Suggesting questions needs a DeepSeek key. Add your own in Settings → Integrations.'**
   String get suggestNeedsKey;
 
   /// No description provided for @noQuestionsReturned.
@@ -3629,7 +3629,7 @@ abstract class AppLocalizations {
   /// No description provided for @integrationsDescriptionBuiltIn.
   ///
   /// In en, this message translates to:
-  /// **'Answers are drafted by DeepSeek with the key built into this copy of Sotto. You can override it with your own key.'**
+  /// **'Answers are drafted by DeepSeek with the key built into this copy of Sotto, so they work out of the box. A personal key is optional: add one to use your own account and limits.'**
   String get integrationsDescriptionBuiltIn;
 
   /// No description provided for @deepseekFooter.
@@ -5539,6 +5539,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Live'**
   String get practiceLegendLive;
+
+  /// No description provided for @llmBuiltInKeyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The DeepSeek key built into Sotto isn\'t working right now. Add your own key in Settings → Integrations to keep drafting answers — voice following and the overlay keep working without it.'**
+  String get llmBuiltInKeyFailed;
+
+  /// No description provided for @readyKeyRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'DeepSeek key not working'**
+  String get readyKeyRejected;
+
+  /// No description provided for @apiKeyRequiredSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Needed for answers, chat and organizing with AI. Voice following works without it.'**
+  String get apiKeyRequiredSub;
+
+  /// No description provided for @getApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Get a key'**
+  String get getApiKey;
+
+  /// No description provided for @getApiKeySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Create one at platform.deepseek.com — paste it above and press Test'**
+  String get getApiKeySub;
+
+  /// No description provided for @usingBuiltInKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Using the built-in key'**
+  String get usingBuiltInKey;
+
+  /// No description provided for @usingYourKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Using your key'**
+  String get usingYourKey;
+
+  /// No description provided for @notOnLinux.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on Linux yet'**
+  String get notOnLinux;
+
+  /// No description provided for @linuxExperimentalSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto on Linux is experimental. Reading the screen, filling forms, agent mode, the browser extension and reading answers aloud need Windows or macOS for now.'**
+  String get linuxExperimentalSub;
+
+  /// No description provided for @screenUnavailableNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the screen isn\'t available on Linux yet.'**
+  String get screenUnavailableNotice;
+
+  /// No description provided for @formsUnavailableNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling forms isn\'t available on Linux yet.'**
+  String get formsUnavailableNotice;
+
+  /// No description provided for @agentUnavailableNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent mode isn\'t available on Linux yet.'**
+  String get agentUnavailableNotice;
+
+  /// No description provided for @readAloudUnavailableNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading answers aloud isn\'t available on Linux yet.'**
+  String get readAloudUnavailableNotice;
+
+  /// No description provided for @formsUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forms aren\'t available on Linux yet'**
+  String get formsUnavailableTitle;
+
+  /// No description provided for @formsUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling forms needs to read and click other apps\' windows, which Sotto can only do on Windows and macOS for now.'**
+  String get formsUnavailableBody;
+
+  /// No description provided for @readyShareVisible.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay shows in screen shares'**
+  String get readyShareVisible;
+
+  /// No description provided for @readyShareVisibleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'On Linux the overlay can\'t hide from screen capture — share only your slides window, not the whole screen.'**
+  String get readyShareVisibleSub;
+
+  /// No description provided for @readyHotkeysWayland.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcuts need an X11 session'**
+  String get readyHotkeysWayland;
+
+  /// No description provided for @readyHotkeysWaylandSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Wayland doesn\'t let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay\'s buttons.'**
+  String get readyHotkeysWaylandSub;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
