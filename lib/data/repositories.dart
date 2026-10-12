@@ -1,3 +1,5 @@
+import '../core/platform/platform_features.dart';
+
 import 'dart:async';
 
 import 'package:collection/collection.dart';
@@ -113,14 +115,17 @@ final scriptByIdProvider = Provider.family<Script?, String>((ref, id) {
 class SettingsNotifier extends Notifier<AppSettings> {
   static const _key = 'app';
 
+  // What this platform can't do stays off, whatever was saved or toggled.
+  PlatformFeatures get _features => ref.read(platformFeaturesProvider);
+
   @override
   AppSettings build() {
     final raw = ref.watch(localStoreProvider).settingsWrites.get(_key);
-    return raw == null ? const AppSettings() : AppSettings.fromJson(raw);
+    return _features.clamp(raw == null ? const AppSettings() : AppSettings.fromJson(raw));
   }
 
   void update(AppSettings Function(AppSettings s) change) {
-    state = change(state);
+    state = _features.clamp(change(state));
     unawaited(ref.read(localStoreProvider).settingsWrites.put(_key, state.toJson()));
   }
 
