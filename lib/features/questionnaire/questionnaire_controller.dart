@@ -24,6 +24,7 @@ import '../../services/screen/form_access.dart';
 import '../../services/screen/native_form_driver.dart';
 import '../../services/screen/screen_service.dart';
 import '../live/live_controller.dart';
+import '../../core/platform/platform_features.dart';
 
 export '../../domain/forms/form_runner.dart' show FormPhase, ItemStatus;
 
@@ -166,6 +167,7 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
   /// Null when ready, else why not (in the interface language).
   Future<String?> preflight() async {
     final l = L10n.current;
+    if (!ref.read(platformFeaturesProvider).formFilling) return l.formsUnavailableNotice;
     if (!_settings.formsEnabled) return l.formsOff;
     if (!FormAccessService.supported) return l.formsUnsupported;
     // macOS: the system prompt appears the first time; after that the
