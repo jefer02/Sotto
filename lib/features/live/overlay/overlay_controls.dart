@@ -18,6 +18,7 @@ import '../live_controller.dart';
 import '../live_state.dart';
 import '../../chat/chat_controller.dart';
 import '../../forms/autofill_controller.dart';
+import '../../../core/platform/platform_features.dart';
 
 /// The hover panel: shown while the pointer is over the overlay (never in
 /// click-through), faded out 2 s after it leaves. No shortcut opens it.
@@ -118,12 +119,13 @@ class OverlayControls extends ConsumerWidget {
           onDown: () => settingsNotifier.update((s) => s.copyWith(overlayTextColor: nextTextColor(s.overlayTextColor))),
         ),
         divider(),
-        _PanelButton(
-          icon: SottoIcons.form,
-          label: autoFillOn ? l.hoverAutoFillOn : l.hoverAutoFillOff,
-          dot: autoFillOn ? o.confirmed : o.inkAt(0.4),
-          onDown: () => ref.read(autoFillControllerProvider.notifier).setEnabled(!autoFillOn),
-        ),
+        if (ref.watch(platformFeaturesProvider).formFilling)
+          _PanelButton(
+            icon: SottoIcons.form,
+            label: autoFillOn ? l.hoverAutoFillOn : l.hoverAutoFillOff,
+            dot: autoFillOn ? o.confirmed : o.inkAt(0.4),
+            onDown: () => ref.read(autoFillControllerProvider.notifier).setEnabled(!autoFillOn),
+          ),
         if (settings.showChat || chatOpen)
           _PanelButton(
             icon: SottoIcons.chat,

@@ -29,6 +29,7 @@ import '../chat/chat_controller.dart';
 import '../forms/autofill_controller.dart';
 import '../questionnaire/questionnaire_controller.dart';
 import 'live_state.dart';
+import '../../core/platform/platform_features.dart';
 
 /// Called when a session ends, with the ended session's record.
 typedef SessionEnded = void Function(SessionRecord record);
@@ -461,6 +462,10 @@ class LiveController extends Notifier<LiveState> {
   /// "Ask about screen": take a screenshot now, then listen for an
   /// optional spoken question. Opt-in (Settings → Privacy).
   Future<void> askScreenDown() async {
+    if (!ref.read(platformFeaturesProvider).screenCapture) {
+      _notice(L10n.current.screenUnavailableNotice, seconds: 6);
+      return;
+    }
     if (!_settings.screenAwareness) {
       _notice(L10n.current.noticeScreenOff, seconds: 6);
       return;
@@ -484,6 +489,10 @@ class LiveController extends Notifier<LiveState> {
 
   /// Agent task by voice: listen, then hand the words to the agent.
   void agentTaskDown() {
+    if (!ref.read(platformFeaturesProvider).agent) {
+      _notice(L10n.current.agentUnavailableNotice, seconds: 6);
+      return;
+    }
     if (!_settings.agentEnabled) {
       _notice(L10n.current.agentOff, seconds: 6);
       return;
@@ -789,6 +798,10 @@ class LiveController extends Notifier<LiveState> {
   Future<void> readAloud() async {
     final qa = state.currentQa;
     if (state.phase != LivePhase.answer || qa == null) return;
+    if (!ref.read(platformFeaturesProvider).readAloud) {
+      _notice(L10n.current.readAloudUnavailableNotice, seconds: 6);
+      return;
+    }
     final tts = _tts;
     if (tts.isSpeaking) {
       await tts.stop();
