@@ -15,6 +15,7 @@ import '../../services/speech/model_manager.dart';
 import '../forms/browser_extension_rows.dart';
 import '../library/library_actions.dart';
 import '../settings/pages/voice_page.dart';
+import '../../core/platform/platform_features.dart';
 
 /// Shows the first-run welcome once. Answers need no setup (the DeepSeek key
 /// is built in), so it only covers voice models, the optional browser
@@ -177,11 +178,11 @@ class _ModelsStep extends ConsumerWidget {
 }
 
 /// Optional: the Sotto Bridge extension, per browser.
-class _BrowserStep extends StatelessWidget {
+class _BrowserStep extends ConsumerWidget {
   const _BrowserStep({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
     final l = context.l10n;
     return Column(
@@ -191,7 +192,14 @@ class _BrowserStep extends StatelessWidget {
         const SizedBox(height: 6),
         Text(l.welcomeBrowserBody, style: TypeScale.body.copyWith(color: p.inkSecondary)),
         const SizedBox(height: 16),
-        const SettingsGroup(children: [BrowserExtensionRows()]),
+        // Linux has no native-messaging host yet: say so instead of
+        // offering an extension that could never connect.
+        if (ref.watch(platformFeaturesProvider).browserBridge)
+          const SettingsGroup(children: [BrowserExtensionRows()])
+        else
+          SettingsGroup(
+            children: [SettingRow(title: l.notOnLinux, subtitle: l.linuxExperimentalSub)],
+          ),
       ],
     );
   }

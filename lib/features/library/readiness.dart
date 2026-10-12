@@ -6,10 +6,12 @@ import '../../core/platform/platform_keys.dart';
 import '../../data/models/settings.dart';
 import '../../data/repositories.dart';
 import '../../l10n/l10n.dart';
+import '../../services/ai/deepseek_models.dart';
 import '../../services/ai/llm_client.dart';
 import '../../services/agent/input_service.dart';
 import '../../services/screen/screen_service.dart';
 import '../../services/speech/model_manager.dart';
+import '../../core/platform/platform_features.dart';
 
 enum CheckLevel { ok, warn, missing }
 
@@ -84,26 +86,39 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
         ready(ModelCatalog.whisperTurbo);
     voice = canFollow
         ? ReadinessItem(l.readyOnDevice(langs), CheckLevel.ok)
-        : ReadinessItem(
-            l.readyOnDevice(langs),
-            CheckLevel.missing,
-            detail: l.readyDownloadModels,
-          );
+        : ReadinessItem(l.readyOnDevice(langs), CheckLevel.missing, detail: l.readyDownloadModels);
   }
 
   final hk = ref.read(hotkeyServiceProvider);
   final chord = [for (final m in settings.chord) PlatformKeys.modifierSymbol(m)].join(PlatformKeys.isMac ? '' : '+');
-  final hotkeys = ReadinessItem(
-    l.readyHotkeys(chord),
-    hk.failures.isEmpty ? CheckLevel.ok : CheckLevel.warn,
-    detail: hk.failures.isEmpty ? null : l.readyTakenByOther(hk.failures.length),
-  );
+  final features = ref.read(platformFeaturesProvider);
+  // Wayland: keybinder can't grab keys, so registering "works" but nothing
+  // fires — say so rather than look ready.
+  final hotkeys = features.wayland
+      ? ReadinessItem(l.readyHotkeysWayland, CheckLevel.warn, detail: l.readyHotkeysWaylandSub)
+      : ReadinessItem(
+          l.readyHotkeys(chord),
+          hk.failures.isEmpty ? CheckLevel.ok : CheckLevel.warn,
+          detail: hk.failures.isEmpty ? null : l.readyTakenByOther(hk.failures.length),
+        );
 
-  // The built-in key counts: no warning unless there is no key at all.
-  final aiKey = await resolveDeepSeekKey(secrets);
-  final answers = aiKey != null
-      ? ReadinessItem('DeepSeek · ${settings.aiModel}', CheckLevel.ok)
-      : ReadinessItem(l.readyNoKey, CheckLevel.missing, detail: l.readyAddKey);
+  // The built-in key counts: no warning unless there is no key at all, or
+  // DeepSeek turned the key down when the model list was fetched (revoked,
+  // out of balance). Offline or slow is not a key problem.
+  final cred = await resolveDeepSeekCredential(secrets);
+  ReadinessItem answers;
+  if (cred == null) {
+    answers = ReadinessItem(l.readyNoKey, CheckLevel.missing, detail: l.readyAddKey);
+  } else {
+    answers = ReadinessItem('DeepSeek · ${settings.aiModel}', CheckLevel.ok);
+    try {
+      await ref.read(deepSeekModelsProvider.future).timeout(const Duration(seconds: 4));
+    } on LlmException catch (e) {
+      if (const {401, 402, 403}.contains(e.statusCode)) {
+        answers = ReadinessItem(l.readyKeyRejected, CheckLevel.warn, detail: e.message);
+      }
+    } catch (_) {}
+  }
 
   ReadinessItem? screen;
   if (settings.screenAwareness) {
@@ -117,10 +132,7 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
   if (settings.agentEnabled) {
     final trusted = await ref.read(inputServiceProvider).hasPermission();
     agent = trusted
-        ? ReadinessItem(
-            settings.agentAutonomy == AgentAutonomy.auto ? l.readyAgentAuto : l.readyAgentOk,
-            CheckLevel.ok,
-          )
+        ? ReadinessItem(settings.agentAutonomy == AgentAutonomy.auto ? l.readyAgentAuto : l.readyAgentOk, CheckLevel.ok)
         : ReadinessItem(l.accessibilityMissing, CheckLevel.missing, detail: l.accessibilityMissingSub);
   }
 
@@ -131,6 +143,8 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
     voice: voice,
     hotkeys: hotkeys,
     answers: answers,
-    share: ReadinessItem(l.readyShareWindow, CheckLevel.warn, detail: l.readyShareWarning),
+    share: features.captureExclusion
+        ? ReadinessItem(l.readyShareWindow, CheckLevel.warn, detail: l.readyShareWarning)
+        : ReadinessItem(l.readyShareVisible, CheckLevel.warn, detail: l.readyShareVisibleSub),
   );
 });
