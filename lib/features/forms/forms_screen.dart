@@ -22,6 +22,8 @@ import '../library/library_shell.dart';
 import '../questionnaire/questionnaire_controller.dart';
 import 'autofill_controller.dart';
 import 'autofill_view.dart';
+import '../../core/platform/platform_features.dart';
+import '../../core/widgets/empty_state.dart';
 
 /// The Forms page (/forms): auto-fill's master switch, what it's doing now
 /// (the same controller as the overlay's status bar), a one-off "fill what's
@@ -32,6 +34,16 @@ class FormsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = context.l10n;
+    if (!ref.watch(platformFeaturesProvider).formFilling) {
+      return Column(
+        children: [
+          LibraryHeader(title: l.navForms),
+          Expanded(
+            child: EmptyState(icon: SottoIcons.form, title: l.formsUnavailableTitle, body: l.formsUnavailableBody),
+          ),
+        ],
+      );
+    }
     return Column(
       children: [
         LibraryHeader(

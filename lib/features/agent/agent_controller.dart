@@ -136,8 +136,12 @@ class AgentController extends Notifier<AgentState> {
       );
     }
 
-    final key = (await resolveDeepSeekKey(ref.read(secretStoreProvider)))!;
-    final client = DeepSeekClient(apiKey: key, model: settings.aiModel);
+    final cred = (await resolveDeepSeekCredential(ref.read(secretStoreProvider)))!;
+    final client = DeepSeekClient(
+      apiKey: cred.key,
+      model: settings.aiModel,
+      builtInKey: cred.source == KeySource.builtIn,
+    );
     final cancel = _cancel = AgentCancel();
     final started = DateTime.now();
     final loop = AgentLoop(
