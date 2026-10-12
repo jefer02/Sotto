@@ -93,7 +93,7 @@ BEGIN
             VALUE "FileDescription", "Sotto" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "sotto" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 Sotto. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Jeferson Manuel Morillo Vallejo. MIT License." "\0"
             VALUE "OriginalFilename", "sotto.exe" "\0"
             VALUE "ProductName", "Sotto" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
