@@ -22,6 +22,8 @@ import '../../../services/screen/screen_service.dart';
 import '../../forms/autofill_controller.dart';
 import '../../forms/browser_extension_rows.dart';
 import '../settings_screen.dart';
+import '../../../core/platform/platform_features.dart';
+import '../../../core/widgets/empty_state.dart';
 
 /// The README section on the browser extension.
 const browserHelpUrl = 'https://github.com/jefer02/Sotto#browser-extension';
@@ -88,6 +90,19 @@ class _FormsSettingsPageState extends ConsumerState<FormsSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!ref.watch(platformFeaturesProvider).formFilling) {
+      return SettingsPageScaffold(
+        title: context.l10n.setForms,
+        description: context.l10n.formsDescription,
+        left: [
+          EmptyState(
+            icon: SottoIcons.form,
+            title: context.l10n.formsUnavailableTitle,
+            body: context.l10n.formsUnavailableBody,
+          ),
+        ],
+      );
+    }
     final p = context.palette;
     final l = context.l10n;
     final s = ref.watch(settingsProvider);

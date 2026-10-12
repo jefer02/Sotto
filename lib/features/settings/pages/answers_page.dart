@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -19,6 +18,7 @@ import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
 import '../../../services/tts/tts_service.dart';
 import '../settings_screen.dart';
+import '../../../core/platform/platform_features.dart';
 
 final ttsVoicesProvider = FutureProvider<List<String>>((ref) => ref.read(ttsProvider).voices());
 
@@ -170,7 +170,12 @@ class AnswersPage extends ConsumerWidget {
         SettingsGroup(
           title: context.l10n.delivery,
           children: [
-            SettingRow(title: context.l10n.readAloudTitle, subtitle: context.l10n.readAloudHeadphones),
+            SettingRow(
+              title: context.l10n.readAloudTitle,
+              subtitle: ref.watch(platformFeaturesProvider).readAloud
+                  ? context.l10n.readAloudHeadphones
+                  : context.l10n.notOnLinux,
+            ),
             if (voices.isNotEmpty)
               SettingRow(
                 title: context.l10n.voice,
