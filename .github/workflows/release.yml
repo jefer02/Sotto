@@ -219,8 +219,18 @@ jobs:
           merge-multiple: true
       - name: Checksums
         working-directory: assets
+        # Every asset at the top level (a release takes files, not folders). On failure, the error
+        # and the file listing become an annotation, visible on the run page.
         run: |
-          sha256sum * > SHA256SUMS.txt
+          find . -mindepth 2 -type f -exec mv -f -t . {} +
+          find . -mindepth 1 -type d -empty -delete
+          if ! find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%P\0' | sort -z \
+              | xargs -0 sha256sum > ../SHA256SUMS.txt 2> ../checksums.err; then
+            msg="$(cat ../checksums.err; ls -laR)"
+            echo "::error title=Checksums failed::${msg//$'\n'/%0A}"
+            exit 1
+          fi
+          mv ../SHA256SUMS.txt .
           cat SHA256SUMS.txt
       - name: Release notes from CHANGELOG.md
         run: |
