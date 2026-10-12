@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Sotto
+GenericName=Presentation assistant
+Comment=Keeps your script under the camera and follows your voice
+Exec=sotto
+Icon=sotto
+Terminal=false
+Categories=Office;Presentation;AudioVideo;
+Keywords=teleprompter;presentation;speech;script;
+StartupWMClass=app.sotto.sotto
