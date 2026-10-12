@@ -18,6 +18,7 @@ import '../../data/repositories.dart';
 import '../../domain/chat/markdown.dart';
 import '../../l10n/l10n.dart';
 import 'chat_controller.dart';
+import '../../core/platform/platform_features.dart';
 
 /// Colours for the chat in either home: the main window or the overlay.
 class ChatColors {
@@ -249,14 +250,15 @@ class MessageTile extends ConsumerWidget {
                   overlay: colors.overlay,
                   onPressed: () => unawaited(c.copy(message)),
                 ),
-                SottoIconButton(
-                  icon: SottoIcons.speaker,
-                  tooltip: l.chatReadAloud,
-                  size: 24,
-                  iconSize: 12,
-                  overlay: colors.overlay,
-                  onPressed: () => unawaited(c.readAloud(message)),
-                ),
+                if (ref.watch(platformFeaturesProvider).readAloud)
+                  SottoIconButton(
+                    icon: SottoIcons.speaker,
+                    tooltip: l.chatReadAloud,
+                    size: 24,
+                    iconSize: 12,
+                    overlay: colors.overlay,
+                    onPressed: () => unawaited(c.readAloud(message)),
+                  ),
               ],
             ),
         ],

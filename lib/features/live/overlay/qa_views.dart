@@ -20,6 +20,7 @@ import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
 import '../live_controller.dart';
 import '../live_state.dart';
+import '../../../core/platform/platform_features.dart';
 
 // ─────────────────────────── Listening ───────────────────────────
 
@@ -588,7 +589,7 @@ class _AnswerActions extends ConsumerWidget {
               ),
             ),
           const SizedBox(width: 2),
-          if (hasAnswer)
+          if (hasAnswer && ref.watch(platformFeaturesProvider).readAloud)
             _GhostOverlayButton(
               icon: SottoIcons.speaker,
               label: context.l10n.readAloud,
