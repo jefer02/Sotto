@@ -35,12 +35,23 @@ class QuestionProgress {
 /// Following runs whenever the session is live. Room capture — for a
 /// question — runs only between the chord and the end of the question.
 class SpeechSession {
-  SpeechSession._(this._settings, this._mic, this._follower, this._transcriber, this.report, this._disposables);
+  SpeechSession._(
+    this._settings,
+    this._mic,
+    this._follower,
+    this._transcriber,
+    this._liveTranscriber,
+    this.report,
+    this._disposables,
+  );
 
   final AppSettings _settings;
   final AudioCapture _mic;
   final LiveRecognizer? _follower;
   final Transcriber? _transcriber;
+
+  /// The fastest Whisper loaded, for words that have to keep up with speech.
+  final Transcriber? _liveTranscriber;
   final EngineReport report;
   final List<Future<void> Function()> _disposables;
 
@@ -75,7 +86,7 @@ class SpeechSession {
   }) async {
     final disposables = <Future<void> Function()>[];
     LiveRecognizer? follower;
-    Transcriber? transcriber;
+    Transcriber? transcriber, liveTranscriber;
     final l = L10n.current;
     String following = l.engineUnavailable, questions = l.engineUnavailable;
     var canFollow = false;
@@ -88,7 +99,9 @@ class SpeechSession {
       final streaming = english
           ? (await models.locate(ModelCatalog.streamingEn) ?? await models.locate(ModelCatalog.streamingEnLight))
           : null;
-      final whisper = await models.locate(ModelCatalog.whisperTurbo) ?? await models.locate(ModelCatalog.whisperBase);
+      final base = await models.locate(ModelCatalog.whisperBase);
+      // The most accurate Whisper transcribes questions.
+      final whisper = await models.locate(ModelCatalog.whisperTurbo) ?? base;
       if (streaming != null || whisper != null) {
         final engine = await SherpaEngine.start(
           streaming: streaming,
@@ -100,7 +113,17 @@ class SpeechSession {
           follower = engine;
           following = l.engineOnDeviceStreaming;
         } else {
-          final seg = SegmentedRecognizer(engine, language: settings.language, prompt: prompt);
+          // Following re-transcribes the open utterance about once a second,
+          // so it needs the fastest Whisper. Turbo takes seconds per pass on a
+          // CPU: the script lagged behind the voice, then raced ahead on pauses.
+          Transcriber fast = engine;
+          if (base != null && whisper != base) {
+            final baseEngine = await SherpaEngine.start(whisper: base, language: isoLanguage(settings.language));
+            disposables.add(baseEngine.dispose);
+            fast = baseEngine;
+          }
+          liveTranscriber = fast;
+          final seg = SegmentedRecognizer(fast, language: settings.language, prompt: prompt);
           disposables.add(seg.dispose);
           follower = seg;
           following = l.engineOnDeviceWhisper;
@@ -127,6 +150,7 @@ class SpeechSession {
       mic,
       follower,
       transcriber,
+      liveTranscriber ?? transcriber,
       EngineReport(following: following, questions: questions, canFollow: canFollow, warning: warning),
       disposables,
     );
@@ -171,9 +195,9 @@ class SpeechSession {
     if (follower is SherpaEngine && follower.canFollow) {
       follower.clear();
       _questionRecognizer = follower;
-    } else if (_transcriber != null) {
+    } else if (_liveTranscriber case final live?) {
       _questionRecognizer = SegmentedRecognizer(
-        _transcriber,
+        live,
         language: _settings.language,
         refresh: const Duration(milliseconds: 900),
       );
