@@ -81,7 +81,16 @@ jobs:
         run: choco install innosetup --no-progress -y
       - name: Build and package
         shell: pwsh
-        run: ./tool/package_windows.ps1 -Version $env:VERSION -RequireInstaller
+        # On failure, the last lines of the log become an annotation, visible on the run page.
+        run: |
+          try {
+            ./tool/package_windows.ps1 -Version $env:VERSION -RequireInstaller *>&1 | Tee-Object -FilePath package.log
+          } catch {
+            $lines = @(Get-Content package.log -Tail 40 -ErrorAction SilentlyContinue) + "$_"
+            $tail = ($lines | ForEach-Object { "$_".Replace('%', '%25').Replace("`r", '') }) -join '%0A'
+            "::error title=Windows packaging failed::$tail"
+            exit 1
+          }
       - name: Remove the key file
         if: always()
         shell: pwsh

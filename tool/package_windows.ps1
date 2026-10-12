@@ -123,8 +123,13 @@ Write-Host "Portable: $zip"
 
 # Installer, when Inno Setup 6 is around.
 $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
-foreach ($candidate in @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe", "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe")) {
-  if (-not $iscc -and (Test-Path $candidate)) { $iscc = $candidate }
+if (-not $iscc) {
+  # Any Inno Setup version (6, 7…), per-machine or per-user; Chocolatey's install isn't on PATH.
+  $iscc = @("${env:ProgramFiles(x86)}", "$env:ProgramFiles", "$env:LOCALAPPDATA\Programs") |
+    ForEach-Object { Get-ChildItem -Path $_ -Directory -Filter 'Inno Setup*' -ErrorAction SilentlyContinue } |
+    Sort-Object Name -Descending |
+    ForEach-Object { Join-Path $_.FullName 'ISCC.exe' } |
+    Where-Object { Test-Path $_ } | Select-Object -First 1
 }
 if ($iscc) {
   & $iscc /Q "/DAppVersion=$Version" "/DSourceDir=$app" "/DOutputDir=$out" (Join-Path $root 'windows\installer\sotto.iss')
