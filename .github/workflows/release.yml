@@ -1,0 +1,242 @@
+# Builds every platform when a v* tag is pushed and creates a DRAFT GitHub release with all
+# assets, SHA-256 checksums and the CHANGELOG section for the version. Nothing is published
+# until someone reviews the draft and presses "Publish release".
+#
+# The built-in DeepSeek key comes from the repository secret DEEPSEEK_API_KEY. It is written to a
+# git-ignored define file for the build (never echoed, never on a command line) and deleted
+# afterwards. Without the secret the builds still run, and every job summary warns.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.47.5
+
+jobs:
+  verify:
+    name: Verify (analyze, test, version)
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag matches pubspec version
+        id: version
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pubspec="$(sed -nE 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' pubspec.yaml)"
+          if [ "$tag" != "$pubspec" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match pubspec.yaml version $pubspec"
+            exit 1
+          fi
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-pub
+      - run: flutter test --no-pub
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Browser extension tests
+        working-directory: extension
+        run: |
+          npm ci
+          npm test
+
+  windows:
+    name: Windows · zip + installer
+    needs: verify
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Built-in key
+        shell: pwsh
+        run: |
+          if ($env:DEEPSEEK_API_KEY) {
+            @{ DEEPSEEK_API_KEY = $env:DEEPSEEK_API_KEY } | ConvertTo-Json | Set-Content -Encoding utf8 secrets.json
+          } else {
+            "::warning::DEEPSEEK_API_KEY secret is not set: this build has no built-in key."
+            "> ⚠️ **No built-in DeepSeek key** in the Windows build (repository secret DEEPSEEK_API_KEY is missing)." >> $env:GITHUB_STEP_SUMMARY
+          }
+      - name: Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Build and package
+        shell: pwsh
+        run: ./tool/package_windows.ps1 -Version $env:VERSION -RequireInstaller
+      - name: Remove the key file
+        if: always()
+        shell: pwsh
+        run: Remove-Item -Force -ErrorAction SilentlyContinue secrets.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/*.zip
+            dist/*-setup.exe
+          if-no-files-found: error
+
+  macos:
+    name: macOS · universal dmg
+    needs: verify
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Built-in key
+        run: |
+          if [ -n "$DEEPSEEK_API_KEY" ]; then
+            printf '{"DEEPSEEK_API_KEY":"%s"}' "$DEEPSEEK_API_KEY" > secrets.json
+          else
+            printf '{"DEEPSEEK_API_KEY":""}' > secrets.json
+            echo "::warning::DEEPSEEK_API_KEY secret is not set: this build has no built-in key."
+            echo "> ⚠️ **No built-in DeepSeek key** in the macOS build (repository secret DEEPSEEK_API_KEY is missing)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      # Release builds are universal (arm64 + x86_64) by default.
+      - run: flutter build macos --release --dart-define-from-file=secrets.json
+      - name: Remove the key file
+        if: always()
+        run: rm -f secrets.json
+      - run: bash tool/package_macos.sh "$VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            dist/*.dmg
+            dist/*-macos.zip
+          if-no-files-found: error
+
+  linux:
+    name: Linux · tar.gz + AppImage (experimental)
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: System packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev \
+            libsecret-1-dev libkeybinder-3.0-dev file
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Built-in key
+        run: |
+          if [ -n "$DEEPSEEK_API_KEY" ]; then
+            printf '{"DEEPSEEK_API_KEY":"%s"}' "$DEEPSEEK_API_KEY" > secrets.json
+          else
+            printf '{"DEEPSEEK_API_KEY":""}' > secrets.json
+            echo "::warning::DEEPSEEK_API_KEY secret is not set: this build has no built-in key."
+            echo "> ⚠️ **No built-in DeepSeek key** in the Linux build (repository secret DEEPSEEK_API_KEY is missing)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - run: flutter build linux --release --dart-define-from-file=secrets.json
+      - name: Remove the key file
+        if: always()
+        run: rm -f secrets.json
+      - run: bash tool/package_linux.sh "$VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/*.tar.gz
+            dist/*.AppImage
+          if-no-files-found: error
+
+  extension:
+    name: Browser extension zip
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package (no node_modules, tests or tools)
+        run: |
+          mkdir -p dist
+          cd extension
+          zip -r "../dist/sotto-bridge-$VERSION.zip" manifest.json background.js content.js popup.html popup.js icons
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Draft GitHub release
+    needs: [verify, windows, macos, linux, extension]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - name: Checksums
+        working-directory: assets
+        run: |
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Release notes from CHANGELOG.md
+        run: |
+          # The section under "## [<version>]", up to the next "## [".
+          awk -v head="## [$VERSION]" '
+            index($0, head) == 1 { on = 1; next }
+            on && index($0, "## [") == 1 { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::warning::No '## [$VERSION]' section in CHANGELOG.md"
+            echo "See CHANGELOG.md." > notes.md
+          fi
+          {
+            echo
+            echo "---"
+            echo
+            echo "**Downloads.** Windows: the \`-setup.exe\` installer or the portable \`.zip\`. macOS: the \`.dmg\` (universal; see the README for the first-launch Gatekeeper step). Linux (**experimental**, reduced features, X11 recommended): the \`.tar.gz\` or the \`.AppImage\`. Browser extension: \`sotto-bridge-$VERSION.zip\`. Checksums: \`SHA256SUMS.txt\`."
+            echo
+            echo "Builds are not code-signed or notarized yet."
+          } >> notes.md
+      - name: Create draft release
+        run: |
+          gh release create "$GITHUB_REF_NAME" assets/* \
+            --draft \
+            --title "Sotto $VERSION" \
+            --notes-file notes.md \
+            --verify-tag
