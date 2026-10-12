@@ -56,6 +56,9 @@ New-Item -ItemType Directory -Force $app | Out-Null
 Copy-Item -Recurse -Force (Join-Path $release '*') $app
 # Link-time leftovers (sotto_native.lib) and debug symbols aren't needed to run.
 Get-ChildItem $app -Recurse -Include *.lib, *.exp, *.pdb, *.ilk | Remove-Item -Force
+# dartjni.dll (package:jni, only used by path_provider_android) is built when a JDK is around and
+# links jvm.dll: its /DELAYLOAD is set on an empty ${TARGET_NAME}. Nothing loads it on Windows.
+Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $app 'dartjni.dll')
 
 # The Visual C++ runtime the runner and plugins link against, so Sotto starts on a clean machine
 # without the VC++ Redistributable. Copied from this machine's System32 (x64).
