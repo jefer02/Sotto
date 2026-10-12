@@ -22,6 +22,7 @@ import 'pages/forms_page.dart';
 import 'pages/general_pages.dart';
 import 'pages/shortcuts_page.dart';
 import 'pages/voice_page.dart';
+import '../../core/platform/platform_features.dart';
 
 enum SettingsPage {
   // Keywords in English and Spanish, so search works in either language.
@@ -68,6 +69,10 @@ enum SettingsPage {
   }
 
   bool get isLive => index <= SettingsPage.answers.index;
+
+  /// Forms needs native form access; elsewhere the page isn't listed (a
+  /// deep link still opens it and explains why).
+  bool availableOn(PlatformFeatures f) => this != forms || f.formFilling;
 }
 
 class SettingsScreen extends ConsumerWidget {
@@ -77,6 +82,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
+    final features = ref.watch(platformFeaturesProvider);
     return Scaffold(
       // The sidebar is opaque; the light falls on the page beside it.
       body: StageGlow(
@@ -119,7 +125,7 @@ class SettingsScreen extends ConsumerWidget {
                           const SizedBox(height: 2),
                         ],
                         NavHeading(context.l10n.groupApp),
-                        for (final pg in SettingsPage.values.where((x) => !x.isLive)) ...[
+                        for (final pg in SettingsPage.values.where((x) => !x.isLive && x.availableOn(features))) ...[
                           NavItem(
                             label: pg.title,
                             icon: pg.icon,
@@ -182,12 +188,12 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 /// Jumps to the first page whose keywords match.
-class _SettingsSearch extends StatelessWidget {
+class _SettingsSearch extends ConsumerWidget {
   const _SettingsSearch({required this.current});
   final SettingsPage current;
 
   @override
-  Widget build(BuildContext context) => SottoTextField(
+  Widget build(BuildContext context, WidgetRef ref) => SottoTextField(
     width: 240,
     placeholder: context.l10n.searchSettings,
     leading: SottoIcons.search,
@@ -195,7 +201,7 @@ class _SettingsSearch extends StatelessWidget {
     onSubmitted: (q) {
       final query = q.trim().toLowerCase();
       if (query.isEmpty) return;
-      for (final pg in SettingsPage.values) {
+      for (final pg in SettingsPage.values.where((x) => x.availableOn(ref.read(platformFeaturesProvider)))) {
         if (pg.title.toLowerCase().contains(query) || pg.keywords.contains(query)) {
           context.go('/settings/${pg.name}');
           return;

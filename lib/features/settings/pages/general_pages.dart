@@ -23,13 +23,14 @@ import '../../../data/models/shortcut.dart';
 import '../../../data/repositories.dart';
 import '../../../data/storage/secret_store.dart';
 import '../../../core/platform/external_links.dart';
-import '../../../core/secrets.dart';
+import '../../../core/embedded_key.dart';
 import '../../../services/ai/deepseek_models.dart';
 import '../../../services/agent/input_service.dart';
 import '../../../services/ai/llm_client.dart';
 import '../../../services/screen/screen_service.dart';
 import '../../library/readiness.dart';
 import '../settings_screen.dart';
+import '../../../core/platform/platform_features.dart';
 
 // ─────────────────────────── General ───────────────────────────
 
@@ -91,14 +92,15 @@ class GeneralPage extends ConsumerWidget {
                   onChanged: (v) => n.update((x) => x.copyWith(chatAutoClose: v)),
                 ),
               ),
-            SettingRow(
-              title: context.l10n.showFormsNav,
-              subtitle: context.l10n.showFormsNavSub,
-              trailing: SottoToggle(
-                value: s.showFormsNav,
-                onChanged: (v) => n.update((x) => x.copyWith(showFormsNav: v)),
+            if (ref.watch(platformFeaturesProvider).formFilling)
+              SettingRow(
+                title: context.l10n.showFormsNav,
+                subtitle: context.l10n.showFormsNavSub,
+                trailing: SottoToggle(
+                  value: s.showFormsNav,
+                  onChanged: (v) => n.update((x) => x.copyWith(showFormsNav: v)),
+                ),
               ),
-            ),
           ],
         ),
         if (s.showChat)
@@ -300,7 +302,7 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
 
     return SettingsPageScaffold(
       title: l.setIntegrations,
-      description: kDeepSeekApiKey.isEmpty ? l.integrationsDescription : l.integrationsDescriptionBuiltIn,
+      description: kEmbeddedDeepSeekKey.isEmpty ? l.integrationsDescription : l.integrationsDescriptionBuiltIn,
       left: [
         SettingsGroup(
           title: 'DeepSeek',
@@ -308,14 +310,25 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
           children: [
             SettingRow(
               title: l.apiKey,
-              subtitle: kDeepSeekApiKey.isEmpty ? null : l.apiKeyOverrideSub,
+              subtitle: kEmbeddedDeepSeekKey.isEmpty ? l.apiKeyRequiredSub : l.apiKeyOverrideSub,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (_saved) ...[
-                    SottoIcon(SottoIcons.lock, size: 12, color: p.confirmed),
-                    const SizedBox(width: 5),
-                    Text(l.inKeychain, style: TypeScale.caption.copyWith(color: p.confirmed)),
+                    Tooltip(
+                      message: l.inKeychain,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SottoIcon(SottoIcons.lock, size: 12, color: p.confirmed),
+                          const SizedBox(width: 5),
+                          Text(l.usingYourKey, style: TypeScale.caption.copyWith(color: p.confirmed)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                  ] else if (kEmbeddedDeepSeekKey.isNotEmpty) ...[
+                    Text(l.usingBuiltInKey, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
                     const SizedBox(width: 10),
                   ],
                   SottoTextField(
@@ -323,7 +336,7 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
                     controller: _key,
                     obscure: true,
                     mono: true,
-                    placeholder: kDeepSeekApiKey.isEmpty ? 'sk-…' : l.builtInKey,
+                    placeholder: kEmbeddedDeepSeekKey.isEmpty ? 'sk-…' : l.builtInKey,
                     onSubmitted: (_) => unawaited(_saveKey()),
                   ),
                   const SizedBox(width: 8),
@@ -375,12 +388,13 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
                     ),
             ),
             SettingRow(
-              title: l.deepseekPlatform,
-              subtitle: 'platform.deepseek.com',
+              title: l.getApiKey,
+              subtitle: l.getApiKeySub,
               trailing: SottoButton(
                 label: l.open,
+                icon: SottoIcons.link,
                 size: ButtonSize.small,
-                onPressed: () => unawaited(openExternal('https://platform.deepseek.com')),
+                onPressed: () => unawaited(openExternal(deepSeekKeysUrl)),
               ),
             ),
           ],
@@ -591,14 +605,15 @@ class _ScreenAwarenessGroupState extends ConsumerState<_ScreenAwarenessGroup> {
     final s = ref.watch(settingsProvider);
     final n = ref.read(settingsProvider.notifier);
     final on = s.screenAwareness;
+    final supported = ref.watch(platformFeaturesProvider).screenCapture;
     return SettingsGroup(
       title: l.screenAwareness,
-      footer: l.screenAwarenessFooter,
+      footer: supported ? l.screenAwarenessFooter : l.linuxExperimentalSub,
       children: [
         SettingRow(
           title: l.screenAwarenessToggle,
-          subtitle: l.screenAwarenessToggleSub,
-          trailing: SottoToggle(value: on, onChanged: (v) => unawaited(_toggle(v))),
+          subtitle: supported ? l.screenAwarenessToggleSub : l.notOnLinux,
+          trailing: SottoToggle(value: on, onChanged: supported ? (v) => unawaited(_toggle(v)) : null),
         ),
         if (on) ...[
           SettingRow(
@@ -677,19 +692,21 @@ class _AgentGroupState extends ConsumerState<_AgentGroup> {
     final s = ref.watch(settingsProvider);
     final n = ref.read(settingsProvider.notifier);
     final stop = PlatformKeys.describe(s.shortcutFor(LiveAction.agentStop));
+    final features = ref.watch(platformFeaturesProvider);
+    final supported = features.agent;
     return SettingsGroup(
       title: l.agentMode,
       footer: l.agentModeFooter(stop),
       children: [
         SettingRow(
           title: l.agentToggle,
-          subtitle: InputService.supported ? l.agentToggleSub : l.agentUnsupported,
+          subtitle: supported ? l.agentToggleSub : (features.isLinux ? l.notOnLinux : l.agentUnsupported),
           trailing: SottoToggle(
-            value: s.agentEnabled && InputService.supported,
-            onChanged: InputService.supported ? (v) => unawaited(_toggle(v)) : null,
+            value: s.agentEnabled && supported,
+            onChanged: supported ? (v) => unawaited(_toggle(v)) : null,
           ),
         ),
-        if (s.agentEnabled && InputService.supported) ...[
+        if (s.agentEnabled && supported) ...[
           SettingRow(
             title: l.agentAutonomy,
             subtitle: s.agentAutonomy == AgentAutonomy.auto ? l.agentAutoSub : l.agentConfirmEachSub,
