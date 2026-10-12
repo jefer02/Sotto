@@ -1,11 +1,9 @@
 // Runs the real on-device pipeline: sherpa-onnx in its worker isolate,
 // fed a recorded WAV in 100 ms chunks the way the microphone does, driving
-// the follow engine over a script. Skipped unless the light English
-// streaming model is installed (Settings → Voice & following), or
-// SOTTO_MODEL_DIR points at an extracted model folder.
-import 'dart:io';
-import 'dart:typed_data';
-
+// the follow engine over a script. Each test is skipped unless its model is
+// installed (Settings → Voice & following); SOTTO_MODELS_ROOT overrides
+// where models are looked for. On Windows a local build provides the
+// native libraries (build/windows/x64/runner/…, or SOTTO_NATIVE_DIR).
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sotto/data/models/script.dart';
 import 'package:sotto/data/models/settings.dart';
@@ -14,97 +12,103 @@ import 'package:sotto/domain/following/script_aligner.dart';
 import 'package:sotto/services/speech/model_manager.dart';
 import 'package:sotto/services/speech/recognizers.dart';
 
-String? _modelDir() {
-  final env = Platform.environment['SOTTO_MODEL_DIR'];
-  if (env != null) return env;
-  final home = Platform.environment['HOME'] ?? '';
-  final dir = '$home/.local/share/app.sotto.sotto/models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17';
-  return Directory(dir).existsSync() ? dir : null;
+import 'native_speech.dart';
+
+Script _script(List<String> beats) {
+  final now = DateTime(2026);
+  return Script(
+    id: 's',
+    title: 'Test',
+    createdAt: now,
+    updatedAt: now,
+    sections: [
+      Section(id: 'a', title: 'One', beats: [for (final b in beats) Beat.create(b)]),
+    ],
+  );
 }
 
-/// 16-bit PCM mono WAV → float samples.
-Float32List _readWav(String path) {
-  final b = File(path).readAsBytesSync();
-  final data = ByteData.sublistView(b);
-  var offset = 12;
-  while (offset < b.length - 8) {
-    final id = String.fromCharCodes(b.sublist(offset, offset + 4));
-    final size = data.getUint32(offset + 4, Endian.little);
-    if (id == 'data') {
-      final n = size ~/ 2;
-      return Float32List.fromList([
-        for (var i = 0; i < n; i++) data.getInt16(offset + 8 + i * 2, Endian.little) / 32768.0,
-      ]);
-    }
-    offset += 8 + size;
-  }
-  throw StateError('no data chunk');
+/// Plays [wav] into [recognizer] with a follow engine listening, the way
+/// LiveController wires them, and returns the engine and the last words heard.
+Future<(FollowEngine, String)> _follow(LiveRecognizer recognizer, Script script, String wav) async {
+  final follow = FollowEngine(FlatScript.from(script), settings: const AppSettings())..jumpTo(0);
+  var last = '';
+  final events = <FollowEvent>[];
+  final sub = recognizer.heard.listen((t) {
+    last = t;
+    events.add(follow.onHeard(t));
+  });
+  await playInto(recognizer, readWav(wav));
+  await Future<void>.delayed(const Duration(seconds: 3));
+  await sub.cancel();
+  // ignore: avoid_print
+  print(
+    'heard: $last\nposition: beat ${follow.position.beat}, '
+    'events: ${events.where((e) => e != FollowEvent.none).toList()}',
+  );
+  return (follow, last.toLowerCase());
 }
 
 void main() {
-  final dir = _modelDir();
+  final native = loadNativeSpeech();
+  final streamingDir = modelDir(ModelCatalog.streamingEnLight.id);
+  final whisperDir = modelDir(ModelCatalog.whisperBase.id);
+
+  String? skip(String? dir) => !native
+      ? 'native speech libraries not built'
+      : dir == null
+      ? 'model not installed'
+      : null;
 
   test(
-    'sherpa streaming recognizer drives the follow engine',
+    'streaming recognizer (English) drives the follow engine',
     () async {
-      final files = await ModelManager.findFiles(dir!);
-      expect(files, isNotNull, reason: 'model files not found in $dir');
-
+      final files = await ModelManager.findFiles(streamingDir!);
+      expect(files, isNotNull, reason: 'model files not found in $streamingDir');
       final engine = await SherpaEngine.start(streaming: files);
-      final heard = <String>[];
-      final sub = engine.heard.listen(heard.add);
-
-      final now = DateTime(2026);
-      final script = Script(
-        id: 's',
-        title: 'Test',
-        createdAt: now,
-        updatedAt: now,
-        sections: [
-          Section(
-            id: 'a',
-            title: 'One',
-            beats: [
-              Beat.create('Welcome, everyone.'),
-              Beat.create('After early nightfall the yellow lamps would light up here and there.'),
-              Beat.create('The squalid quarter of the brothels.'),
-              Beat.create('Thank you.'),
-            ],
-          ),
-        ],
-      );
-      final follow = FollowEngine(FlatScript.from(script), settings: const AppSettings())..jumpTo(0);
-      final events = <FollowEvent>[];
-      final followSub = engine.heard.listen((t) => events.add(follow.onHeard(t)));
-
-      final audio = _readWav('$dir/test_wavs/0.wav');
-      const chunk = 1600; // 100 ms
-      for (var i = 0; i < audio.length; i += chunk) {
-        engine.accept(Float32List.sublistView(audio, i, i + chunk > audio.length ? audio.length : i + chunk));
-        await Future<void>.delayed(const Duration(milliseconds: 5));
-      }
-      // Trailing silence lets the recognizer finish the last words.
-      for (var i = 0; i < 10; i++) {
-        engine.accept(Float32List(chunk));
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-      }
-      await Future<void>.delayed(const Duration(seconds: 1));
-
-      await sub.cancel();
-      await followSub.cancel();
+      final script = _script([
+        'Welcome, everyone.',
+        'After early nightfall the yellow lamps would light up here and there.',
+        'The squalid quarter of the brothels.',
+        'Thank you.',
+      ]);
+      final (follow, text) = await _follow(engine, script, '$streamingDir/test_wavs/0.wav');
       await engine.dispose();
 
-      final text = heard.isEmpty ? '' : heard.last.toLowerCase();
-      // ignore: avoid_print
-      print(
-        'heard: $text\nposition: beat ${follow.position.beat}, events: ${events.where((e) => e != FollowEvent.none).toList()}',
-      );
       expect(text, contains('yellow lamps'));
-      // It should have skipped the unspoken first beat and followed the reading
-      // past "light up here and there".
+      // It skipped the unspoken first beat and followed the reading past
+      // "light up here and there".
       expect(follow.position.beat, greaterThanOrEqualTo(2));
     },
-    skip: dir == null ? 'streaming model not installed' : false,
+    skip: skip(streamingDir) ?? false,
     timeout: const Timeout(Duration(minutes: 2)),
+  );
+
+  // Every language but English follows through Whisper re-transcribing the
+  // open utterance (SegmentedRecognizer), so this is the Spanish path.
+  test(
+    'Whisper through the segmented recognizer drives the follow engine',
+    () async {
+      final files = await ModelManager.findFiles(whisperDir!);
+      expect(files, isNotNull, reason: 'model files not found in $whisperDir');
+      final engine = await SherpaEngine.start(whisper: files, language: 'en');
+      expect(engine.canFollow, isFalse);
+      final seg = SegmentedRecognizer(engine, language: 'en');
+      final script = _script([
+        'Good evening.',
+        'God, as a direct consequence of the sin which man thus punished,',
+        'had given her a lovely child,',
+        'whose place was on that same dishonoured bosom,',
+        'to connect her parent for ever with the race and descent of mortals,',
+        'and to be finally a blessed soul in heaven.',
+      ]);
+      final (follow, text) = await _follow(seg, script, '$whisperDir/test_wavs/1.wav');
+      await seg.dispose();
+      await engine.dispose();
+
+      expect(text, contains('lovely child'));
+      expect(follow.position.beat, greaterThanOrEqualTo(4));
+    },
+    skip: skip(whisperDir) ?? false,
+    timeout: const Timeout(Duration(minutes: 3)),
   );
 }
