@@ -335,7 +335,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noticeNoQuestion => 'No se entendió la pregunta';
 
   @override
-  String get answerNeedsKey => 'Añade una clave de API en Ajustes → Integraciones para redactar respuestas.';
+  String get answerNeedsKey =>
+      'Las respuestas necesitan una clave de DeepSeek. Añade la tuya en Ajustes → Integraciones; crearla es gratis.';
 
   @override
   String get noticeCopiedForChat => 'Copiado — pégalo en el chat de la reunión';
@@ -374,7 +375,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get readyNoKey => 'Sin clave de API';
 
   @override
-  String get readyAddKey => 'Añade una en Integraciones para redactar respuestas';
+  String get readyAddKey => 'Añade tu clave de DeepSeek en Integraciones para redactar respuestas';
 
   @override
   String get readyShareWindow => 'Comparte una ventana';
@@ -948,7 +949,8 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get suggestNeedsKey => 'Añade una clave de API en Ajustes → Integraciones para sugerir preguntas.';
+  String get suggestNeedsKey =>
+      'Sugerir preguntas necesita una clave de DeepSeek. Añade la tuya en Ajustes → Integraciones.';
 
   @override
   String get noQuestionsReturned => 'El modelo no devolvió preguntas.';
@@ -2013,7 +2015,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get integrationsDescriptionBuiltIn =>
-      'Las respuestas las redacta DeepSeek con la clave integrada en esta copia de Sotto. Puedes reemplazarla con tu propia clave.';
+      'Las respuestas las redacta DeepSeek con la clave integrada en esta copia de Sotto, así que funcionan desde el primer momento. Una clave personal es opcional: añádela para usar tu propia cuenta y tus límites.';
 
   @override
   String get deepseekFooter => 'Solo se envían la pregunta y los fragmentos usados para responderla.';
@@ -3118,4 +3120,67 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get practiceLegendLive => 'En vivo';
+
+  @override
+  String get llmBuiltInKeyFailed =>
+      'La clave de DeepSeek integrada en Sotto no funciona ahora mismo. Añade tu propia clave en Ajustes → Integraciones para seguir redactando respuestas; el seguimiento por voz y la superposición siguen funcionando sin ella.';
+
+  @override
+  String get readyKeyRejected => 'La clave de DeepSeek no funciona';
+
+  @override
+  String get apiKeyRequiredSub =>
+      'Necesaria para respuestas, chat y organizar con IA. El seguimiento por voz funciona sin ella.';
+
+  @override
+  String get getApiKey => 'Conseguir una clave';
+
+  @override
+  String get getApiKeySub => 'Créala en platform.deepseek.com, pégala arriba y pulsa Probar';
+
+  @override
+  String get usingBuiltInKey => 'Usando la clave integrada';
+
+  @override
+  String get usingYourKey => 'Usando tu clave';
+
+  @override
+  String get notOnLinux => 'Aún no disponible en Linux';
+
+  @override
+  String get linuxExperimentalSub =>
+      'Sotto en Linux es experimental. Leer la pantalla, rellenar formularios, el modo agente, la extensión del navegador y leer respuestas en voz alta necesitan, por ahora, Windows o macOS.';
+
+  @override
+  String get screenUnavailableNotice => 'Leer la pantalla aún no está disponible en Linux.';
+
+  @override
+  String get formsUnavailableNotice => 'Rellenar formularios aún no está disponible en Linux.';
+
+  @override
+  String get agentUnavailableNotice => 'El modo agente aún no está disponible en Linux.';
+
+  @override
+  String get readAloudUnavailableNotice => 'Leer respuestas en voz alta aún no está disponible en Linux.';
+
+  @override
+  String get formsUnavailableTitle => 'Los formularios aún no están disponibles en Linux';
+
+  @override
+  String get formsUnavailableBody =>
+      'Rellenar formularios necesita leer y pulsar en las ventanas de otras apps, algo que por ahora Sotto solo puede hacer en Windows y macOS.';
+
+  @override
+  String get readyShareVisible => 'La superposición sale al compartir';
+
+  @override
+  String get readyShareVisibleSub =>
+      'En Linux la superposición no puede ocultarse de las capturas: comparte solo la ventana de las diapositivas, no toda la pantalla.';
+
+  @override
+  String get readyHotkeysWayland => 'Los atajos necesitan una sesión X11';
+
+  @override
+  String get readyHotkeysWaylandSub =>
+      'Wayland no deja registrar atajos globales. Inicia sesión con X11 («en Xorg») o usa los botones de la superposición.';
 }
