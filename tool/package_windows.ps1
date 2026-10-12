@@ -81,7 +81,15 @@ if ($dumpbin) {
   $bundled = Get-ChildItem $app -Recurse -Include *.dll, *.exe | ForEach-Object { $_.Name.ToLower() }
   $missing = @{}
   foreach ($bin in Get-ChildItem $app -Recurse -Include *.dll, *.exe) {
-    $deps = & $dumpbin /nologo /dependents $bin.FullName | Where-Object { $_ -match '^\s+\S+\.dll\s*$' } | ForEach-Object { $_.Trim().ToLower() }
+    # Only load-time imports: delay-loaded DLLs (dartjni.dll's jvm.dll, built when a JDK is around)
+    # load on first use, which Sotto never makes.
+    $deps = @()
+    $delayed = $false
+    foreach ($l in & $dumpbin /nologo /dependents $bin.FullName) {
+      if ($l -match 'delay load dependencies') { $delayed = $true; continue }
+      if ($l -match 'following dependencies') { $delayed = $false; continue }
+      if (-not $delayed -and $l -match '^\s+\S+\.dll\s*$') { $deps += $l.Trim().ToLower() }
+    }
     foreach ($dep in $deps) {
       if ($bundled -contains $dep) { continue }
       if ($dep -like 'api-ms-win-*' -or $dep -like 'ext-ms-*') { continue }   # Windows API sets
