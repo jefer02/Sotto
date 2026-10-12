@@ -7,9 +7,9 @@ import 'llm_client.dart';
 /// Model ids this key may use, from DeepSeek's `GET /models`. Fetched at
 /// startup and re-fetched (by invalidating) whenever the key changes.
 final deepSeekModelsProvider = FutureProvider<List<DeepSeekModel>>((ref) async {
-  final key = await resolveDeepSeekKey(ref.watch(secretStoreProvider));
-  if (key == null) return const [];
-  final client = DeepSeekClient(apiKey: key, model: defaultAiModel);
+  final cred = await resolveDeepSeekCredential(ref.watch(secretStoreProvider));
+  if (cred == null) return const [];
+  final client = DeepSeekClient(apiKey: cred.key, model: defaultAiModel, builtInKey: cred.source == KeySource.builtIn);
   try {
     return await client.listModels();
   } finally {

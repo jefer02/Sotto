@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
-import '../../core/secrets.dart';
+import '../../core/embedded_key.dart';
 import '../../data/models/settings.dart';
 import '../../data/storage/secret_store.dart';
 import '../../l10n/l10n.dart';
@@ -24,7 +24,10 @@ class LlmException implements Exception {
   @override
   String toString() => message;
 
-  static LlmException fromStatus(int status, String body) {
+  /// [builtInKey]: the request used the key built into Sotto, which the
+  /// user can't check or top up — so a rejected or empty key asks them to
+  /// add their own instead.
+  static LlmException fromStatus(int status, String body, {bool builtInKey = false}) {
     String detail = '';
     try {
       final j = jsonDecode(body);
@@ -34,6 +37,7 @@ class LlmException implements Exception {
     final suffix = detail.isEmpty ? '' : ': $detail';
     final msg = switch (status) {
       400 || 422 => '${l.llmRejected}$suffix',
+      401 || 402 || 403 when builtInKey => l.llmBuiltInKeyFailed,
       401 || 403 => l.llmBadKey(_provider),
       402 => l.llmNoBalance,
       404 => l.llmNoModel,
@@ -61,14 +65,25 @@ class LlmRefusal extends LlmException {
   LlmRefusal() : super(L10n.current.llmRefusal);
 }
 
-/// The key DeepSeek calls use: one saved in Settings → Integrations wins,
-/// otherwise the built-in key from `lib/core/secrets.dart`. Null when
-/// neither exists.
-Future<String?> resolveDeepSeekKey(SecretStore secrets) async {
+/// Where the key a DeepSeek call uses came from.
+enum KeySource { user, builtIn }
+
+/// The key DeepSeek calls use and where it came from: one the user saved in
+/// Settings › Integrations wins, otherwise the key built into this copy
+/// ([kEmbeddedDeepSeekKey]). Null when neither exists.
+Future<({String key, KeySource source})?> resolveDeepSeekCredential(
+  SecretStore secrets, {
+  String embedded = kEmbeddedDeepSeekKey,
+}) async {
   final saved = await secrets.read(SecretKey.deepseekApiKey);
-  if (saved != null && saved.isNotEmpty) return saved;
-  return kDeepSeekApiKey.isEmpty ? null : kDeepSeekApiKey;
+  if (saved != null && saved.trim().isNotEmpty) return (key: saved.trim(), source: KeySource.user);
+  final built = embedded.trim();
+  return built.isEmpty ? null : (key: built, source: KeySource.builtIn);
 }
+
+/// The key DeepSeek calls use; see [resolveDeepSeekCredential].
+Future<String?> resolveDeepSeekKey(SecretStore secrets, {String embedded = kEmbeddedDeepSeekKey}) async =>
+    (await resolveDeepSeekCredential(secrets, embedded: embedded))?.key;
 
 /// A model `GET /models` returned.
 class DeepSeekModel {
@@ -135,13 +150,17 @@ abstract class LlmClient {
 
   void close();
 
-  static LlmClient create(AppSettings s, String apiKey) =>
-      DeepSeekClient(apiKey: apiKey, model: s.aiModel, visionModel: s.visionModel);
+  static LlmClient create(AppSettings s, String apiKey, {bool builtInKey = false}) =>
+      DeepSeekClient(apiKey: apiKey, model: s.aiModel, visionModel: s.visionModel, builtInKey: builtInKey);
 
   /// A client for the current settings, or null when there is no key.
-  static Future<LlmClient?> forSettings(AppSettings s, SecretStore secrets) async {
-    final key = await resolveDeepSeekKey(secrets);
-    return key == null ? null : create(s, key);
+  static Future<LlmClient?> forSettings(
+    AppSettings s,
+    SecretStore secrets, {
+    String embedded = kEmbeddedDeepSeekKey,
+  }) async {
+    final c = await resolveDeepSeekCredential(secrets, embedded: embedded);
+    return c == null ? null : create(s, c.key, builtInKey: c.source == KeySource.builtIn);
   }
 }
 
@@ -209,7 +228,11 @@ class DeepSeekClient extends LlmClient {
     this.visionModel,
     http.Client? httpClient,
     this.timeout = defaultTimeout,
+    this.builtInKey = false,
   }) : _http = httpClient ?? http.Client();
+
+  /// [apiKey] is the one built into Sotto, not the user's.
+  final bool builtInKey;
 
   static const baseUrl = 'https://api.deepseek.com';
 
@@ -233,7 +256,7 @@ class DeepSeekClient extends LlmClient {
     final req = http.Request('GET', Uri.parse('$baseUrl/models'))..headers.addAll(_headers);
     final res = await _send(_http, req, timeout);
     final body = await res.stream.bytesToString();
-    if (res.statusCode != 200) throw LlmException.fromStatus(res.statusCode, body);
+    if (res.statusCode != 200) throw LlmException.fromStatus(res.statusCode, body, builtInKey: builtInKey);
     final data = (jsonDecode(body) as Map)['data'] as List? ?? const [];
     return [
       for (final m in data.cast<Map<Object?, Object?>>())
@@ -297,7 +320,7 @@ class DeepSeekClient extends LlmClient {
 
     final res = await _send(_http, req, timeout);
     if (res.statusCode != 200) {
-      throw LlmException.fromStatus(res.statusCode, await res.stream.bytesToString());
+      throw LlmException.fromStatus(res.statusCode, await res.stream.bytesToString(), builtInKey: builtInKey);
     }
     await for (final (_, data) in _sse(res.stream)) {
       if (data == '[DONE]') break;
@@ -340,7 +363,7 @@ class DeepSeekClient extends LlmClient {
       });
     final res = await _send(_http, req, timeout);
     final body = await res.stream.bytesToString();
-    if (res.statusCode != 200) throw LlmException.fromStatus(res.statusCode, body);
+    if (res.statusCode != 200) throw LlmException.fromStatus(res.statusCode, body, builtInKey: builtInKey);
     final j = jsonDecode(body) as Map<String, dynamic>;
     final choices = j['choices'] as List?;
     if (choices == null || choices.isEmpty) throw LlmException(L10n.current.llmGenericError(_provider));
