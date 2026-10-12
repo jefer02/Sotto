@@ -28,6 +28,7 @@ import '../features/preflight/preflight_dialog.dart';
 import '../features/questionnaire/questionnaire_controller.dart';
 import '../features/questionnaire/questionnaire_view.dart';
 import 'router.dart';
+import '../core/platform/platform_features.dart';
 
 /// The script a global ⌃⌥L should start: the one open in the editor, or
 /// the library's "Up next".
@@ -86,10 +87,12 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       .registerIdleHotkeys(
         _openPreflightFromHotkey,
         extra: {
-          LiveAction.fillForm: (
-            onDown: () => unawaited(ref.read(autoFillControllerProvider.notifier).fillNow()),
-            onUp: null,
-          ),
+          // Linux has no form filling: the chord stays free for other apps.
+          if (ref.read(platformFeaturesProvider).formFilling)
+            LiveAction.fillForm: (
+              onDown: () => unawaited(ref.read(autoFillControllerProvider.notifier).fillNow()),
+              onUp: null,
+            ),
           // Chord + Esc, outside a session too: whatever Sotto is doing on
           // screen stops at once, and auto-fill rests.
           LiveAction.agentStop: (onDown: _emergencyStop, onUp: null),
