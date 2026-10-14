@@ -15,33 +15,59 @@ const _primary = DisplayArea(id: 'p', visible: Rect.fromLTWH(0, 0, 1920, 1040), 
 const _second = DisplayArea(id: 's', visible: Rect.fromLTWH(1920, 0, 2560, 1400));
 
 /// A window that behaves like the OS's: a maximised or full-screen window
-/// ignores new bounds, and un-maximising returns to its normal frame.
+/// ignores new bounds, and un-maximising returns to its normal frame. A
+/// minimised one ignores them too, and showing it restores it — maximised
+/// again if it was maximised before.
 class FakeWindowHost implements WindowHost {
-  FakeWindowHost({this.maximized = false, this.fullScreen = false});
+  FakeWindowHost({this.maximized = false, this.fullScreen = false, this.minimized = false});
 
+  /// While [minimized]: whether it comes back maximised.
   bool maximized;
   bool fullScreen;
+  bool minimized;
+
+  /// Whether the platform can un-minimise straight to a frame (Windows).
+  bool nativePlacement = true;
+
+  /// Snap Assist tiled it.
+  bool arranged = false;
   Rect normal = const Rect.fromLTWH(320, 110, 1280, 820);
   final setBoundsCalls = <Rect>[];
 
   Rect get _filled => _primary.visible;
 
   @override
-  Future<Rect> getBounds() async => maximized || fullScreen ? _filled : normal;
+  Future<Rect> getBounds() async =>
+      minimized ? const Rect.fromLTWH(-32000, -32000, 160, 28) : (maximized || fullScreen ? _filled : normal);
 
   @override
   Future<void> setBounds(Rect bounds, {bool animate = false}) async {
     setBoundsCalls.add(bounds);
-    if (!maximized && !fullScreen) normal = bounds;
+    if (!minimized && !maximized && !fullScreen) normal = bounds;
   }
 
   @override
   Future<void> setPosition(Offset position, {bool animate = false}) async {
-    if (!maximized && !fullScreen) normal = position & normal.size;
+    if (!minimized && !maximized && !fullScreen) normal = position & normal.size;
   }
 
   @override
-  Future<bool> isMaximized() async => maximized;
+  Future<({Rect bounds, bool maximized})?> minimizedPlacement() async {
+    if (!minimized) return null;
+    if (nativePlacement) return (bounds: normal, maximized: maximized);
+    await restore();
+    return null;
+  }
+
+  @override
+  Future<void> unminimizeTo(Rect frame) async {
+    minimized = false;
+    maximized = false;
+    normal = frame;
+  }
+
+  @override
+  Future<bool> isMaximized() async => !minimized && maximized;
   @override
   Future<void> maximize() async => maximized = true;
   @override
@@ -56,13 +82,15 @@ class FakeWindowHost implements WindowHost {
   @override
   Future<void> init() async {}
   @override
-  Future<bool> isMinimized() async => false;
+  Future<bool> isMinimized() async => minimized;
   @override
-  Future<void> restore() async {}
+  Future<void> restore() async => minimized = false;
+  @override
+  Future<bool> isArranged() async => arranged;
   @override
   Future<void> setOverlayChrome(bool on, {required Size minimumSize, bool shadow = true}) async {}
   @override
-  Future<void> show({bool inactive = false}) async {}
+  Future<void> show({bool inactive = false}) async => minimized = false;
   @override
   Future<void> hide() async {}
   @override
@@ -218,6 +246,105 @@ void main() {
       await live.end();
       expect(window.isOverlay, isFalse);
       expect(host.maximized, isTrue);
+    });
+  });
+
+  group('a panel over another app (auto-fill, chord + F)', () {
+    const settings = AppSettings(overlaySize: (560, 140), overlayPositions: {'p': (680, 12)});
+
+    // The bug: Sotto minimised from a maximised main window, a form shows up
+    // in the browser, and the panel opened as a maximised window.
+    for (final native in [true, false]) {
+      test('a minimised, maximised main window still opens a compact panel'
+          '${native ? '' : ' (no native placement)'}', () async {
+        final host = FakeWindowHost(maximized: true, minimized: true)..nativePlacement = native;
+        final window = WindowService(host: host, supportedOverride: true);
+
+        await window.enterOverlay(settings, height: 380);
+
+        final b = await window.bounds();
+        expect(host.minimized, isFalse);
+        expect(await host.isMaximized(), isFalse);
+        expect(OverlayGeometry.fills(b, _primary.visible), isFalse);
+        expectNear(b, const Rect.fromLTWH(680, 12, 560, 380));
+
+        await window.exitOverlay();
+        expect(host.maximized, isTrue, reason: 'the main window comes back as it was');
+      });
+    }
+
+    test('a minimised normal window comes back to its own frame afterwards', () async {
+      final host = FakeWindowHost(minimized: true);
+      final window = WindowService(host: host, supportedOverride: true);
+
+      await window.enterOverlay(settings, height: 380);
+      expectNear(await window.bounds(), const Rect.fromLTWH(680, 12, 560, 380));
+
+      await window.exitOverlay();
+      expectNear(await window.bounds(), const Rect.fromLTWH(320, 110, 1280, 820));
+      expect(host.maximized, isFalse);
+    });
+
+    test("auto-fill's box keeps its own shape, not the reading strip's", () async {
+      final host = FakeWindowHost();
+      final window = WindowService(host: host, supportedOverride: true);
+      const wide = AppSettings(overlaySize: (1400, 500), overlayPositions: {'p': (200, 12)});
+
+      await window.enterOverlay(wide, size: const Size(440, 96));
+
+      expectNear(await window.bounds(), const Rect.fromLTWH(200, 12, 440, 96));
+    });
+
+    test('a height asked while the box is still opening keeps the box width', () async {
+      final host = FakeWindowHost();
+      final window = WindowService(host: host, supportedOverride: true);
+      const wide = AppSettings(overlaySize: (1400, 500), overlayPositions: {'p': (200, 12)});
+
+      // The panel's screen asks for its height before the window is the box.
+      final entering = window.enterOverlay(wide, size: const Size(440, 96));
+      final fitting = window.animateHeight(180, duration: Duration.zero);
+      await Future.wait([entering, fitting]);
+
+      expectNear(await window.bounds(), const Rect.fromLTWH(200, 12, 440, 180));
+    });
+
+    test('a saved panel width stays a small box', () {
+      expect(AppSettings.fromJson({'formsPanelWidth': 1280}).panelWidth, 440);
+      expect(AppSettings.fromJson({'formsPanelWidth': 100}).panelWidth, 440);
+      expect(AppSettings.fromJson({'formsPanelWidth': 520}).panelWidth, 520);
+      expect(AppSettings.fromJson({}).panelWidth, 440);
+    });
+  });
+
+  group('snapped by Snap Assist', () {
+    late FakeWindowHost host;
+    late WindowService window;
+
+    setUp(() async {
+      host = FakeWindowHost();
+      window = WindowService(host: host, supportedOverride: true);
+      await window.enterOverlay(const AppSettings(overlaySize: (480, 120), overlayPositions: {'p': (700, 12)}));
+      // Tiled to the left half.
+      host.normal = const Rect.fromLTWH(0, 0, 960, 1040);
+      host.arranged = true;
+      host.setBoundsCalls.clear();
+    });
+
+    test('nothing resizes, moves or saves the tiled frame', () async {
+      await window.animateHeight(300);
+      await window.resizeOverlay(400);
+      await window.setOverlayWidth(600);
+      expect(await window.snapAfterDrag(), isNull);
+      expect(host.setBoundsCalls, isEmpty);
+      expect(await window.ownsFrame(), isFalse);
+      expect(await window.isArranged(), isTrue);
+    });
+
+    test("dragged out of the snap, it is the presenter's again", () async {
+      host.arranged = false;
+      expect(await window.ownsFrame(), isTrue);
+      await window.animateHeight(300);
+      expect(host.setBoundsCalls, isNotEmpty);
     });
   });
 }

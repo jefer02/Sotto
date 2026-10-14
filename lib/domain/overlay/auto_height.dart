@@ -24,4 +24,20 @@ abstract final class AutoHeight {
     final cap = userCap ?? screenHeight * maxFraction;
     return wanted.clamp(minimum, math.max(minimum, cap));
   }
+
+  /// The forms panel's tallest: past this its list scrolls.
+  static const panelMax = 560.0;
+
+  /// The forms panel never takes more than this share of the display.
+  static const panelFraction = 0.6;
+
+  /// The forms panel's shortest: its status bar and a line or two.
+  static const panelMin = 96.0;
+
+  static double panelCap(double screenHeight) => math.max(panelMin, math.min(panelMax, screenHeight * panelFraction));
+
+  /// The forms panel's window height for [content]: what it shows, within
+  /// [panelMin] and [panelCap] — never the size of the screen.
+  static double panel(double content, {required double screenHeight}) =>
+      content.clamp(panelMin, panelCap(screenHeight));
 }
