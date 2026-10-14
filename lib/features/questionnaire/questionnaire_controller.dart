@@ -15,8 +15,11 @@ import '../../domain/agent/safety.dart';
 import '../../domain/forms/form_filler.dart';
 import '../../domain/forms/form_model.dart';
 import '../../domain/forms/form_runner.dart';
+import '../../domain/forms/manual_answers.dart';
+import '../../domain/overlay/auto_height.dart';
 import '../../l10n/l10n.dart';
 import '../../services/agent/input_service.dart';
+import '../../services/ai/deepseek_models.dart';
 import '../../services/ai/llm_client.dart';
 import '../../services/ai/questionnaire_service.dart';
 import '../../services/screen/browser_bridge.dart';
@@ -39,12 +42,16 @@ class FormItem {
     this.visual = false,
     this.type = QuestionType.text,
     this.reasoning = '',
+    this.letter,
   });
 
   final String question;
   final String answer;
   final ItemStatus status;
   final String note;
+
+  /// A lettered option's letter (A, B, C…).
+  final String? letter;
 
   final QuestionType type;
 
@@ -66,6 +73,7 @@ class FormItem {
     visual: visual,
     type: type,
     reasoning: reasoning,
+    letter: letter,
   );
 }
 
@@ -110,6 +118,20 @@ class QuestionnaireState {
   };
 
   int get filledCount => items.where((i) => i.status == ItemStatus.filled).length;
+
+  /// Every question, numbered, as the presenter fills the rest by hand.
+  List<ManualAnswer> get manualAnswers => [
+    for (var i = 0; i < items.length; i++)
+      ManualAnswer(
+        number: i + 1,
+        question: items[i].question,
+        answer: items[i].answer,
+        letter: items[i].letter,
+        type: items[i].type,
+        status: items[i].status,
+        note: items[i].note,
+      ),
+  ];
 
   /// Items that fill (not skipped / blocked) — the "7/12" denominator.
   int get fillableCount => items.where((i) => i.status != ItemStatus.skipped && i.status != ItemStatus.blocked).length;
@@ -201,7 +223,10 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
     final startedAt = DateTime.now();
     final problem = await preflight();
     state = QuestionnaireState(phase: FormPhase.reading, standalone: !live && !managed, auto: auto);
-    if (!live && !managed) await _window.enterOverlay(settings, height: panelHeight);
+    // The forms panel's own small box, growing to what it shows.
+    if (!live && !managed) {
+      await _window.enterOverlay(settings, size: Size(settings.panelWidth, AutoHeight.panelMin));
+    }
     if (problem != null) {
       state = state.copyWith(phase: FormPhase.finished, error: problem, outcome: 'failed');
       return 'failed';
@@ -218,6 +243,14 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
     _edits.clear();
 
     final client = (await LlmClient.forSettings(settings, ref.read(secretStoreProvider)))!;
+    // A model that can't read images never gets a screenshot: the screen
+    // goes as text (OCR marks) instead.
+    var models = const <DeepSeekModel>[];
+    try {
+      models = await ref.read(deepSeekModelsProvider.future).timeout(const Duration(seconds: 3));
+    } catch (_) {
+      // Unknown: try images; one the model refuses switches to text.
+    }
     final driver = NativeFormDriver(
       screen: ref.read(screenServiceProvider),
       forms: ref.read(formAccessProvider),
@@ -235,6 +268,7 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
         QuestionnaireService(client),
         settings: settings,
         appLanguageName: L10n.current.localeName == 'es' ? 'Spanish' : 'English',
+        images: visionReadsImages(models, settings.visionModel),
       ),
       host: this,
       texts: this,
@@ -268,7 +302,15 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
       state = const QuestionnaireState();
       return outcome;
     }
-    state = state.copyWith(phase: FormPhase.finished, clearCurrent: true, outcome: outcome, page: result.pages);
+    state = state.copyWith(
+      phase: FormPhase.finished,
+      clearCurrent: true,
+      outcome: outcome,
+      page: result.pages,
+      // The whole run, not only its last round: every question, once, as it
+      // ended — what Sotto filled and what's left to fill by hand.
+      items: result.fields.isEmpty ? null : finishedItems(result.fields),
+    );
     await _record(
       FormRunRecord(
         status: outcome,
@@ -300,6 +342,30 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
     return outcome;
   }
 
+  /// [fields] as the finished list: the last word on each question.
+  /// Password and payment fields never show an answer.
+  static List<FormItem> finishedItems(List<FilledField> fields) {
+    final last = <String, FilledField>{};
+    for (final f in fields) {
+      last.remove(f.question);
+      last[f.question] = f;
+    }
+    return [
+      for (final f in last.values)
+        FormItem(
+          question: f.question,
+          answer: f.status == ItemStatus.blocked ? '' : f.answer,
+          status: f.status,
+          note: f.note,
+          editable: false,
+          visual: f.visual,
+          type: f.type,
+          reasoning: f.reasoning,
+          letter: f.status == ItemStatus.blocked ? null : f.letter,
+        ),
+    ];
+  }
+
   // ─────────────────────────── FormRunHost ───────────────────────────
 
   @override
@@ -323,15 +389,21 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
             type: plan.steps[i].type,
             reasoning: plan.steps[i].answer.reasoning,
             editable: !plan.steps[i].showOnly,
+            letter: plan.steps[i].answer.letter,
           ),
         for (final s in plan.skipped)
           FormItem(
             question: s.question,
-            answer: s.answer?.display ?? '',
+            // A password or payment field never shows an answer.
+            answer: s.reason == SkipReason.sensitive ? '' : s.answer?.display ?? '',
             status: s.reason == SkipReason.sensitive ? ItemStatus.blocked : ItemStatus.skipped,
             note: skipped(s.reason),
             editable: false,
             reasoning: s.answer?.reasoning ?? '',
+            type: s.field != null
+                ? QuestionTypes.classify(s.field!)
+                : (QuestionTypes.parse(s.answer?.type) ?? QuestionType.text),
+            letter: s.reason == SkipReason.sensitive ? null : s.answer?.letter,
           ),
       ],
     );
@@ -414,6 +486,7 @@ class QuestionnaireController extends Notifier<QuestionnaireState> implements Fo
       SkipReason.noMatch => l.formsWhyNoMatch,
       SkipReason.unknownField => l.formsWhyNoField,
       SkipReason.noAnswer || SkipReason.lowConfidence => l.formsWhyNoAnswer,
+      SkipReason.offscreen => l.formsWhyOffscreen,
     };
   }
 
