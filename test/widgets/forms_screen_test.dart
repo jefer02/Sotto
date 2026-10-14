@@ -125,9 +125,7 @@ void main() {
     fakeAsync((async) {
       for (final on in [false, true]) {
         final c = ProviderContainer(
-          overrides: [
-            settingsProvider.overrideWith(() => _Settings(AppSettings(formsEnabled: on, formsAutoFill: on))),
-          ],
+          overrides: [settingsProvider.overrideWith(() => _Settings(AppSettings(formsEnabled: on, formsAutoFill: on)))],
         );
         expect(() => c.read(autoFillControllerProvider), returnsNormally);
         async.flushMicrotasks();
