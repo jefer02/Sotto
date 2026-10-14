@@ -26,6 +26,15 @@ static void my_application_activate(GApplication* application) {
   // from Dart), so no GTK header bar here.
   gtk_window_set_title(window, "Sotto");
 
+  // The Sotto mark for the title bar, Alt+Tab and docks that don't find
+  // the .desktop entry: data/sotto.png beside the binary (linux/CMakeLists).
+  g_autofree gchar* exe = g_file_read_link("/proc/self/exe", nullptr);
+  if (exe != nullptr) {
+    g_autofree gchar* dir = g_path_get_dirname(exe);
+    g_autofree gchar* icon = g_build_filename(dir, "data", "sotto.png", nullptr);
+    gtk_window_set_icon_from_file(window, icon, nullptr);
+  }
+
   // An RGBA visual and an app-painted window: the live overlay's corners
   // and the text-only style need a transparent window. Compositing window
   // managers only; without one the window stays opaque.
