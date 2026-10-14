@@ -33,6 +33,7 @@ import 'editor_inspector.dart';
 import 'prep_tab.dart';
 import 'rehearsals_tab.dart';
 import 'write_tab.dart';
+import '../../core/widgets/stage_transitions.dart';
 
 enum EditorTab { write, prep, rehearsals }
 
@@ -514,7 +515,7 @@ class _StructureSidebar extends ConsumerWidget {
 Future<int?> _promptDuration(BuildContext context, String title, int? current) async {
   final p = context.palette;
   final ctrl = TextEditingController(text: current == null ? '' : formatDuration(current));
-  final result = await showDialog<int>(
+  final result = await showSottoDialog<int>(
     context: context,
     builder: (context) {
       void submit() {
