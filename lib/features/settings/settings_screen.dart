@@ -14,6 +14,7 @@ import '../../core/widgets/controls.dart';
 import '../../core/widgets/display.dart';
 import '../../core/widgets/nav.dart';
 import '../../core/widgets/stage_light.dart';
+import '../../core/widgets/stage_transitions.dart';
 import '../../core/widgets/window_chrome.dart';
 import '../library/library_shell.dart' show TitleBarDragSpacer;
 import 'pages/answers_page.dart';
@@ -114,26 +115,35 @@ class SettingsScreen extends ConsumerWidget {
                     child: ListView(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       children: [
-                        NavHeading(context.l10n.groupLive),
-                        for (final pg in SettingsPage.values.where((x) => x.isLive)) ...[
-                          NavItem(
-                            label: pg.title,
-                            icon: pg.icon,
-                            selected: pg == page,
-                            onTap: () => context.go('/settings/${pg.name}'),
+                        NavHighlight(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              NavHeading(context.l10n.groupLive),
+                              for (final pg in SettingsPage.values.where((x) => x.isLive)) ...[
+                                NavItem(
+                                  label: pg.title,
+                                  icon: pg.icon,
+                                  selected: pg == page,
+                                  onTap: () => context.go('/settings/${pg.name}'),
+                                ),
+                                const SizedBox(height: 2),
+                              ],
+                              NavHeading(context.l10n.groupApp),
+                              for (final pg in SettingsPage.values.where(
+                                (x) => !x.isLive && x.availableOn(features),
+                              )) ...[
+                                NavItem(
+                                  label: pg.title,
+                                  icon: pg.icon,
+                                  selected: pg == page,
+                                  onTap: () => context.go('/settings/${pg.name}'),
+                                ),
+                                const SizedBox(height: 2),
+                              ],
+                            ],
                           ),
-                          const SizedBox(height: 2),
-                        ],
-                        NavHeading(context.l10n.groupApp),
-                        for (final pg in SettingsPage.values.where((x) => !x.isLive && x.availableOn(features))) ...[
-                          NavItem(
-                            label: pg.title,
-                            icon: pg.icon,
-                            selected: pg == page,
-                            onTap: () => context.go('/settings/${pg.name}'),
-                          ),
-                          const SizedBox(height: 2),
-                        ],
+                        ),
                       ],
                     ),
                   ),
@@ -165,17 +175,22 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  // One route for every page: the old page goes at once and
+                  // the new one fades in — never both.
                   Expanded(
-                    child: switch (page) {
-                      SettingsPage.shortcuts => const ShortcutsPage(),
-                      SettingsPage.appearance => const AppearancePage(),
-                      SettingsPage.voice => const VoicePage(),
-                      SettingsPage.answers => const AnswersPage(),
-                      SettingsPage.forms => const FormsSettingsPage(),
-                      SettingsPage.general => const GeneralPage(),
-                      SettingsPage.integrations => const IntegrationsPage(),
-                      SettingsPage.privacy => const PrivacyPage(),
-                    },
+                    child: ContentFadeIn(
+                      key: ValueKey(page),
+                      child: switch (page) {
+                        SettingsPage.shortcuts => const ShortcutsPage(),
+                        SettingsPage.appearance => const AppearancePage(),
+                        SettingsPage.voice => const VoicePage(),
+                        SettingsPage.answers => const AnswersPage(),
+                        SettingsPage.forms => const FormsSettingsPage(),
+                        SettingsPage.general => const GeneralPage(),
+                        SettingsPage.integrations => const IntegrationsPage(),
+                        SettingsPage.privacy => const PrivacyPage(),
+                      },
+                    ),
                   ),
                 ],
               ),

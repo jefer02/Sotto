@@ -31,6 +31,7 @@ import '../../../services/screen/screen_service.dart';
 import '../../library/readiness.dart';
 import '../settings_screen.dart';
 import '../../../core/platform/platform_features.dart';
+import '../../../core/widgets/stage_transitions.dart';
 
 // ─────────────────────────── General ───────────────────────────
 
@@ -411,7 +412,7 @@ class PrivacyPage extends ConsumerWidget {
 
   Future<bool> _confirm(BuildContext context, String title, String body) async {
     final p = context.palette;
-    return await showDialog<bool>(
+    return await showSottoDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: p.float,
