@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app/app.dart';
+import 'app/startup_failure.dart';
 import 'core/platform/window_service.dart';
 import 'core/utils/frame_stats.dart';
 import 'data/repositories.dart';
@@ -24,7 +25,7 @@ Future<void> main() async {
   // Independent: the boxes, the window and the date formats load together.
   final window = WindowService();
   final (store, _, _) = await (
-    startup.time('hive', LocalStore.open()),
+    startup.time('hive', _openStore()),
     startup.time('window', window.init()),
     startup.time('dates', initializeDateFormatting()),
   ).wait;
@@ -73,6 +74,22 @@ Future<void> main() async {
   runApp(UncontrolledProviderScope(container: container, child: const SottoApp()));
   FrameStats.start();
   unawaited(WidgetsBinding.instance.waitUntilFirstFrameRasterized.then((_) => startup.report()));
+}
+
+/// The local data. When it can't be opened — another Sotto has it locked, a
+/// sync app is holding a file — the window says so instead of staying blank,
+/// and tries again on Retry.
+Future<LocalStore> _openStore() async {
+  while (true) {
+    try {
+      return await LocalStore.open();
+    } catch (e) {
+      debugPrint('[startup] could not open local data: $e');
+      final retry = Completer<void>();
+      runApp(StartupFailure(error: e, onRetry: () => retry.isCompleted ? null : retry.complete()));
+      await retry.future;
+    }
+  }
 }
 
 /// Debug builds: how long main() takes to the first frame, step by step
