@@ -81,6 +81,11 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   /// Set once the presenter drags the height: the most auto-height may use
   /// for the rest of the session.
   double? _userCap;
+
+  /// Snap Assist tiled the window: its height is the OS's, and the layout
+  /// follows it until the presenter drags it out of the snap.
+  bool _snapped = false;
+  Size? _windowSize;
   bool _widened = false;
   ResolvedLayout? _layout;
   int _layoutBeat = -1;
@@ -147,6 +152,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   @override
   void onWindowMoved() {
     if (_programmatic) return;
+    unawaited(_checkSnap());
     _geometryDebounce?.cancel();
     _geometryDebounce = Timer(const Duration(milliseconds: 160), () async {
       _markProgrammatic();
@@ -169,8 +175,24 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     _saveGeometryLater();
   }
 
-  // The overlay is never maximised, zoomed or tiled by the OS — only the
-  // presenter's own edge drag makes it big.
+  /// Snapped by a drag, or by Win + arrow — which sends no event of its
+  /// own, hence also on size changes that aren't Sotto's.
+  Future<void> _checkSnap() async {
+    final snapped = await _window.isArranged();
+    if (mounted && snapped != _snapped) setState(() => _snapped = snapped);
+  }
+
+  void _onWindowSize(Size size) {
+    final was = _windowSize;
+    _windowSize = size;
+    if (was == null || _programmatic) return;
+    if ((was.width - size.width).abs() < 2 && (was.height - size.height).abs() < 2) return;
+    unawaited(_checkSnap());
+  }
+
+  // The overlay is never maximised, zoomed or filled by the OS — only the
+  // presenter's own edge drag, or Snap Assist's halves and quarters, make
+  // it big.
   @override
   void onWindowMaximize() => unawaited(_undoFill());
 
@@ -326,10 +348,12 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     final o = context.overlayPalette;
     final size = MediaQuery.sizeOf(context);
     final reduceMotion = settings.reduceMotion || MediaQuery.disableAnimationsOf(context);
+    if (size != _windowSize) WidgetsBinding.instance.addPostFrameCallback((_) => _onWindowSize(size));
+    final layoutHeight = _snapped ? size.height : _layoutHeight;
 
     // Layout switches only between beats, never mid-sentence.
     final readingWidth = s.historyOpen && _widened ? size.width - _historyWidth : size.width;
-    final candidate = resolveLayout(settings.layout, Size(readingWidth, _layoutHeight));
+    final candidate = resolveLayout(settings.layout, Size(readingWidth, layoutHeight));
     if (_layout == null || s.position.beat != _layoutBeat || !s.following) {
       _layout = candidate;
       _layoutBeat = s.position.beat;
@@ -351,7 +375,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
             state: s,
             layout: layout,
             style: style,
-            anchorOffset: (_layoutHeight - _metaHeight) * Layout.overlayAnchor,
+            anchorOffset: (layoutHeight - _metaHeight) * Layout.overlayAnchor,
             onFit: (h) => unawaited(_onFit(h)),
           );
 
