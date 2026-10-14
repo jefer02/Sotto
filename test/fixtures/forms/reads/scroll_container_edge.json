@@ -1,0 +1,18 @@
+{"elements":[
+{"id": "e1", "type": "group", "name": "Sections", "bounds": [53, 138, 275, 957], "offscreen": false, "password": false, "enabled": true, "checked": null, "patterns": ["scroll"]},
+{"id": "e2", "type": "text", "name": "Sections", "bounds": [68, 154, 79, 27], "offscreen": false},
+{"id": "e3", "type": "group", "name": "", "bounds": [353, 138, 950, 2846], "offscreen": false, "password": false, "enabled": true, "checked": null, "patterns": ["scroll"]},
+{"id": "e4", "type": "text", "name": "Event sign-up", "bounds": [393, 194, 870, 61], "offscreen": false},
+{"id": "e5", "type": "text", "name": "Name", "bounds": [419, 323, 53, 28], "offscreen": false},
+{"id": "e6", "type": "edit", "name": "Name", "bounds": [419, 372, 818, 50], "offscreen": false, "value": "", "readOnly": false, "password": false, "enabled": true, "checked": null, "parent": "e3", "patterns": ["value", "scroll", "focus"]},
+{"id": "e7", "type": "text", "name": "Which session will you attend?", "bounds": [419, 422, 277, 28], "offscreen": false},
+{"id": "e8", "type": "radio", "name": "Morning", "bounds": [425, 465, 17, 18], "offscreen": false, "value": "", "readOnly": false, "password": false, "enabled": true, "checked": false, "parent": "e3", "patterns": ["value", "select", "invoke", "scroll", "focus"]},
+{"id": "e9", "type": "radio", "name": "Afternoon", "bounds": [425, 495, 17, 18], "offscreen": false, "value": "", "readOnly": false, "password": false, "enabled": true, "checked": false, "parent": "e3", "patterns": ["value", "select", "invoke", "scroll", "focus"]},
+{"id": "e10", "type": "text", "name": "Scroll inside this panel.", "bounds": [426, 571, 201, 28], "offscreen": false},
+{"id": "e11", "type": "text", "name": "Dietary needs", "bounds": [419, 1503, 121, 28], "offscreen": true},
+{"id": "e12", "type": "combo", "name": "Dietary needs", "bounds": [419, 1552, 818, 47], "offscreen": true, "value": "Choose…", "readOnly": false, "password": false, "enabled": true, "checked": null, "parent": "e3", "patterns": ["value", "expand", "scroll", "focus"]},
+{"id": "e13", "type": "text", "name": "Further down.", "bounds": [426, 1650, 123, 28], "offscreen": true},
+{"id": "e14", "type": "text", "name": "Anything we should know?", "bounds": [419, 2562, 245, 28], "offscreen": true},
+{"id": "e15", "type": "edit", "name": "", "bounds": [419, 2599, 818, 108], "offscreen": true, "value": "", "readOnly": false, "password": false, "enabled": true, "checked": null, "parent": "e3", "patterns": ["value", "scroll", "focus"]},
+{"id": "e16", "type": "button", "name": "Register", "bounds": [393, 2764, 111, 50], "offscreen": true, "password": false, "enabled": true, "checked": null, "patterns": ["invoke", "scroll", "focus"]}
+]}
