@@ -20,12 +20,16 @@ struct SottoCapture {
   double scale;          // monitor DPI / 96
   char method[8];        // "wgc" or "gdi"
   char error[256];
+  char* ocr_json;        // owned, or null: see [ocr] below
 };
 
 // Captures [monitor] (Windows.Graphics.Capture, falling back to BitBlt),
 // scales it so the long side is at most [max_side] and encodes a JPEG.
 // Windows with WDA_EXCLUDEFROMCAPTURE — the overlay — never appear.
-bool SottoCaptureMonitor(HMONITOR monitor, int max_side, int quality, SottoCapture* out);
+// With [ocr], the text on it too (Windows.Media.Ocr, on this computer, on
+// the full-size capture): {"lines":[{"text","box":[x,y,w,h],"words":
+// [[x,y,w,h,"word"],…]}]}, boxes in the encoded image's pixels.
+bool SottoCaptureMonitor(HMONITOR monitor, int max_side, int quality, bool ocr, SottoCapture* out);
 
 void SottoCaptureFree(SottoCapture* capture);
 
