@@ -63,18 +63,19 @@ class _InteractiveState extends State<Interactive> {
       enabled: widget.enabled,
     );
 
-    Widget child = widget.builder(context, state);
-    if (state.focused) {
-      // outline: 2px solid rgba(244,181,92,.9); outline-offset: 2px
-      child = DecoratedBox(
-        position: DecorationPosition.foreground,
-        decoration: BoxDecoration(
-          borderRadius: widget.focusRadius.add(const BorderRadius.all(Radius.circular(2))),
-          border: Border.all(color: palette.focusRing, width: 2),
-        ),
-        child: child,
-      );
-    }
+    // outline: 2px solid rgba(244,181,92,.9); outline-offset: 2px. Always
+    // in the tree (empty when unfocused) so focusing never rebuilds the
+    // control.
+    final child = DecoratedBox(
+      position: DecorationPosition.foreground,
+      decoration: state.focused
+          ? BoxDecoration(
+              borderRadius: widget.focusRadius.add(const BorderRadius.all(Radius.circular(2))),
+              border: Border.all(color: palette.focusRing, width: 2),
+            )
+          : const BoxDecoration(),
+      child: widget.builder(context, state),
+    );
 
     return Semantics(
       button: true,

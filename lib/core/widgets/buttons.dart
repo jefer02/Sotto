@@ -8,6 +8,7 @@ import '../../data/models/shortcut.dart';
 import '../platform/platform_keys.dart';
 import 'interactive.dart';
 import 'keycap.dart';
+import 'motion_effects.dart';
 
 enum ButtonVariant { primary, secondary, ghost, overlay }
 
@@ -166,36 +167,39 @@ class SottoButton extends StatelessWidget {
           ],
         );
 
-        return AnimatedContainer(
-          duration: Motion.quick,
-          height: size.height,
-          padding: EdgeInsets.only(left: icon != null ? 10 : 12, right: hasKey ? 6 : 12),
-          decoration: BoxDecoration(
-            color: bg,
-            // Primary: brighter at the top, deepening toward indigo at the base.
-            gradient: variant == ButtonVariant.primary
-                ? LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color.lerp(bg, const Color(0xFFFFFFFF), 0.08)!, Color.lerp(bg, p.cueDeep, 0.35)!],
+        return PressScale(
+          pressed: s.pressed,
+          child: AnimatedContainer(
+            duration: Motion.quick,
+            height: size.height,
+            padding: EdgeInsets.only(left: icon != null ? 10 : 12, right: hasKey ? 6 : 12),
+            decoration: BoxDecoration(
+              color: bg,
+              // Primary: brighter at the top, deepening toward indigo at the base.
+              gradient: variant == ButtonVariant.primary
+                  ? LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color.lerp(bg, const Color(0xFFFFFFFF), 0.08)!, Color.lerp(bg, p.cueDeep, 0.35)!],
+                    )
+                  : null,
+              borderRadius: Radii.rControl,
+              border: Border.all(color: border),
+              boxShadow: shadow,
+            ),
+            // inset 0 1px 0 rgba(255,255,255,.28) — the lit top edge.
+            foregroundDecoration: variant == ButtonVariant.primary
+                ? const BoxDecoration(
+                    borderRadius: Radii.rControl,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment(0, -0.88),
+                      colors: [Color(0x47FFFFFF), Color(0x00FFFFFF)],
+                    ),
                   )
                 : null,
-            borderRadius: Radii.rControl,
-            border: Border.all(color: border),
-            boxShadow: shadow,
+            child: content,
           ),
-          // inset 0 1px 0 rgba(255,255,255,.28) — the lit top edge.
-          foregroundDecoration: variant == ButtonVariant.primary
-              ? const BoxDecoration(
-                  borderRadius: Radii.rControl,
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment(0, -0.88),
-                    colors: [Color(0x47FFFFFF), Color(0x00FFFFFF)],
-                  ),
-                )
-              : null,
-          child: content,
         );
       },
     );
@@ -272,13 +276,17 @@ class SottoIconButton extends StatelessWidget {
                 : Colors.transparent;
             ink = color ?? (selected || s.hovered ? p.inkPrimary : p.inkSecondary);
           }
-          return AnimatedContainer(
-            duration: Motion.quick,
-            width: size,
-            height: size,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: bg, borderRadius: Radii.rControl),
-            child: SottoIcon(icon, size: iconSize, color: ink),
+          return PressScale(
+            pressed: s.pressed,
+            scale: 0.94,
+            child: AnimatedContainer(
+              duration: Motion.quick,
+              width: size,
+              height: size,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: bg, borderRadius: Radii.rControl),
+              child: SottoIcon(icon, size: iconSize, color: ink),
+            ),
           );
         },
       ),
