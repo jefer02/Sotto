@@ -16,6 +16,7 @@ import '../forms/browser_extension_rows.dart';
 import '../library/library_actions.dart';
 import '../settings/pages/voice_page.dart';
 import '../../core/platform/platform_features.dart';
+import '../../core/widgets/stage_transitions.dart';
 
 /// Shows the first-run welcome once. Answers need no setup (the DeepSeek key
 /// is built in), so it only covers voice models, the optional browser
@@ -24,7 +25,7 @@ import '../../core/platform/platform_features.dart';
 /// action runs after it closes.
 Future<void> showWelcomeIfNeeded(BuildContext context, WidgetRef ref) async {
   if (ref.read(settingsProvider).welcomeDone) return;
-  final choice = await showDialog<WelcomeChoice>(
+  final choice = await showSottoDialog<WelcomeChoice>(
     context: context,
     barrierDismissible: false,
     barrierColor: const Color(0x99000000),

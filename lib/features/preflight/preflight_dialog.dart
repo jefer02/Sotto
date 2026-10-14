@@ -28,7 +28,7 @@ Future<void> showPreflight(BuildContext context, WidgetRef ref, String scriptId,
   final script = ref.read(scriptRepositoryProvider).get(scriptId);
   if (script == null || ref.read(liveControllerProvider).isLive) return;
   ref.invalidate(readinessProvider);
-  await showDialog<void>(
+  await showSottoDialog<void>(
     context: context,
     barrierColor: const Color(0x99000000),
     builder: (_) => PreflightDialog(script: script, rehearsal: rehearsal),
