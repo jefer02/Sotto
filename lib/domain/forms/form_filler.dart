@@ -119,6 +119,7 @@ class FieldAnswer {
     this.letter,
     this.reasoning = '',
     this.drags = const [],
+    this.mark,
   });
 
   /// "f3", or "screen" for a question the accessibility tree didn't have.
@@ -150,18 +151,23 @@ class FieldAnswer {
   /// Matching and ordering: each drag, from → to, in screenshot pixels.
   final List<(Offset, Offset)> drags;
 
-  FieldAnswer copyWith({String? answer, List<String>? choices, String? kind}) => FieldAnswer(
+  /// The numbered mark the model pointed at (a screen answer), before it is
+  /// turned into [point].
+  final int? mark;
+
+  FieldAnswer copyWith({String? answer, List<String>? choices, String? kind, Offset? point}) => FieldAnswer(
     fieldId: fieldId,
     question: question,
     answer: answer ?? this.answer,
     choices: choices ?? this.choices,
     confidence: confidence,
-    point: point,
+    point: point ?? this.point,
     kind: kind ?? this.kind,
     type: type,
     letter: letter,
     reasoning: reasoning,
     drags: drags,
+    mark: mark,
   );
 
   /// What the overlay shows.
@@ -219,6 +225,7 @@ class FieldAnswer {
                 for (final d in (a['drags'] as List? ?? const []).whereType<Map<Object?, Object?>>())
                   if ((_center(d['from']), _center(d['to'])) case (final Offset from, final Offset to)) (from, to),
               ],
+              mark: (a['mark'] as num?)?.toInt(),
             );
           }(),
     ];
@@ -342,7 +349,35 @@ class DragAction extends FillAction {
   final Offset to;
 }
 
-enum SkipReason { sensitive, noMatch, noAnswer, unknownField, lowConfidence }
+/// A slider or spinner to [value]: RangeValue first; if the control
+/// ignores it (custom sliders do), focus it and walk there with the arrow
+/// keys from [range]'s current value; with no accessible element at all,
+/// click at [value]'s place along [bounds].
+class SetRangeAction extends FillAction {
+  const SetRangeAction(this.elementId, this.value, this.range, this.bounds);
+  final String elementId;
+  final double value;
+  final RangeSpec range;
+  final Rect bounds;
+
+  /// Where [value] sits on a horizontal slider [bounds] (physical pixels).
+  Offset get point {
+    final t = range.max == range.min ? 0.0 : (value - range.min) / (range.max - range.min);
+    return Offset(bounds.left + bounds.width * t.clamp(0.0, 1.0), bounds.center.dy);
+  }
+}
+
+enum SkipReason {
+  sensitive,
+  noMatch,
+  noAnswer,
+  unknownField,
+  lowConfidence,
+
+  /// Only its place on screen could fill it, and it never came on screen
+  /// (another display, a part of the page Sotto couldn't scroll to).
+  offscreen,
+}
 
 /// One question to fill: the field, the answer and the actions.
 class FillStep {
@@ -396,6 +431,14 @@ abstract final class FormFiller {
   };
 
   static Offset _center(Rect r) => r.center;
+
+  /// The number in an answer: "9", "9/10", "4 stars", "★★★★", "seis" no.
+  static double? numberIn(String answer) {
+    final m = RegExp(r'-?\d+(?:[.,]\d+)?').firstMatch(answer);
+    if (m != null) return double.tryParse(m[0]!.replaceAll(',', '.'));
+    final stars = '★'.allMatches(answer).length;
+    return stars > 0 ? stars.toDouble() : null;
+  }
 
   /// Maps answers to actions. [toScreen] maps a screenshot point to
   /// physical pixels ("screen" answers). Sensitive fields are never filled,
@@ -547,6 +590,18 @@ abstract final class FormFiller {
               f.patterns.contains('toggle') ? ToggleAction(f.elementId!, on) : ClickTypeAction(_center(f.bounds)),
           ],
         );
+      case FieldRole.range:
+        final range = f.range;
+        final n = numberIn(a.answer);
+        if (range == null || n == null) return null;
+        final v = range.snap(n);
+        final shown = RangeSpec.format(v);
+        return FillStep(
+          field: f,
+          answer: a.copyWith(answer: shown),
+          expected: [shown],
+          actions: [SetRangeAction(f.elementId!, v, range, f.bounds)],
+        );
       case FieldRole.combo:
         final id = f.elementId!;
         if (f.options.isEmpty) {
@@ -598,10 +653,46 @@ abstract final class FormVerifier {
         FieldRole.radio ||
         FieldRole.checkboxes ||
         FieldRole.checkbox => _sameSet(now.selected, s.expected, whole: f.role != FieldRole.radio),
+        FieldRole.range => _sameNumber(now.range?.value, s.expected.firstOrNull),
       };
       if (!ok) out.add(s);
     }
     return out;
+  }
+
+  /// Whether [s] holds, judged from its elements' state read right after
+  /// filling it ([states] by element id). Null when that can't tell: a
+  /// screen answer, an element that didn't answer.
+  static bool? holds(FillStep s, Map<String, ElementState> states) {
+    final f = s.field;
+    if (f == null) return null;
+    ElementState? of(String? id) => id == null ? null : states[id];
+    switch (f.role) {
+      case FieldRole.text:
+        final v = of(f.elementId)?.value;
+        return v == null ? null : sameText(v, s.answer.answer);
+      case FieldRole.combo:
+        final v = of(f.elementId)?.value;
+        return v == null ? null : sameText(v, s.expected.firstOrNull ?? s.answer.answer);
+      case FieldRole.range:
+        final st = of(f.elementId);
+        if (st == null) return null;
+        final n = st.rangeValue ?? double.tryParse(st.value ?? '');
+        return n == null ? null : _sameNumber(n, s.expected.firstOrNull);
+      case FieldRole.radio || FieldRole.checkboxes || FieldRole.checkbox:
+        final selected = <String>[];
+        for (final o in f.options) {
+          final checked = of(o.elementId)?.checked;
+          if (checked == null) return null;
+          if (checked) selected.add(o.label);
+        }
+        return _sameSet(selected, s.expected, whole: f.role != FieldRole.radio);
+    }
+  }
+
+  static bool _sameNumber(double? actual, String? expected) {
+    final e = expected == null ? null : double.tryParse(expected);
+    return actual != null && e != null && (actual - e).abs() < 1e-6;
   }
 
   /// Whether a field showing [actual] holds [expected] (case, accents and
@@ -620,6 +711,21 @@ abstract final class FormVerifier {
     final e = {for (final x in expected) OptionMatcher.fold(x)};
     return whole ? a.length == e.length && a.containsAll(e) : e.every(a.contains);
   }
+}
+
+/// One element as it is right after an action (`state`): what a field
+/// shows now, without reading the whole page again.
+class ElementState {
+  const ElementState({this.value, this.checked, this.rangeValue});
+  final String? value;
+  final bool? checked;
+  final double? rangeValue;
+
+  factory ElementState.fromMap(Map<Object?, Object?> m) => ElementState(
+    value: m['value'] as String?,
+    checked: m['checked'] as bool?,
+    rangeValue: (m['rangeValue'] as num?)?.toDouble(),
+  );
 }
 
 // ─────────────────────────────── Paging ───────────────────────────────
