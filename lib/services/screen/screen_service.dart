@@ -29,9 +29,14 @@ class ScreenCapture {
     required this.screen,
     required this.scale,
     this.method = '',
+    this.ocr,
   });
 
   final Uint8List jpeg;
+
+  /// With `ocr: true`: the text on it as the native side read it, JSON
+  /// (see `OcrLine.parse`); null when not asked or not available.
+  final String? ocr;
 
   /// Size of the encoded image, in its own pixels.
   final int width;
@@ -62,6 +67,8 @@ class ScreenCapture {
     ),
     scale: (m['scale']! as num).toDouble(),
     method: m['method'] as String? ?? '',
+
+    ocr: m['ocr'] as String?,
   );
 }
 
@@ -97,7 +104,9 @@ class ScreenService {
 
   static bool get supported => Platform.isWindows || Platform.isMacOS;
 
-  Future<ScreenCapture> capture({CaptureTarget target = CaptureTarget.overlayDisplay}) async {
+  /// [ocr]: also read the text on it, on this computer (Windows.Media.Ocr,
+  /// macOS Vision) — nothing leaves the machine for that.
+  Future<ScreenCapture> capture({CaptureTarget target = CaptureTarget.overlayDisplay, bool ocr = false}) async {
     if (!supported) throw ScreenCaptureException('Screen capture is not available on this platform.');
     try {
       final m = await _channel.invokeMethod<Map<Object?, Object?>>('capture', {
@@ -108,6 +117,7 @@ class ScreenService {
         },
         'maxSide': maxSide,
         'quality': 80,
+        'ocr': ocr,
       });
       return ScreenCapture.fromMap(m!);
     } on PlatformException catch (e) {

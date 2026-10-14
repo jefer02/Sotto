@@ -2,6 +2,7 @@ import Cocoa
 import FlutterMacOS
 import IOKit.ps
 import ScreenCaptureKit
+import Vision
 
 /// Sotto's single window. While preparing it is an ordinary titled window;
 /// while live it becomes the overlay: a non-activating panel that floats
@@ -235,6 +236,7 @@ extension MainFlutterWindow {
         foreground: (args["target"] as? String) == "foreground",
         maxSide: args["maxSide"] as? Int ?? 1300,
         quality: args["quality"] as? Int ?? 80,
+        ocr: args["ocr"] as? Bool ?? false,
         result: result)
     default:
       result(FlutterMethodNotImplemented)
@@ -242,7 +244,8 @@ extension MainFlutterWindow {
   }
 
   private func captureScreen(
-    cursor: Bool, foreground: Bool = false, maxSide: Int, quality: Int, result: @escaping FlutterResult
+    cursor: Bool, foreground: Bool = false, maxSide: Int, quality: Int, ocr: Bool = false,
+    result: @escaping FlutterResult
   ) {
     guard CGPreflightScreenCaptureAccess() else {
       result(FlutterError(code: "permission_denied", message: "Screen Recording permission is off", details: nil))
@@ -269,12 +272,12 @@ extension MainFlutterWindow {
     let outH = Int((pixelH * k).rounded())
 
     // On the main thread, where Flutter results go.
-    func reply(_ jpeg: Data?, method: String) {
+    func reply(_ jpeg: Data?, method: String, text: String?) {
       guard let jpeg = jpeg else {
         result(FlutterError(code: "capture_failed", message: "Screen capture failed", details: nil))
         return
       }
-      result([
+      var out: [String: Any] = [
         "jpeg": FlutterStandardTypedData(bytes: jpeg),
         "width": outW,
         "height": outH,
@@ -284,15 +287,18 @@ extension MainFlutterWindow {
         "screenHeight": Double(pixelH),
         "scale": Double(scale),
         "method": method,
-      ])
+      ]
+      if let text = text { out["ocr"] = text }
+      result(out)
     }
 
-    // The JPEG is encoded off the main thread; the full-size image is
-    // released there as soon as it is encoded.
+    // The JPEG is encoded (and, if asked, the text read) off the main
+    // thread; the full-size image is released there once done.
     func finish(_ image: CGImage?, method: String) {
       MainFlutterWindow.captureQueue.async {
         let jpeg = image.flatMap { MainFlutterWindow.jpeg($0, width: outW, height: outH, quality: quality) }
-        DispatchQueue.main.async { reply(jpeg, method: method) }
+        let text = ocr ? image.flatMap { MainFlutterWindow.recognizeText($0, width: outW, height: outH) } : nil
+        DispatchQueue.main.async { reply(jpeg, method: method, text: text) }
       }
     }
 
@@ -415,6 +421,41 @@ extension MainFlutterWindow {
   }
 
   /// Scales [image] to width × height and encodes a JPEG.
+  /// The text on [image], read on this Mac (Vision), as the Windows side
+  /// reports it: {"lines":[{"text","box":[x,y,w,h],"words":[[x,y,w,h,"w"]…]}]},
+  /// boxes in pixels of the [width]×[height] JPEG the model sees.
+  fileprivate static func recognizeText(_ image: CGImage, width: Int, height: Int) -> String? {
+    let request = VNRecognizeTextRequest()
+    request.recognitionLevel = .accurate
+    request.usesLanguageCorrection = true
+    let handler = VNImageRequestHandler(cgImage: image, options: [:])
+    guard (try? handler.perform([request])) != nil, let results = request.results else { return nil }
+    let w = Double(width)
+    let h = Double(height)
+    // Vision's boxes are normalized with the origin at the bottom left.
+    func box(_ r: CGRect) -> [Int] {
+      [Int(r.minX * w), Int((1 - r.maxY) * h), Int((r.width * w).rounded()), Int((r.height * h).rounded())]
+    }
+    var lines: [[String: Any]] = []
+    for observation in results {
+      guard let candidate = observation.topCandidates(1).first else { continue }
+      let text = candidate.string
+      var words: [[Any]] = []
+      var start = text.startIndex
+      while start < text.endIndex {
+        guard let wordStart = text[start...].firstIndex(where: { !$0.isWhitespace }) else { break }
+        let wordEnd = text[wordStart...].firstIndex(where: { $0.isWhitespace }) ?? text.endIndex
+        if let rect = try? candidate.boundingBox(for: wordStart..<wordEnd)?.boundingBox {
+          words.append(box(rect) + [String(text[wordStart..<wordEnd])])
+        }
+        start = wordEnd
+      }
+      lines.append(["text": text, "box": box(observation.boundingBox), "words": words])
+    }
+    guard let data = try? JSONSerialization.data(withJSONObject: ["lines": lines]) else { return nil }
+    return String(data: data, encoding: .utf8)
+  }
+
   fileprivate static func jpeg(_ image: CGImage, width: Int, height: Int, quality: Int) -> Data? {
     guard
       let ctx = CGContext(
@@ -521,6 +562,23 @@ extension MainFlutterWindow {
     case "scrollIntoView":
       guard let e = element else { return result(false) }
       result(AXUIElementPerformAction(e, "AXScrollToVisible" as CFString) == .success)
+    case "setRange":
+      // A slider or stepper: its value as a number.
+      guard let e = element else { return result(false) }
+      let value = args["value"] as? Double ?? 0
+      result(AXUIElementSetAttributeValue(e, kAXValueAttribute as CFString, NSNumber(value: value)) == .success)
+    case "state":
+      // One element as it is now, so a fill is checked without a full read.
+      guard let e = element else { return result(nil) }
+      var out: [String: Any] = [:]
+      if let s = MainFlutterWindow.attr(e, kAXValueAttribute) as? String {
+        out["value"] = s
+      } else if let n = MainFlutterWindow.attr(e, kAXValueAttribute) as? NSNumber {
+        out["rangeValue"] = n.doubleValue
+        out["checked"] = n.intValue == 1
+      }
+      let data = (try? JSONSerialization.data(withJSONObject: out)) ?? Data("{}".utf8)
+      result(String(data: data, encoding: .utf8))
     case "foreground":
       result(MainFlutterWindow.foregroundInfo())
     case "canScrollDown":
