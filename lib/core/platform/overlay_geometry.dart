@@ -72,6 +72,12 @@ abstract final class OverlayGeometry {
     return clampInto(pos & size, area);
   }
 
+  /// [size] no smaller than [minimum] and no bigger than [area].
+  static Size fit(Size size, Rect area) => Size(
+    size.width.clamp(minimum.width, math.max(minimum.width, area.width)),
+    size.height.clamp(minimum.height, math.max(minimum.height, area.height)),
+  );
+
   /// [r] moved (not resized) so it lies inside [area] where it fits.
   static Rect clampInto(Rect r, Rect area) {
     final left = math.min(math.max(r.left, area.left), math.max(area.left, area.right - r.width));
