@@ -220,3 +220,11 @@ test('manifest asks for no new permissions and lists every icon', () => {
   assert.deepEqual(Object.keys(m.icons), ['16', '32', '48', '128']);
   assert.deepEqual(m.action.default_icon, m.icons);
 });
+
+test('background reconnects to the host with a growing, capped delay', () => {
+  const { retryDelay } = require('../background.js');
+  assert.equal(retryDelay(0), 2000);
+  assert.equal(retryDelay(1), 4000);
+  assert.equal(retryDelay(3), 16000);
+  assert.equal(retryDelay(20), 60000);
+});
