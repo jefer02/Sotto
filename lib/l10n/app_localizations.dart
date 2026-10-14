@@ -4502,6 +4502,12 @@ abstract class AppLocalizations {
   /// **'no answer'**
   String get formsWhyNoAnswer;
 
+  /// No description provided for @formsWhyOffscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'never came on screen — fill it in by hand'**
+  String get formsWhyOffscreen;
+
   /// No description provided for @formsSessionTitle.
   ///
   /// In en, this message translates to:
@@ -4951,6 +4957,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'could not fill — please fill it yourself'**
   String get formsCouldNotFill;
+
+  /// No description provided for @formsManualTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Couldn\'t fill 1 answer — fill it in by hand} other{Couldn\'t fill {count} answers — fill them in by hand}}'**
+  String formsManualTitle(int count);
+
+  /// No description provided for @formsManualAllFilled.
+  ///
+  /// In en, this message translates to:
+  /// **'Every answer is in the form — review and submit when ready'**
+  String get formsManualAllFilled;
+
+  /// No description provided for @formsCopyAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy all'**
+  String get formsCopyAll;
+
+  /// No description provided for @formsCopyAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy answer'**
+  String get formsCopyAnswer;
+
+  /// No description provided for @formsNoSuggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'No suggested answer'**
+  String get formsNoSuggestion;
+
+  /// No description provided for @formsFilledTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Filled by Sotto'**
+  String get formsFilledTooltip;
+
+  /// No description provided for @formsChatPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about this form — \"why this answer?\", \"answer 4 in English\"'**
+  String get formsChatPlaceholder;
+
+  /// No description provided for @formsChatBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat waits while Sotto types into the form'**
+  String get formsChatBusy;
 
   /// No description provided for @overlayTextColor.
   ///
@@ -5653,6 +5707,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Wayland doesn\'t let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay\'s buttons.'**
   String get readyHotkeysWaylandSub;
+
+  /// No description provided for @startupFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto couldn\'t open your data'**
+  String get startupFailedTitle;
+
+  /// No description provided for @startupFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Another copy of Sotto may still be open, or a sync app such as OneDrive is holding one of its files. Close it, then try again.'**
+  String get startupFailedBody;
+
+  /// No description provided for @quit.
+  ///
+  /// In en, this message translates to:
+  /// **'Quit'**
+  String get quit;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
