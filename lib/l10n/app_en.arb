@@ -1463,6 +1463,7 @@
   "formsWhyNoMatch": "the answer isn't one of the options",
   "formsWhyNoField": "field not found",
   "formsWhyNoAnswer": "no answer",
+  "formsWhyOffscreen": "never came on screen — fill it in by hand",
   "formsSessionTitle": "Questionnaire on screen",
   "formsReading": "Reading the form…",
   "formsThinking": "Answering the questions…",
@@ -1618,6 +1619,21 @@
   "chatPrivacy": "Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved.",
   "formsNeedsAccessibility": "Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again.",
   "formsCouldNotFill": "could not fill — please fill it yourself",
+  "formsManualTitle": "{count, plural, =1{Couldn't fill 1 answer — fill it in by hand} other{Couldn't fill {count} answers — fill them in by hand}}",
+  "@formsManualTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "formsManualAllFilled": "Every answer is in the form — review and submit when ready",
+  "formsCopyAll": "Copy all",
+  "formsCopyAnswer": "Copy answer",
+  "formsNoSuggestion": "No suggested answer",
+  "formsFilledTooltip": "Filled by Sotto",
+  "formsChatPlaceholder": "Ask about this form — \"why this answer?\", \"answer 4 in English\"",
+  "formsChatBusy": "Chat waits while Sotto types into the form",
   "overlayTextColor": "Overlay text color",
   "overlayTextColorAuto": "Auto",
   "overlayTextColorLight": "Always light",
@@ -1815,5 +1831,8 @@
   "readyShareVisible": "Overlay shows in screen shares",
   "readyShareVisibleSub": "On Linux the overlay can't hide from screen capture — share only your slides window, not the whole screen.",
   "readyHotkeysWayland": "Shortcuts need an X11 session",
-  "readyHotkeysWaylandSub": "Wayland doesn't let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay's buttons."
+  "readyHotkeysWaylandSub": "Wayland doesn't let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay's buttons.",
+  "startupFailedTitle": "Sotto couldn't open your data",
+  "startupFailedBody": "Another copy of Sotto may still be open, or a sync app such as OneDrive is holding one of its files. Close it, then try again.",
+  "quit": "Quit"
 }

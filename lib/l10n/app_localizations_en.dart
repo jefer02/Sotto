@@ -2506,6 +2506,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get formsWhyNoAnswer => 'no answer';
 
   @override
+  String get formsWhyOffscreen => 'never came on screen — fill it in by hand';
+
+  @override
   String get formsSessionTitle => 'Questionnaire on screen';
 
   @override
@@ -2762,6 +2765,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formsCouldNotFill => 'could not fill — please fill it yourself';
+
+  @override
+  String formsManualTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Couldn\'t fill $count answers — fill them in by hand',
+      one: 'Couldn\'t fill 1 answer — fill it in by hand',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get formsManualAllFilled => 'Every answer is in the form — review and submit when ready';
+
+  @override
+  String get formsCopyAll => 'Copy all';
+
+  @override
+  String get formsCopyAnswer => 'Copy answer';
+
+  @override
+  String get formsNoSuggestion => 'No suggested answer';
+
+  @override
+  String get formsFilledTooltip => 'Filled by Sotto';
+
+  @override
+  String get formsChatPlaceholder => 'Ask about this form — \"why this answer?\", \"answer 4 in English\"';
+
+  @override
+  String get formsChatBusy => 'Chat waits while Sotto types into the form';
 
   @override
   String get overlayTextColor => 'Overlay text color';
@@ -3163,4 +3198,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get readyHotkeysWaylandSub =>
       'Wayland doesn\'t let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay\'s buttons.';
+
+  @override
+  String get startupFailedTitle => 'Sotto couldn\'t open your data';
+
+  @override
+  String get startupFailedBody =>
+      'Another copy of Sotto may still be open, or a sync app such as OneDrive is holding one of its files. Close it, then try again.';
+
+  @override
+  String get quit => 'Quit';
 }
