@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 
 import '../design/icons.dart';
@@ -295,6 +298,10 @@ class SettingsGroup extends StatelessWidget {
   }
 }
 
+/// A setting: its title and description, and the control beside them —
+/// or under them at full width when the control is too wide to leave the
+/// text [SettingRowLayout.minLabel] (a four-way segmented control in a
+/// narrow column).
 class SettingRow extends StatelessWidget {
   const SettingRow({super.key, required this.title, this.subtitle, this.trailing, this.below, this.leading});
 
@@ -307,34 +314,136 @@ class SettingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final label = Row(
+      children: [
+        if (leading != null) ...[leading!, const SizedBox(width: 10)],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(subtitle!, style: TypeScale.caption.copyWith(color: p.inkTertiary, height: 1.4)),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 14, vertical: subtitle == null ? 13 : 11),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              if (leading != null) ...[leading!, const SizedBox(width: 10)],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(subtitle!, style: TypeScale.caption.copyWith(color: p.inkTertiary, height: 1.4)),
-                    ],
-                  ],
-                ),
-              ),
-              if (trailing != null) ...[const SizedBox(width: 16), trailing!],
-            ],
-          ),
+          if (trailing == null) label else SettingRowLayout(label: label, trailing: trailing!),
           if (below != null) ...[const SizedBox(height: 10), below!],
         ],
       ),
     );
   }
+}
+
+/// [label] and [trailing] side by side while the label keeps at least
+/// [minLabel]; otherwise [trailing] goes under it, as wide as the row.
+class SettingRowLayout extends MultiChildRenderObjectWidget {
+  SettingRowLayout({super.key, required Widget label, required Widget trailing}) : super(children: [label, trailing]);
+
+  /// The narrowest the title and description get beside a control.
+  static const minLabel = 240.0;
+  static const gap = 16.0;
+  static const stackGap = 10.0;
+
+  @override
+  RenderSettingRow createRenderObject(BuildContext context) => RenderSettingRow();
+}
+
+class _SettingRowData extends ContainerBoxParentData<RenderBox> {}
+
+class RenderSettingRow extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _SettingRowData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _SettingRowData> {
+  /// The control went under the label.
+  bool get stacked => _stacked;
+  bool _stacked = false;
+
+  RenderBox get _label => firstChild!;
+  RenderBox get _trailing => lastChild!;
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _SettingRowData) child.parentData = _SettingRowData();
+  }
+
+  static bool _fits(double width, double trailing) =>
+      !width.isFinite || width - trailing - SettingRowLayout.gap >= SettingRowLayout.minLabel;
+
+  @override
+  void performLayout() {
+    final width = constraints.maxWidth;
+    _trailing.layout(BoxConstraints(maxWidth: width), parentUsesSize: true);
+    final tw = _trailing.size.width;
+    _stacked = !_fits(width, tw);
+    final labelData = _label.parentData! as _SettingRowData;
+    final trailingData = _trailing.parentData! as _SettingRowData;
+    if (!_stacked) {
+      final lw = width.isFinite ? width - tw - SettingRowLayout.gap : _label.getMaxIntrinsicWidth(double.infinity);
+      _label.layout(BoxConstraints.tightFor(width: lw), parentUsesSize: true);
+      final h = math.max(_label.size.height, _trailing.size.height);
+      labelData.offset = Offset(0, (h - _label.size.height) / 2);
+      trailingData.offset = Offset(lw + SettingRowLayout.gap, (h - _trailing.size.height) / 2);
+      size = constraints.constrain(Size(lw + SettingRowLayout.gap + tw, h));
+      return;
+    }
+    _label.layout(BoxConstraints.tightFor(width: width), parentUsesSize: true);
+    _trailing.layout(BoxConstraints.tightFor(width: width), parentUsesSize: true);
+    labelData.offset = Offset.zero;
+    trailingData.offset = Offset(0, _label.size.height + SettingRowLayout.stackGap);
+    size = constraints.constrain(Size(width, _label.size.height + SettingRowLayout.stackGap + _trailing.size.height));
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) =>
+      math.max(_label.getMinIntrinsicWidth(height), _trailing.getMinIntrinsicWidth(height));
+
+  @override
+  double computeMaxIntrinsicWidth(double height) =>
+      _label.getMaxIntrinsicWidth(height) + SettingRowLayout.gap + _trailing.getMaxIntrinsicWidth(height);
+
+  @override
+  double computeMinIntrinsicHeight(double width) => computeMaxIntrinsicHeight(width);
+
+  @override
+  double computeMaxIntrinsicHeight(double width) {
+    final tw = _trailing.getMaxIntrinsicWidth(double.infinity);
+    if (_fits(width, tw)) {
+      final lw = width.isFinite ? width - tw - SettingRowLayout.gap : double.infinity;
+      return math.max(_label.getMaxIntrinsicHeight(lw), _trailing.getMaxIntrinsicHeight(tw));
+    }
+    return _label.getMaxIntrinsicHeight(width) + SettingRowLayout.stackGap + _trailing.getMaxIntrinsicHeight(width);
+  }
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) {
+    final width = constraints.maxWidth;
+    final t = _trailing.getDryLayout(BoxConstraints(maxWidth: width));
+    if (_fits(width, t.width)) {
+      final lw = width.isFinite ? width - t.width - SettingRowLayout.gap : _label.getMaxIntrinsicWidth(double.infinity);
+      final l = _label.getDryLayout(BoxConstraints.tightFor(width: lw));
+      return constraints.constrain(Size(lw + SettingRowLayout.gap + t.width, math.max(l.height, t.height)));
+    }
+    final l = _label.getDryLayout(BoxConstraints.tightFor(width: width));
+    final s = _trailing.getDryLayout(BoxConstraints.tightFor(width: width));
+    return constraints.constrain(Size(width, l.height + SettingRowLayout.stackGap + s.height));
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
+
+  @override
+  void paint(PaintingContext context, Offset offset) => defaultPaint(context, offset);
 }
 
 // ───────────────────────────── Meters ─────────────────────────────
