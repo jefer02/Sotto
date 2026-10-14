@@ -4,8 +4,10 @@ import 'dart:ui' show Offset;
 import '../../data/models/session_record.dart';
 import '../../domain/agent/coordinates.dart';
 import '../../domain/agent/safety.dart';
+import '../../domain/forms/form_filler.dart' show ElementState;
 import '../../domain/forms/form_model.dart';
 import '../../domain/forms/form_runner.dart';
+import '../../domain/forms/screen_text.dart';
 import '../agent/input_service.dart';
 import 'bridge_protocol.dart';
 import 'browser_bridge.dart';
@@ -61,14 +63,16 @@ class NativeFormDriver implements FormDriver {
     _frame?.release();
     _frame = null;
     // The JPEG bytes live only in this call: the frame keeps the data URL.
-    final shot = await screen.capture(target: CaptureTarget.foregroundDisplay);
+    // The text on it too, read here: the marks the model answers with, and
+    // drop-down options found without asking it.
+    final shot = await screen.capture(target: CaptureTarget.foregroundDisplay, ocr: true);
     final mapper = _mapper = CoordinateMapper(
       imageWidth: shot.width,
       imageHeight: shot.height,
       screen: shot.screen,
       scale: shot.scale,
     );
-    return _frame = ScreenFrame(shot.dataUrl, mapper);
+    return _frame = ScreenFrame(shot.dataUrl, mapper, ocr: OcrLine.parse(shot.ocr));
   }
 
   /// A tree that can't be read (some browsers, canvas-drawn forms) is an
@@ -114,7 +118,9 @@ class NativeFormDriver implements FormDriver {
   Future<bool> _act(String op, String id, Future<bool> Function() viaTree, [Object? arg]) async {
     final ext = _isExt(id);
     final browser = _browser;
-    final ok = ext ? browser != null && bridge != null && await bridge!.act(browser, id, op, arg) : await viaTree();
+    // The extension sets a range input's value like any other.
+    final extOp = op == 'range' ? 'value' : op;
+    final ok = ext ? browser != null && bridge != null && await bridge!.act(browser, id, extOp, arg) : await viaTree();
     _log(
       op,
       ext ? FormSource.extension.name : FormSource.accessibility.name,
@@ -140,6 +146,19 @@ class NativeFormDriver implements FormDriver {
 
   @override
   Future<bool> invoke(String elementId) => _act('invoke', elementId, () => forms.invoke(elementId));
+
+  /// Through the extension, the number goes in as the input's value.
+  @override
+  Future<bool> setRange(String elementId, double value) =>
+      _act('range', elementId, () => forms.setRange(elementId, value), RangeSpec.format(value));
+
+  @override
+  Future<bool> focusElement(String elementId) =>
+      _isExt(elementId) ? Future.value(false) : _act('focus', elementId, () => forms.focus(elementId));
+
+  /// Elements read through the extension are checked on the next read.
+  @override
+  Future<ElementState?> state(String elementId) async => _isExt(elementId) ? null : forms.state(elementId);
 
   @override
   bool get canInput => InputService.supported;
@@ -181,7 +200,23 @@ class NativeFormDriver implements FormDriver {
   }
 
   @override
-  Future<bool?> canScrollDown() => forms.canScrollDown();
+  Future<bool?> canScrollDown({String? anchor}) =>
+      forms.canScrollDown(anchor: anchor == null || _isExt(anchor) ? null : anchor);
+
+  /// The form's own scroll container through the tree; the wheel where the
+  /// tree can't.
+  @override
+  Future<void> scrollDown({String? anchor, required Offset fallback}) async {
+    if (source == FormSource.accessibility && anchor != null && !_isExt(anchor)) {
+      final at = await forms.scrollDown(anchor: anchor);
+      if (at != null) {
+        _log('scroll', FormSource.accessibility.name);
+        return;
+      }
+    }
+    _log('scroll', 'input');
+    await scroll(fallback, 5);
+  }
 
   @override
   Future<FocusInfo?> focused() => input.focused();
