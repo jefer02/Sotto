@@ -211,8 +211,14 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
         final media = MediaQuery.of(context);
         return MediaQuery(
           data: media.copyWith(disableAnimations: media.disableAnimations || settings.reduceMotion),
-          // The curtain rises on launch; the house lights come up after a show.
-          child: LaunchCurtain(child: _GlobalShortcuts(child: child ?? const SizedBox.shrink())),
+          // The ground under every page: a page arriving fades in over it,
+          // never over the bare window (transparent once the overlay has
+          // run, so the desktop showed through mid-transition).
+          child: ColoredBox(
+            color: context.palette.ground,
+            // The curtain rises on launch; the house lights come up after a show.
+            child: LaunchCurtain(child: _GlobalShortcuts(child: child ?? const SizedBox.shrink())),
+          ),
         );
       },
     );
