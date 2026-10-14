@@ -53,6 +53,35 @@ void EnableFullDpiSupportIfAvailable(HWND hwnd) {
   FreeLibrary(user32_module);
 }
 
+// The Sotto icons at the sizes the window's monitor asks for. The class
+// icon (LoadIcon) is always 32 px, which the taskbar and Alt+Tab stretch on
+// scaled displays; these are picked from app_icon.ico's own frames.
+HICON g_big_icon = nullptr;
+HICON g_small_icon = nullptr;
+
+void SetWindowIcons(HWND hwnd) {
+  const UINT dpi = FlutterDesktopGetDpiForMonitor(
+      MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST));
+  auto load = [dpi](int metric) {
+    const int size = GetSystemMetricsForDpi(metric, dpi);
+    return static_cast<HICON>(LoadImage(GetModuleHandle(nullptr),
+                                        MAKEINTRESOURCE(IDI_APP_ICON),
+                                        IMAGE_ICON, size, size, 0));
+  };
+  HICON big = load(SM_CXICON);
+  HICON little = load(SM_CXSMICON);
+  if (big != nullptr) {
+    SendMessage(hwnd, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(big));
+    if (g_big_icon != nullptr) DestroyIcon(g_big_icon);
+    g_big_icon = big;
+  }
+  if (little != nullptr) {
+    SendMessage(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(little));
+    if (g_small_icon != nullptr) DestroyIcon(g_small_icon);
+    g_small_icon = little;
+  }
+}
+
 }  // namespace
 
 // Manages the Win32Window's window class registration.
@@ -145,6 +174,7 @@ bool Win32Window::Create(const std::wstring& title,
   }
 
   UpdateTheme(window);
+  SetWindowIcons(window);
 
   return OnCreate();
 }
@@ -194,6 +224,7 @@ Win32Window::MessageHandler(HWND hwnd,
 
       SetWindowPos(hwnd, nullptr, newRectSize->left, newRectSize->top, newWidth,
                    newHeight, SWP_NOZORDER | SWP_NOACTIVATE);
+      SetWindowIcons(hwnd);
 
       return 0;
     }

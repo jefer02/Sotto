@@ -34,6 +34,9 @@ OutputDir={#OutputDir}
 OutputBaseFilename=Sotto-{#AppVersion}-windows-x64-setup
 SetupIconFile=..\runner\resources\app_icon.ico
 UninstallDisplayIcon={app}\sotto.exe
+; Tells Explorer to refresh its icons after install, so an update over an
+; older build doesn't keep showing that build's cached icon.
+ChangesAssociations=yes
 UninstallDisplayName=Sotto
 LicenseFile=..\..\LICENSE
 Compression=lzma2/max
