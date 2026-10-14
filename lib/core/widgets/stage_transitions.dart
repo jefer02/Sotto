@@ -128,15 +128,16 @@ class _LaunchCurtainState extends State<LaunchCurtain> with SingleTickerProvider
     super.dispose();
   }
 
+  // The same shape before, during and after, so the app under the curtain
+  // is built once — returning the bare child at the end rebuilt it all.
   @override
   Widget build(BuildContext context) {
-    if (_done) return widget.child;
     final p = context.palette;
     return AnimatedBuilder(
       animation: _c,
       child: widget.child,
       builder: (context, child) {
-        final t = _c.value;
+        final t = _done ? 1.0 : _c.value;
         final irisFrom = _first ? LaunchCurtain.opensAt : 0.0;
         final open = _seg(t, irisFrom, 1, const Cubic(0.65, 0, 0.35, 1));
         // The stage settles back as it's uncovered.
@@ -146,8 +147,11 @@ class _LaunchCurtainState extends State<LaunchCurtain> with SingleTickerProvider
           children: [
             Transform.scale(scale: 1.025 - 0.025 * settle, child: child),
             IgnorePointer(
-              child: CustomPaint(
-                painter: _IrisPainter(open: open, color: p.ground, center: const Alignment(0, -0.08)),
+              child: Offstage(
+                offstage: t >= 1,
+                child: CustomPaint(
+                  painter: _IrisPainter(open: open, color: p.ground, center: const Alignment(0, -0.08)),
+                ),
               ),
             ),
             // Above the navigator there's no Material to give text its style.
@@ -263,6 +267,117 @@ class _BrandMoment extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─────────────────────────── Between pages ───────────────────────────
+
+/// Sibling pages switch quickly: the page leaving is hidden on the first
+/// frame (pages are transparent over the shared stage, so any fade-out
+/// showed both layouts at once) and the new one fades in, rising a few
+/// pixels. A page uncovered by a pop fades back the same way. The widget
+/// tree never changes shape while it runs, so nothing in the page is
+/// rebuilt from scratch. Instant under reduced motion — but the page leaving
+/// is still hidden: a removed page stays painted under the new one until
+/// the route's duration has passed, whether or not anything animates.
+class PageFadeThrough extends StatelessWidget {
+  const PageFadeThrough({super.key, required this.animation, required this.secondaryAnimation, required this.child});
+
+  static const duration = Duration(milliseconds: 200);
+
+  /// How far the arriving page rises.
+  static const rise = 6.0;
+
+  final Animation<double> animation;
+  final Animation<double> secondaryAnimation;
+  final Widget child;
+
+  /// The page's opacity from its own [animation] and the page above's
+  /// [secondary]: hidden at once while leaving or being covered, faded in
+  /// while arriving or being uncovered ([still]: shown at once instead).
+  static double opacity(Animation<double> animation, Animation<double> secondary, {bool still = false}) {
+    if (animation.status == AnimationStatus.reverse) return 0;
+    final own = still ? 1.0 : Curves.easeOut.transform(animation.value);
+    return switch (secondary.status) {
+      AnimationStatus.dismissed => own,
+      AnimationStatus.forward || AnimationStatus.completed => 0,
+      AnimationStatus.reverse => still ? 1.0 : own * Curves.easeOut.transform(1 - secondary.value),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final still = _still(context);
+    return AnimatedBuilder(
+      animation: Listenable.merge([animation, secondaryAnimation]),
+      child: child,
+      builder: (context, child) {
+        final o = opacity(animation, secondaryAnimation, still: still);
+        final arriving = !still && animation.status == AnimationStatus.forward;
+        final dy = arriving ? rise * (1 - Motion.glideEnter.transform(animation.value)) : 0.0;
+        return IgnorePointer(
+          ignoring: o < 1,
+          // Unlike Opacity, leaves no layer behind once fully shown.
+          child: FadeTransition(
+            opacity: AlwaysStoppedAnimation(o),
+            child: Transform.translate(offset: Offset(0, dy), child: child),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// A page's content arriving without a route change (a Settings page, the
+/// sidebar changing size): a short fade-in of the new content only — the
+/// old one is gone at once. Keyed by what it shows, so it plays on each
+/// switch. The tree keeps its shape, so the content is built once.
+/// Instant under reduced motion.
+class ContentFadeIn extends StatefulWidget {
+  const ContentFadeIn({super.key, required this.child, this.rise = PageFadeThrough.rise * 0.5});
+
+  static const duration = Duration(milliseconds: 160);
+
+  final Widget child;
+
+  /// Pixels it rises from; 0 for a plain fade.
+  final double rise;
+
+  @override
+  State<ContentFadeIn> createState() => _ContentFadeInState();
+}
+
+class _ContentFadeInState extends State<ContentFadeIn> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: ContentFadeIn.duration);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_c.isAnimating || _c.isCompleted) return;
+    if (_still(context)) {
+      _c.value = 1;
+    } else {
+      _c.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    child: widget.child,
+    builder: (context, child) {
+      final t = _c.value;
+      return FadeTransition(
+        opacity: AlwaysStoppedAnimation(Curves.easeOut.transform(t)),
+        child: Transform.translate(offset: Offset(0, widget.rise * (1 - Motion.glideEnter.transform(t))), child: child),
+      );
+    },
+  );
 }
 
 // ─────────────────────────── Going live ───────────────────────────
@@ -484,22 +599,22 @@ class _OverlayEntranceState extends State<OverlayEntrance> with SingleTickerProv
     animation: _c,
     child: widget.child,
     builder: (context, child) {
+      // One shape from start to end, so the overlay is built once.
       final t = _c.value;
-      if (t >= 1) return child!;
       final e = _seg(t, 0, 0.6, const Cubic(0.16, 1, 0.3, 1));
-      Widget out = Transform.scale(
-        scale: 0.94 + 0.06 * e,
-        alignment: Alignment.topCenter,
-        child: Transform.translate(offset: Offset(0, 10 * (1 - e)), child: child),
-      );
       final sigma = 10 * (1 - e);
-      if (sigma > 0.05) {
-        out = ImageFiltered(
+      final out = FadeTransition(
+        opacity: AlwaysStoppedAnimation(_seg(t, 0, 0.35, Curves.easeOut)),
+        child: ImageFiltered(
+          enabled: sigma > 0.05,
           imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma, tileMode: TileMode.decal),
-          child: out,
-        );
-      }
-      out = Opacity(opacity: _seg(t, 0, 0.35, Curves.easeOut), child: out);
+          child: Transform.scale(
+            scale: 0.94 + 0.06 * e,
+            alignment: Alignment.topCenter,
+            child: Transform.translate(offset: Offset(0, 10 * (1 - e)), child: child),
+          ),
+        ),
+      );
       final sweep = widget.sweep;
       if (sweep == null) return out;
       final s = _seg(t, 0.25, 1, Curves.easeInOutCubic);
@@ -512,35 +627,41 @@ class _OverlayEntranceState extends State<OverlayEntrance> with SingleTickerProv
             left: 0,
             right: 0,
             child: IgnorePointer(
-              child: LayoutBuilder(
-                builder: (context, box) {
-                  const w = 180.0;
-                  final x = -w + (box.maxWidth + w) * s;
-                  return SizedBox(
-                    height: 2,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned(
-                          left: x,
-                          width: w,
-                          top: 0,
-                          height: 1.5,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [sweep.withValues(alpha: 0), sweep, sweep.withValues(alpha: 0)],
+              child: Offstage(
+                offstage: t >= 1,
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    const w = 180.0;
+                    final x = -w + (box.maxWidth + w) * s;
+                    return SizedBox(
+                      height: 2,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            left: x,
+                            width: w,
+                            top: 0,
+                            height: 1.5,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [sweep.withValues(alpha: 0), sweep, sweep.withValues(alpha: 0)],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: sweep.withValues(alpha: 0.5 * math.sin(math.pi * s)),
+                                    blurRadius: 10,
+                                  ),
+                                ],
                               ),
-                              boxShadow: [
-                                BoxShadow(color: sweep.withValues(alpha: 0.5 * math.sin(math.pi * s)), blurRadius: 10),
-                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -548,4 +669,64 @@ class _OverlayEntranceState extends State<OverlayEntrance> with SingleTickerProv
       );
     },
   );
+}
+
+// ─────────────────────────── Dialogs ───────────────────────────
+
+/// [showDialog] with Sotto's entrance: a quick fade as the dialog settles
+/// from a touch smaller. Instant under reduced motion.
+Future<T?> showSottoDialog<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool barrierDismissible = true,
+  Color? barrierColor,
+}) {
+  final navigator = Navigator.of(context, rootNavigator: true);
+  return navigator.push(
+    _SottoDialogRoute<T>(
+      context: context,
+      builder: builder,
+      barrierDismissible: barrierDismissible,
+      barrierColor: barrierColor ?? Theme.of(context).dialogTheme.barrierColor ?? Colors.black54,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      themes: InheritedTheme.capture(from: context, to: navigator.context),
+    ),
+  );
+}
+
+class _SottoDialogRoute<T> extends DialogRoute<T> {
+  _SottoDialogRoute({
+    required super.context,
+    required super.builder,
+    super.barrierDismissible,
+    super.barrierColor,
+    super.barrierLabel,
+    super.themes,
+  });
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 160);
+
+  @override
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 120);
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (_still(context)) return child;
+    return FadeTransition(
+      opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut, reverseCurve: Curves.easeIn),
+      child: ScaleTransition(
+        scale: Tween<double>(
+          begin: 0.97,
+          end: 1,
+        ).animate(CurvedAnimation(parent: animation, curve: Motion.glideEnter, reverseCurve: Curves.easeIn)),
+        child: child,
+      ),
+    );
+  }
 }
