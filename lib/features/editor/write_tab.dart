@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
@@ -64,7 +65,12 @@ class _WriteTabState extends ConsumerState<WriteTab> {
                 Padding(
                   padding: const EdgeInsets.only(left: 60),
                   child: Text(
-                    context.l10n.sectionHeader(si + 1, script.sections.length, formatDuration(section.estimatedSeconds(wpm)), formatDuration(start)),
+                    context.l10n.sectionHeader(
+                      si + 1,
+                      script.sections.length,
+                      formatDuration(section.estimatedSeconds(wpm)),
+                      formatDuration(start),
+                    ),
                     style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
                   ),
                 ),
@@ -338,9 +344,7 @@ class _BeatRowState extends ConsumerState<BeatRow> {
                           isCollapsed: true,
                           border: InputBorder.none,
                           // A hidden hint still takes layout space, so only set it when empty.
-                          hintText: _text.text.isEmpty
-                              ? context.l10n.beatHint
-                              : null,
+                          hintText: _text.text.isEmpty ? context.l10n.beatHint : null,
                           hintStyle: ReadingType.editor.copyWith(color: p.inkDisabled),
                         ),
                         onChanged: (t) => c.setBeatText(widget.beat.id, t),
@@ -462,9 +466,7 @@ class _LongBeatHint extends StatelessWidget {
                       style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary),
                     ),
                     TextSpan(
-                      text: word == null
-                          ? context.l10n.longBeatPause
-                          : context.l10n.longBeatSplitAfter(word),
+                      text: word == null ? context.l10n.longBeatPause : context.l10n.longBeatSplitAfter(word),
                       style: TypeScale.body.copyWith(color: p.inkSecondary),
                     ),
                   ],

@@ -78,9 +78,44 @@ abstract final class TextNormalizer {
   };
 
   static const _stopWordsEs = {
-    'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'y', 'e', 'o', 'u', 'de', 'del', 'a', 'al',
-    'en', 'por', 'para', 'con', 'que', 'es', 'se', 'lo', 'le', 'les', 'su', 'sus', 'mi', 'nuestro',
-    'nuestra', 'eh', 'este', 'esta', 'como', 'pero', 'ya', 'muy',
+    'el',
+    'la',
+    'los',
+    'las',
+    'un',
+    'una',
+    'unos',
+    'unas',
+    'y',
+    'e',
+    'o',
+    'u',
+    'de',
+    'del',
+    'a',
+    'al',
+    'en',
+    'por',
+    'para',
+    'con',
+    'que',
+    'es',
+    'se',
+    'lo',
+    'le',
+    'les',
+    'su',
+    'sus',
+    'mi',
+    'nuestro',
+    'nuestra',
+    'eh',
+    'este',
+    'esta',
+    'como',
+    'pero',
+    'ya',
+    'muy',
   };
 
   /// Words that carry little evidence of position, in English or Spanish.
@@ -91,9 +126,28 @@ abstract final class TextNormalizer {
   /// á → a, ñ → n… Recognizers and scripts don't always agree on accents.
   static String _fold(String s) => s.replaceAllMapped(RegExp('[áàäâéèëêíìïîóòöôúùüûñç]'), (m) {
     const map = {
-      'á': 'a', 'à': 'a', 'ä': 'a', 'â': 'a', 'é': 'e', 'è': 'e', 'ë': 'e', 'ê': 'e', 'í': 'i', 'ì': 'i',
-      'ï': 'i', 'î': 'i', 'ó': 'o', 'ò': 'o', 'ö': 'o', 'ô': 'o', 'ú': 'u', 'ù': 'u', 'ü': 'u', 'û': 'u',
-      'ñ': 'n', 'ç': 'c',
+      'á': 'a',
+      'à': 'a',
+      'ä': 'a',
+      'â': 'a',
+      'é': 'e',
+      'è': 'e',
+      'ë': 'e',
+      'ê': 'e',
+      'í': 'i',
+      'ì': 'i',
+      'ï': 'i',
+      'î': 'i',
+      'ó': 'o',
+      'ò': 'o',
+      'ö': 'o',
+      'ô': 'o',
+      'ú': 'u',
+      'ù': 'u',
+      'ü': 'u',
+      'û': 'u',
+      'ñ': 'n',
+      'ç': 'c',
     };
     return map[m[0]]!;
   });
@@ -233,21 +287,60 @@ abstract final class TextNormalizer {
   }
 
   static const _onesEs = [
-    'cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 'once', 'doce',
-    'trece', 'catorce', 'quince', 'dieciseis', 'diecisiete', 'dieciocho', 'diecinueve', 'veinte', 'veintiuno',
-    'veintidos', 'veintitres', 'veinticuatro', 'veinticinco', 'veintiseis', 'veintisiete', 'veintiocho',
+    'cero',
+    'uno',
+    'dos',
+    'tres',
+    'cuatro',
+    'cinco',
+    'seis',
+    'siete',
+    'ocho',
+    'nueve',
+    'diez',
+    'once',
+    'doce',
+    'trece',
+    'catorce',
+    'quince',
+    'dieciseis',
+    'diecisiete',
+    'dieciocho',
+    'diecinueve',
+    'veinte',
+    'veintiuno',
+    'veintidos',
+    'veintitres',
+    'veinticuatro',
+    'veinticinco',
+    'veintiseis',
+    'veintisiete',
+    'veintiocho',
     'veintinueve',
   ];
   static const _tensEs = ['', '', '', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
   static const _hundredsEs = [
-    '', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos',
-    'ochocientos', 'novecientos',
+    '',
+    'ciento',
+    'doscientos',
+    'trescientos',
+    'cuatrocientos',
+    'quinientos',
+    'seiscientos',
+    'setecientos',
+    'ochocientos',
+    'novecientos',
   ];
 
   /// Spanish cardinals, accent-folded: 31 → treinta y uno, 2026 → dos mil veintiseis.
   static List<String> _integerWordsEs(int n) {
     if (n < 30) return [_onesEs[n]];
-    if (n < 100) return [_tensEs[n ~/ 10], if (n % 10 != 0) ...['y', _onesEs[n % 10]]];
+    if (n < 100) {
+      return [
+        _tensEs[n ~/ 10],
+        if (n % 10 != 0) ...['y', _onesEs[n % 10]],
+      ];
+    }
     if (n == 100) return const ['cien'];
     if (n < 1000) return [_hundredsEs[n ~/ 100], if (n % 100 != 0) ..._integerWordsEs(n % 100)];
     if (n < 1000000) {
