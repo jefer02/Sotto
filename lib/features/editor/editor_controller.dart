@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../data/models/script.dart';
@@ -143,8 +144,9 @@ class EditorController extends Notifier<EditorState> implements ScriptWorkingCop
   void addSection({int? after}) {
     final at = (after ?? state.section) + 1;
     update(
-      (s) =>
-          s.copyWith(sections: [...s.sections]..insert(at.clamp(0, s.sections.length), Section.create(L10n.current.newSectionTitle))),
+      (s) => s.copyWith(
+        sections: [...s.sections]..insert(at.clamp(0, s.sections.length), Section.create(L10n.current.newSectionTitle)),
+      ),
     );
     selectSection(at);
   }

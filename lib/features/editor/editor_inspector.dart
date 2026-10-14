@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
@@ -116,7 +117,10 @@ class _EditorInspectorState extends ConsumerState<EditorInspector> {
               Text(
                 nextCue == null
                     ? context.l10n.noMoreCues
-                    : context.l10n.nextCueIn(cueIn!, '${nextCue.display[0]}${nextCue.display.substring(1).toLowerCase()}'),
+                    : context.l10n.nextCueIn(
+                        cueIn!,
+                        '${nextCue.display[0]}${nextCue.display.substring(1).toLowerCase()}',
+                      ),
                 style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
               ),
             ],
@@ -133,10 +137,7 @@ class _EditorInspectorState extends ConsumerState<EditorInspector> {
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            context.l10n.hintWordsExplain,
-            style: TypeScale.caption.copyWith(color: p.inkTertiary),
-          ),
+          Text(context.l10n.hintWordsExplain, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 6,
@@ -212,17 +213,9 @@ class _EditorInspectorState extends ConsumerState<EditorInspector> {
     final l = context.l10n;
     out.add((ordered, ordered ? l.checkCuesOrdered : l.checkCuesBackwards));
     final long = s.allBeats.where((b) => b.wordCount > 28).length;
-    out.add((
-      long == 0,
-      long == 0 ? l.checkBeatsFit : l.checkLongBeats(long),
-    ));
+    out.add((long == 0, long == 0 ? l.checkBeatsFit : l.checkLongBeats(long)));
     final abbreviated = s.allBeats.where((b) => _abbrev.hasMatch(b.plainText)).length;
-    out.add((
-      abbreviated == 0,
-      abbreviated == 0
-          ? l.checkNumbersSpoken
-          : l.checkNumbersAbbreviated(abbreviated),
-    ));
+    out.add((abbreviated == 0, abbreviated == 0 ? l.checkNumbersSpoken : l.checkNumbersAbbreviated(abbreviated)));
     final empty = s.allBeats.where((b) => b.plainText.trim().isEmpty && b.cue == null).length;
     if (empty > 0) out.add((false, l.checkEmptyBeats(empty)));
     return out;
