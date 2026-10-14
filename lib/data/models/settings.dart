@@ -58,7 +58,8 @@ enum ScreenTarget { overlayDisplay, cursorDisplay }
 /// still confirm anything that submits, sends, pays, deletes or buys.
 enum AgentAutonomy { confirmEach, auto }
 
-/// Questionnaires on screen: fill at once, or show the answers first.
+/// Questionnaires on screen: fill at once, or show the answers first (the
+/// default: nothing is typed until the presenter presses Enter).
 enum FormFillMode { fillAutomatically, showFirst }
 
 enum FormAnswerLanguage { sameAsForm, appLanguage }
@@ -92,6 +93,7 @@ class AppSettings {
     this.reduceMotion = false,
     this.blurBehind = true,
     this.overlaySize = const (480.0, 120.0),
+    this.panelWidth = 440.0,
     this.overlayPositions = const {},
     // Voice & following
     this.microphoneId,
@@ -132,7 +134,7 @@ class AppSettings {
     this.formsEnabled = false,
     this.formsAutoFill = false,
     this.formsScroll = true,
-    this.formsMode = FormFillMode.fillAutomatically,
+    this.formsMode = FormFillMode.showFirst,
     this.formsLanguage = FormAnswerLanguage.sameAsForm,
     this.formsStyle = FormAnswerStyle.short,
     this.formsInstructions = '',
@@ -172,6 +174,16 @@ class AppSettings {
   final bool reduceMotion;
   final bool blurBehind;
   final (double, double) overlaySize;
+
+  /// The auto-fill panel's width: a small box of its own, not the reading
+  /// overlay's strip. Its height follows what it shows.
+  final double panelWidth;
+
+  /// The widths [panelWidth] may take: it stays a small box; a saved width
+  /// outside them is dropped. (Saved as `formsPanelWidth`: what an early
+  /// build saved as `panelWidth` was the main window's width.)
+  static const panelWidthMin = 320.0;
+  static const panelWidthMax = 640.0;
 
   /// Bumped when saved overlay geometry can't be trusted any more.
   static const overlayGeometryVersion = 2;
@@ -302,6 +314,7 @@ class AppSettings {
     bool? reduceMotion,
     bool? blurBehind,
     (double, double)? overlaySize,
+    double? panelWidth,
     Map<String, (double, double)>? overlayPositions,
     String? microphoneId,
     String? questionInputId,
@@ -371,6 +384,7 @@ class AppSettings {
     reduceMotion: reduceMotion ?? this.reduceMotion,
     blurBehind: blurBehind ?? this.blurBehind,
     overlaySize: overlaySize ?? this.overlaySize,
+    panelWidth: panelWidth ?? this.panelWidth,
     overlayPositions: overlayPositions ?? this.overlayPositions,
     microphoneId: microphoneId ?? this.microphoneId,
     questionInputId: clearQuestionInput ? null : (questionInputId ?? this.questionInputId),
@@ -442,6 +456,7 @@ class AppSettings {
     'blurBehind': blurBehind,
     'overlayGeometryVersion': overlayGeometryVersion,
     'overlaySize': [overlaySize.$1, overlaySize.$2],
+    'formsPanelWidth': panelWidth,
     'overlayPositions': {
       for (final e in overlayPositions.entries) e.key: [e.value.$1, e.value.$2],
     },
@@ -530,6 +545,10 @@ class AppSettings {
       reduceMotion: j['reduceMotion'] as bool? ?? d.reduceMotion,
       blurBehind: j['blurBehind'] as bool? ?? d.blurBehind,
       overlaySize: size == null ? d.overlaySize : ((size[0] as num).toDouble(), (size[1] as num).toDouble()),
+      panelWidth: switch (n(j['formsPanelWidth'], d.panelWidth)) {
+        final w when w >= panelWidthMin && w <= panelWidthMax => w,
+        _ => d.panelWidth,
+      },
       overlayPositions: {
         for (final entry in ((geometryOk ? j['overlayPositions'] as Map? : null) ?? const {}).entries)
           entry.key as String: (
