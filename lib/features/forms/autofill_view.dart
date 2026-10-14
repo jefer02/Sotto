@@ -20,6 +20,7 @@ import '../agent/agent_view.dart';
 import '../questionnaire/questionnaire_controller.dart';
 import '../questionnaire/questionnaire_view.dart';
 import 'autofill_controller.dart';
+import 'form_assist.dart';
 
 /// A question type in words.
 String questionTypeLabel(AppLocalizations l, QuestionType t) => switch (t) {
@@ -316,7 +317,10 @@ class _RingPainter extends CustomPainter {
 
 /// Every completed answer: question → answer, and the one-line why.
 class AutoFillLog extends ConsumerWidget {
-  const AutoFillLog({super.key});
+  const AutoFillLog({super.key, this.shrinkWrap = false});
+
+  /// As tall as its entries (the panel sizes its window to them).
+  final bool shrinkWrap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -324,9 +328,10 @@ class AutoFillLog extends ConsumerWidget {
     final l = context.l10n;
     final log = ref.watch(autoFillControllerProvider.select((a) => a.log));
     if (log.isEmpty) {
-      return Center(
-        child: Text(l.autofillLogEmpty, style: TypeScale.caption.copyWith(color: o.inkAt(0.55))),
-      );
+      final empty = Text(l.autofillLogEmpty, style: TypeScale.caption.copyWith(color: o.inkAt(0.55)));
+      return shrinkWrap
+          ? Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: empty)
+          : Center(child: empty);
     }
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -335,6 +340,7 @@ class AutoFillLog extends ConsumerWidget {
       ),
       child: ListView.separated(
         reverse: true,
+        shrinkWrap: shrinkWrap,
         padding: const EdgeInsets.all(8),
         itemCount: log.length,
         separatorBuilder: (_, _) => const SizedBox(height: 6),
@@ -372,7 +378,9 @@ class AutoFillLog extends ConsumerWidget {
 }
 
 /// Outside a live session, while auto-fill (or a manual fill) runs: the
-/// status bar, the questionnaire panel when a cycle is on, else the log.
+/// status bar, the questionnaire panel when a cycle is on, else the log,
+/// and the chat about the form. The window is as tall as all that
+/// ([PanelWindowFit]) and stays where the presenter put it.
 class AutoFillOverlayScreen extends ConsumerWidget {
   const AutoFillOverlayScreen({super.key});
 
@@ -389,15 +397,20 @@ class AutoFillOverlayScreen extends ConsumerWidget {
           borderRadius: Radii.rXl,
           child: ColoredBox(
             color: o.textOnly ? o.chromeGround : o.ground,
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const AutoFillBar(standalone: true),
-                  const SizedBox(height: 8),
-                  Expanded(child: formActive ? const QuestionnaireView() : const AutoFillLog()),
-                ],
+            child: PanelWindowFit(
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const AutoFillBar(standalone: true),
+                    const SizedBox(height: 8),
+                    Flexible(child: formActive ? const QuestionnaireView() : const AutoFillLog(shrinkWrap: true)),
+                    const SizedBox(height: 8),
+                    const FormChat(),
+                  ],
+                ),
               ),
             ),
           ),

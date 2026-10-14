@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show Size;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +10,7 @@ import '../../data/repositories.dart';
 import '../../domain/forms/autofill_watcher.dart';
 import '../../domain/forms/form_model.dart';
 import '../../domain/forms/question_types.dart';
+import '../../domain/overlay/auto_height.dart';
 import '../../l10n/l10n.dart';
 import '../../services/screen/browser_bridge.dart';
 import '../../services/screen/form_access.dart';
@@ -233,9 +235,9 @@ class AutoFillController extends Notifier<AutoFillState> {
   Future<void> _showOverlay() async {
     if (state.overlay || ref.read(liveControllerProvider).isLive) return;
     state = state.copyWith(overlay: true);
-    await ref
-        .read(windowServiceProvider)
-        .enterOverlay(ref.read(settingsProvider), height: QuestionnaireController.panelHeight);
+    // A small box of its own, starting short: it grows to what it shows.
+    final s = ref.read(settingsProvider);
+    await ref.read(windowServiceProvider).enterOverlay(s, size: Size(s.panelWidth, AutoHeight.panelMin));
   }
 
   // ─────────────────────────── Watching ───────────────────────────
