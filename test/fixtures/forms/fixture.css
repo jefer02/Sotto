@@ -1,0 +1,30 @@
+/* Shared look for the form fixtures: plain, readable, nothing clever. */
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #1b1d21; background: #f6f7f9; }
+nav.side {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 220px; overflow-y: auto;
+  background: #e9ecf1; border-right: 1px solid #ccd; padding: 12px;
+}
+nav.side a { display: block; padding: 4px 0; color: #2f4fbf; }
+main { margin-left: 240px; padding: 24px 32px 120px; max-width: 760px; }
+section { background: #fff; border: 1px solid #dde; border-radius: 10px; padding: 16px 20px; margin: 0 0 24px; }
+.spacer { height: 90vh; border-left: 3px dashed #ccd; margin: 0 0 24px 12px; padding-left: 12px; color: #889; }
+.question { font-weight: 600; margin-bottom: 6px; }
+.help { color: #667; font-size: 14px; }
+input[type=text], input[type=number], input[type=password], textarea, select { font: inherit; padding: 6px 8px; width: 100%; }
+button { font: inherit; padding: 6px 14px; }
+#status { position: fixed; right: 12px; bottom: 12px; background: #1b1d21; color: #fff; padding: 8px 12px;
+  border-radius: 8px; font: 13px/1.4 ui-monospace, monospace; max-width: 420px; white-space: pre-wrap; }
+#status.alarm { background: #b3261e; }
+
+/* The custom dropdown: its popup is appended to <body>, far from the combo. */
+.combo { display: inline-flex; align-items: center; gap: 8px; min-width: 240px; padding: 6px 10px;
+  border: 1px solid #99a; border-radius: 6px; background: #fff; cursor: pointer; }
+.popup { position: absolute; z-index: 10; background: #fff; border: 1px solid #99a; border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.18); padding: 4px 0; min-width: 240px; }
+.popup [role=option] { padding: 6px 12px; cursor: pointer; }
+.popup [role=option][aria-selected=true], .popup [role=option]:hover { background: #e6ecff; }
+
+/* The custom slider. */
+.track { position: relative; width: 300px; height: 8px; background: #ccd; border-radius: 4px; margin: 14px 0; }
+.thumb { position: absolute; top: -6px; width: 20px; height: 20px; border-radius: 50%; background: #2f4fbf; }
