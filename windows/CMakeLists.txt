@@ -53,6 +53,14 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 add_subdirectory("runner")
 
 
+# flutter_tts looks for nuget.exe on PATH. `winget install Microsoft.NuGet`
+# puts it in WinGet\Links, which a terminal or editor opened before the
+# install doesn't have on PATH yet — look there too.
+if(DEFINED ENV{LOCALAPPDATA})
+  file(TO_CMAKE_PATH "$ENV{LOCALAPPDATA}/Microsoft/WinGet/Links" WINGET_LINKS)
+  list(APPEND CMAKE_PROGRAM_PATH "${WINGET_LINKS}")
+endif()
+
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
 include(flutter/generated_plugins.cmake)
