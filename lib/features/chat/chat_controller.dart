@@ -236,15 +236,7 @@ class ChatController extends Notifier<ChatState> {
     if (state.attachScreen) {
       state = state.copyWith(capturing: true);
       try {
-        screenshot =
-            (await ref
-                    .read(screenServiceProvider)
-                    .capture(
-                      target: _settings.screenTarget == ScreenTarget.cursorDisplay
-                          ? CaptureTarget.cursorDisplay
-                          : CaptureTarget.overlayDisplay,
-                    ))
-                .dataUrl;
+        screenshot = await captureForChat(ref.read(screenServiceProvider), _settings);
       } on ScreenCaptureException catch (e) {
         state = state.copyWith(capturing: false, error: e.permissionDenied ? l.noticeScreenPermission : e.message);
         return;
@@ -400,3 +392,11 @@ class ChatController extends Notifier<ChatState> {
 }
 
 final chatControllerProvider = NotifierProvider<ChatController, ChatState>(ChatController.new);
+
+/// "Attach screen": a screenshot (JPEG data URL) of the display the overlay
+/// is on, or of the one under the pointer (Settings → Answers).
+Future<String> captureForChat(ScreenService screen, AppSettings settings) async => (await screen.capture(
+  target: settings.screenTarget == ScreenTarget.cursorDisplay
+      ? CaptureTarget.cursorDisplay
+      : CaptureTarget.overlayDisplay,
+)).dataUrl;
