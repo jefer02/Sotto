@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:ui' show Offset, Rect;
 
 import '../../data/models/settings.dart';
@@ -6,6 +7,7 @@ import '../../domain/agent/coordinates.dart';
 import '../../domain/forms/form_filler.dart';
 import '../../domain/forms/form_model.dart';
 import '../../domain/forms/form_runner.dart';
+import '../../domain/forms/screen_text.dart';
 import 'llm_client.dart';
 
 /// Answers the questionnaire on screen with the model's own knowledge — not
@@ -37,6 +39,9 @@ Rules:
 - checkboxes (select all that apply): "answer" is a list of the option labels to check (it may be empty).
 - a single checkbox field: "answer" is "yes" or "no".
 - text / long_text: "answer" is the text to type.
+- A field with a "range" (a slider or number box): "answer" is the number, within min–max.
+- Fields marked "offscreen" are further down the page, not on the screenshot: answer them from their label, help and options.
+- Numbered marks: when the screenshot has numbered boxes drawn on it — or, with no screenshot, the screen's text comes as numbered marks — a "screen" answer gives "mark": N instead of "box" whenever a mark is the thing to click: an option's text (radio, checkbox, scale, image choice), an option in an open list. A text box or drop-down with no mark of its own still gets its "box"; with no screenshot, it usually sits just below or right of its question's mark.
 - Every question on the screenshot that is NOT in the field list: add {"field_id":"screen", "question_text":…, "question_type":…, "kind":…, "answer":…, "answer_letter":…, "confidence":…, "reasoning_summary":…, "box":[x,y,w,h]} in screenshot pixels, where kind and box are:
   - "text" (one-line input) or "textarea" (multi-line): box = the input itself; answer = the text to type.
   - "dropdown": box = the closed drop-down; answer = the option label exactly as it will appear in the list.
@@ -54,11 +59,14 @@ Rules:
 - confidence is 0–1: how sure you are the answer is right.
 - JSON only: no prose, no markdown.''';
 
-  /// The field list as the model sees it: its type, label, options (with
-  /// their letters and boxes) and what it holds now.
+  /// The field list as the model sees it: its type, label, help, options
+  /// (with their letters and boxes), range and what it holds now. A field
+  /// that isn't on the screenshot (scrolled away, another display) has no
+  /// box: it is marked "offscreen".
   static String fieldsJson(Map<String, FormField> ids, CoordinateMapper mapper) {
-    List<int> box(Rect r) {
+    List<int>? box(Rect r) {
       final b = mapper.toImage(r);
+      if (b.isEmpty || b.width < 1 || b.height < 1) return null;
       return [b.left.round(), b.top.round(), b.width.round(), b.height.round()];
     }
 
@@ -69,26 +77,37 @@ Rules:
           'type': f.role.name,
           'question_type': QuestionTypes.classify(f).wire,
           'label': f.label,
+          if (f.help.isNotEmpty) 'help': f.help,
           if (f.options.isNotEmpty && f.role != FieldRole.checkbox)
             'options': [
               for (var i = 0; i < f.options.length; i++)
                 {
                   if (i < 26) 'letter': String.fromCharCode(65 + i),
                   'label': f.options[i].label,
-                  if (!f.options[i].bounds.isEmpty) 'box': box(f.options[i].bounds),
+                  if (!f.offscreen && !f.options[i].bounds.isEmpty) 'box': ?box(f.options[i].bounds),
                 },
             ],
+          if (f.range case final r?)
+            'range': {
+              'min': RangeSpec.format(r.min),
+              'max': RangeSpec.format(r.max),
+              if (r.step > 0) 'step': RangeSpec.format(r.step),
+            },
           if (f.value.isNotEmpty) 'current': f.value,
-          'box': box(f.bounds),
+          if (f.offscreen || box(f.bounds) == null) 'offscreen': true else 'box': box(f.bounds),
         },
     ]);
   }
 
+  /// [marks]: the numbered marks — drawn on the screenshot, or with
+  /// [image] false (no screenshot is sent) the screen's text as a list.
   static String user({
     required Map<String, FormField> ids,
     required CoordinateMapper mapper,
     required AppSettings settings,
     required String appLanguageName,
+    List<ScreenMark> marks = const [],
+    bool image = true,
   }) {
     final language = settings.formsLanguage == FormAnswerLanguage.sameAsForm
         ? 'the language of the questionnaire'
@@ -101,28 +120,48 @@ Rules:
 Answer in $language. $style
 ${extra.isEmpty ? 'The user gave no instructions.' : 'The user\'s instructions:\n"""\n$extra\n"""'}
 
-Screenshot: ${mapper.imageWidth}×${mapper.imageHeight} px.
+${image ? 'Screenshot' : 'Screen (no screenshot; positions in the same pixels)'}: ${mapper.imageWidth}×${mapper.imageHeight} px.
 Fields:
-${ids.isEmpty ? '[] (none exposed: read every question off the screenshot)' : fieldsJson(ids, mapper)}''';
+${ids.isEmpty ? '[] (none exposed: read every question off the ${image ? 'screenshot' : 'screen text'})' : fieldsJson(ids, mapper)}${_marks(marks, image)}''';
   }
 
-  Future<String> _ask(String system, String user, String screenshot, {int maxTokens = 6000}) => client.complete(
+  static String _marks(List<ScreenMark> marks, bool image) {
+    final text = marks.where((m) => !m.isField).toList();
+    if (text.isEmpty) return '';
+    final head = image
+        ? 'Marks drawn on the screenshot: blue boxes are the fields above (mark N is field fN), orange boxes are lines of text on screen:'
+        : 'There is no screenshot. The text on the screen, read on this computer, as numbered marks (boxes in screen pixels):';
+    return '\n$head\n${ScreenMarks.json(text)}';
+  }
+
+  /// [screenshot] null: a text-only request — no image is sent.
+  Future<String> _ask(String system, String user, String? screenshot, {int maxTokens = 6000}) => client.complete(
     system: system,
     user: user,
     maxTokens: maxTokens,
     profile: DeepSeekTaskProfile.questionnaire,
-    images: [screenshot],
+    images: [?screenshot],
     json: true,
   );
 
+  /// [screenshot] null: the screen goes as text ([marks]) and no image is
+  /// sent at all.
   Future<FormReply> answer({
-    required String screenshot,
+    required String? screenshot,
     required Map<String, FormField> ids,
     required CoordinateMapper mapper,
     required AppSettings settings,
     required String appLanguageName,
+    List<ScreenMark> marks = const [],
   }) async {
-    final u = user(ids: ids, mapper: mapper, settings: settings, appLanguageName: appLanguageName);
+    final u = user(
+      ids: ids,
+      mapper: mapper,
+      settings: settings,
+      appLanguageName: appLanguageName,
+      marks: marks,
+      image: screenshot != null,
+    );
     for (var attempt = 0; ; attempt++) {
       try {
         return FormReply.parse(await _ask(system, u, screenshot));
@@ -187,28 +226,127 @@ Read form controls on the screenshot. For each check, look at the control at its
   }
 }
 
-/// [FormVision] over [QuestionnaireService].
+/// [FormVision] over [QuestionnaireService], with numbered marks: the
+/// fields and the text read on screen (OCR, on this computer) drawn on the
+/// screenshot, so the model names a mark instead of guessing coordinates.
+///
+/// [images] false — the model in use can't read images, or it refused
+/// one — sends no image at all: the same marks go as text. Drop-down
+/// options are looked up in the OCR text first, without asking the model.
 class DeepSeekFormVision implements FormVision {
-  DeepSeekFormVision(this.service, {required this.settings, required this.appLanguageName});
+  DeepSeekFormVision(this.service, {required this.settings, required this.appLanguageName, this.images = true});
 
   final QuestionnaireService service;
   final AppSettings settings;
   final String appLanguageName;
 
-  @override
-  Future<FormReply> answer(ScreenFrame frame, Map<String, FormField> ids) => service.answer(
-    screenshot: frame.image,
-    ids: ids,
-    mapper: frame.mapper,
-    settings: settings,
-    appLanguageName: appLanguageName,
-  );
+  /// Whether screenshots go to the model. Turns false for good on the first
+  /// image the model refuses.
+  bool images;
+
+  /// Requests made to the model: answers, option lookups, value checks.
+  int requests = 0;
+
+  /// The model refused the request as sent (an image it can't read): retry
+  /// as text. Network trouble and bad keys are not that.
+  static bool refusedImage(Object e) => e is LlmException && const {400, 415, 422}.contains(e.statusCode);
+
+  static Rect? _box(CoordinateMapper mapper, FormField f) {
+    if (f.offscreen) return null;
+    final b = mapper.toImage(f.bounds);
+    return b.isEmpty ? null : b;
+  }
+
+  /// [frame]'s screenshot with [marks] drawn on it (off the UI isolate).
+  static Future<String> marked(String dataUrl, List<ScreenMark> marks) async {
+    final comma = dataUrl.indexOf(',');
+    final jpeg = base64Decode(dataUrl.substring(comma + 1));
+    final drawn = await Isolate.run(() => ScreenMarks.draw(jpeg, marks));
+    return 'data:image/jpeg;base64,${base64Encode(drawn)}';
+  }
+
+  /// Answers that name a mark get its centre as their point.
+  static FormReply _resolve(FormReply reply, List<ScreenMark> marks) {
+    final byNumber = {for (final m in marks) m.number: m};
+    return FormReply(
+      [
+        for (final a in reply.answers)
+          if (a.mark != null && byNumber[a.mark] != null && a.point == null)
+            a.copyWith(point: byNumber[a.mark]!.box.center)
+          else
+            a,
+      ],
+      next: reply.next,
+      submit: reply.submit,
+      questionnaire: reply.questionnaire,
+    );
+  }
 
   @override
-  Future<Offset?> locateOption(ScreenFrame frame, String label) =>
-      service.locateOption(screenshot: frame.image, mapper: frame.mapper, label: label);
+  Future<FormReply> answer(ScreenFrame frame, Map<String, FormField> ids) async {
+    final page = frame.page == null ? null : frame.mapper.toImage(frame.page!);
+    final marks = ScreenMarks.build(
+      fields: {for (final MapEntry(:key, :value) in ids.entries) key: _box(frame.mapper, value)},
+      lines: frame.ocr,
+      page: page == null || page.isEmpty ? null : page,
+    );
+    Future<FormReply> ask(String? screenshot) async {
+      requests++;
+      return _resolve(
+        await service.answer(
+          screenshot: screenshot,
+          ids: ids,
+          mapper: frame.mapper,
+          settings: settings,
+          appLanguageName: appLanguageName,
+          marks: marks,
+        ),
+        marks,
+      );
+    }
+
+    if (images) {
+      try {
+        return await ask(marks.isEmpty ? frame.image : await marked(frame.image, marks));
+      } on LlmException catch (e) {
+        if (!refusedImage(e)) rethrow;
+        images = false;
+      }
+    }
+    return ask(null);
+  }
 
   @override
-  Future<Map<int, String>> readValues(ScreenFrame frame, List<VisualCheck> checks) =>
-      service.readValues(screenshot: frame.image, mapper: frame.mapper, checks: checks);
+  Future<Offset?> locateOption(ScreenFrame frame, String label) async {
+    final seen = ScreenMarks.locate(frame.ocr, label);
+    if (seen != null || !images) return seen;
+    try {
+      requests++;
+      return await service.locateOption(screenshot: frame.image, mapper: frame.mapper, label: label);
+    } on LlmException catch (e) {
+      if (!refusedImage(e)) rethrow;
+      images = false;
+      return null;
+    }
+  }
+
+  @override
+  Future<Map<int, String>> readValues(ScreenFrame frame, List<VisualCheck> checks) async {
+    if (images) {
+      try {
+        requests++;
+        return await service.readValues(screenshot: frame.image, mapper: frame.mapper, checks: checks);
+      } on LlmException catch (e) {
+        if (!refusedImage(e)) rethrow;
+        images = false;
+      }
+    }
+    // Without images: what OCR reads at each control. A radio's or a
+    // checkbox's state can't be read as text — those stay unknown.
+    return {
+      for (final c in checks)
+        if (const {'text', 'textarea', 'dropdown', 'select', 'short_text', 'long_text'}.contains(c.kind))
+          c.id: ?ScreenMarks.textAt(frame.ocr, c.point),
+    };
+  }
 }
