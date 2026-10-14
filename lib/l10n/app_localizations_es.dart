@@ -2515,6 +2515,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get formsWhyNoAnswer => 'sin respuesta';
 
   @override
+  String get formsWhyOffscreen => 'no llegó a verse en pantalla — rellénalo a mano';
+
+  @override
   String get formsSessionTitle => 'Cuestionario en pantalla';
 
   @override
@@ -2773,6 +2776,39 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get formsCouldNotFill => 'no se pudo rellenar — rellénalo tú';
+
+  @override
+  String formsManualTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'No pude rellenar $count respuestas — complétalas a mano',
+      one: 'No pude rellenar 1 respuesta — complétala a mano',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get formsManualAllFilled => 'Todas las respuestas están en el formulario — revisa y envía cuando quieras';
+
+  @override
+  String get formsCopyAll => 'Copiar todo';
+
+  @override
+  String get formsCopyAnswer => 'Copiar respuesta';
+
+  @override
+  String get formsNoSuggestion => 'Sin respuesta sugerida';
+
+  @override
+  String get formsFilledTooltip => 'Rellenado por Sotto';
+
+  @override
+  String get formsChatPlaceholder =>
+      'Pregunta sobre este formulario — «¿por qué esta respuesta?», «responde la 4 en inglés»';
+
+  @override
+  String get formsChatBusy => 'El chat espera mientras Sotto escribe en el formulario';
 
   @override
   String get overlayTextColor => 'Color del texto del overlay';
@@ -3183,4 +3219,14 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get readyHotkeysWaylandSub =>
       'Wayland no deja registrar atajos globales. Inicia sesión con X11 («en Xorg») o usa los botones de la superposición.';
+
+  @override
+  String get startupFailedTitle => 'Sotto no pudo abrir tus datos';
+
+  @override
+  String get startupFailedBody =>
+      'Puede que otra copia de Sotto siga abierta, o que una app de sincronización como OneDrive esté usando uno de sus archivos. Ciérrala y vuelve a intentarlo.';
+
+  @override
+  String get quit => 'Salir';
 }

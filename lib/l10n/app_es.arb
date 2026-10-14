@@ -735,6 +735,7 @@
   "formsWhyNoMatch": "la respuesta no es una de las opciones",
   "formsWhyNoField": "no se encontró el campo",
   "formsWhyNoAnswer": "sin respuesta",
+  "formsWhyOffscreen": "no llegó a verse en pantalla — rellénalo a mano",
   "formsSessionTitle": "Cuestionario en pantalla",
   "formsReading": "Leyendo el formulario…",
   "formsThinking": "Respondiendo las preguntas…",
@@ -810,6 +811,14 @@
   "chatPrivacy": "Los chats se guardan en este equipo durante el periodo de tu historial. Las capturas que adjuntas van a DeepSeek y nunca se guardan.",
   "formsNeedsAccessibility": "Sotto necesita el permiso de Accesibilidad para leer y rellenar formularios. Permite Sotto en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad y vuelve a pulsar el atajo.",
   "formsCouldNotFill": "no se pudo rellenar — rellénalo tú",
+  "formsManualTitle": "{count, plural, =1{No pude rellenar 1 respuesta — complétala a mano} other{No pude rellenar {count} respuestas — complétalas a mano}}",
+  "formsManualAllFilled": "Todas las respuestas están en el formulario — revisa y envía cuando quieras",
+  "formsCopyAll": "Copiar todo",
+  "formsCopyAnswer": "Copiar respuesta",
+  "formsNoSuggestion": "Sin respuesta sugerida",
+  "formsFilledTooltip": "Rellenado por Sotto",
+  "formsChatPlaceholder": "Pregunta sobre este formulario — «¿por qué esta respuesta?», «responde la 4 en inglés»",
+  "formsChatBusy": "El chat espera mientras Sotto escribe en el formulario",
   "overlayTextColor": "Color del texto del overlay",
   "overlayTextColorAuto": "Auto",
   "overlayTextColorLight": "Siempre claro",
@@ -926,5 +935,8 @@
   "readyShareVisible": "La superposición sale al compartir",
   "readyShareVisibleSub": "En Linux la superposición no puede ocultarse de las capturas: comparte solo la ventana de las diapositivas, no toda la pantalla.",
   "readyHotkeysWayland": "Los atajos necesitan una sesión X11",
-  "readyHotkeysWaylandSub": "Wayland no deja registrar atajos globales. Inicia sesión con X11 («en Xorg») o usa los botones de la superposición."
+  "readyHotkeysWaylandSub": "Wayland no deja registrar atajos globales. Inicia sesión con X11 («en Xorg») o usa los botones de la superposición.",
+  "startupFailedTitle": "Sotto no pudo abrir tus datos",
+  "startupFailedBody": "Puede que otra copia de Sotto siga abierta, o que una app de sincronización como OneDrive esté usando uno de sus archivos. Ciérrala y vuelve a intentarlo.",
+  "quit": "Salir"
 }
