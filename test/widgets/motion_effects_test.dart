@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sotto/core/design/theme.dart';
 import 'package:sotto/core/design/tokens.dart';
@@ -17,21 +18,41 @@ Widget _app(Widget child, {bool still = false}) => MaterialApp(
   ),
 );
 
+/// Compositing layers of type [L] still doing work. Settled effects keep
+/// their widgets (so nothing is rebuilt) but must leave no blending or
+/// filtering behind — a fully opaque opacity layer is drawn as a plain
+/// offset and costs nothing.
+Iterable<L> _layers<L extends Layer>(WidgetTester tester) =>
+    tester.layers.whereType<L>().where((l) => l is! OpacityLayer || (l.alpha ?? 255) < 255);
+
 void main() {
   testWidgets('Reveal waits out its delay, then settles with no effect layers left', (tester) async {
     await tester.pumpWidget(_app(const Reveal(delay: Duration(milliseconds: 200), child: Text('hi'))));
     await tester.pump(const Duration(milliseconds: 150));
-    expect(tester.widget<Opacity>(find.byType(Opacity)).opacity, 0);
+    expect(
+      tester
+          .widget<FadeTransition>(find.descendant(of: find.byType(Reveal), matching: find.byType(FadeTransition)))
+          .opacity
+          .value,
+      0,
+    );
 
     await tester.pumpAndSettle();
-    expect(find.byType(Opacity), findsNothing);
-    expect(find.byType(ImageFiltered), findsNothing);
+    expect(_layers<OpacityLayer>(tester), isEmpty);
+    expect(_layers<ImageFilterLayer>(tester), isEmpty);
     expect(find.text('hi'), findsOneWidget);
   });
 
   testWidgets('a disabled Reveal shows its child on the first frame', (tester) async {
     await tester.pumpWidget(_app(const Reveal(enabled: false, delay: Duration(milliseconds: 300), child: Text('now'))));
-    expect(find.byType(Opacity), findsNothing);
+    expect(
+      tester
+          .widget<FadeTransition>(find.descendant(of: find.byType(Reveal), matching: find.byType(FadeTransition)))
+          .opacity
+          .value,
+      1,
+    );
+    expect(_layers<OpacityLayer>(tester), isEmpty);
     expect(tester.hasRunningAnimations, isFalse);
   });
 
@@ -55,7 +76,7 @@ void main() {
         still: true,
       ),
     );
-    expect(find.byType(Opacity), findsNothing);
+    expect(_layers<OpacityLayer>(tester), isEmpty);
     expect(tester.hasRunningAnimations, isFalse);
   });
 

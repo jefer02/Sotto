@@ -21,8 +21,8 @@ abstract final class Entrance {
   }
 }
 
-/// Comes into focus once, when first built: rises a few pixels, fades in and
-/// sharpens from a blur. [delay] staggers a group. No timers — the delay is
+/// Comes into focus once, when first built: rises a few pixels and fades in
+/// (sharpening from a blur when [blur] is set). [delay] staggers a group. No timers — the delay is
 /// the head of one animation, so nothing is left pending.
 class Reveal extends StatefulWidget {
   const Reveal({
@@ -30,8 +30,8 @@ class Reveal extends StatefulWidget {
     required this.child,
     this.delay = Duration.zero,
     this.duration = Motion.settle,
-    this.rise = 12,
-    this.blur = 6,
+    this.rise = 8,
+    this.blur = 0,
     this.enabled = true,
   });
 
@@ -81,18 +81,23 @@ class _RevealState extends State<Reveal> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: _t,
     child: widget.child,
+    // One shape from start to end — a wrapper that came or went would
+    // rebuild the child from scratch mid-entrance.
     builder: (context, child) {
       final t = _t.value;
-      if (t >= 1) return child!;
-      Widget out = Transform.translate(offset: Offset(0, widget.rise * (1 - t)), child: child);
       final sigma = widget.blur * (1 - t);
-      if (sigma > 0.05) {
-        out = ImageFiltered(
-          imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma, tileMode: TileMode.decal),
-          child: out,
-        );
-      }
-      return Opacity(opacity: t, child: out);
+      // A FadeTransition leaves no layer behind once fully shown.
+      return FadeTransition(
+        opacity: _t,
+        child: Transform.translate(
+          offset: Offset(0, widget.rise * (1 - t)),
+          child: ImageFiltered(
+            enabled: sigma > 0.05,
+            imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma, tileMode: TileMode.decal),
+            child: child,
+          ),
+        ),
+      );
     },
   );
 }
@@ -126,8 +131,7 @@ class RevealWords extends StatelessWidget {
               Reveal(
                 enabled: enabled,
                 delay: delay + stagger * i,
-                rise: 18,
-                blur: 10,
+                rise: 8,
                 child: Text(i == words.length - 1 ? words[i] : '${words[i]} ', style: style),
               ),
           ],
@@ -399,5 +403,43 @@ class HoverLift extends StatelessWidget {
     curve: Motion.glideEnter,
     child: child,
     builder: (context, dy, child) => Transform.translate(offset: Offset(0, dy), child: child),
+  );
+}
+
+/// Gives a little under the pointer while [pressed]: shrinks to [scale] and
+/// springs back on release.
+class PressScale extends StatelessWidget {
+  const PressScale({super.key, required this.pressed, required this.child, this.scale = 0.98});
+
+  final bool pressed;
+  final Widget child;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) => AnimatedScale(
+    scale: pressed ? scale : 1,
+    duration: _still(context) ? Duration.zero : const Duration(milliseconds: 100),
+    curve: Motion.standard,
+    child: child,
+  );
+}
+
+/// Content that changes in place (a filter, grid to list, empty to
+/// filled): the old content goes at once and the new fades in. Key [child]
+/// by what it shows. The first child shows without animating.
+class FadeSwitch extends StatelessWidget {
+  const FadeSwitch({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+    duration: _still(context) ? Duration.zero : Motion.snappy,
+    reverseDuration: Duration.zero,
+    switchInCurve: Curves.easeOut,
+    // Only the incoming child is laid out, so the old one is never shown
+    // alongside it.
+    layoutBuilder: (current, previous) => current ?? const SizedBox.shrink(),
+    child: child,
   );
 }
