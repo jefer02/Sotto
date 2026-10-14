@@ -20,6 +20,7 @@ import '../../core/widgets/display.dart';
 import '../../core/widgets/interactive.dart';
 import '../../core/widgets/nav.dart';
 import '../../core/widgets/stage_light.dart';
+import '../../core/widgets/stage_transitions.dart';
 import '../../core/widgets/window_chrome.dart';
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
@@ -84,12 +85,24 @@ class _LibraryShellState extends ConsumerState<LibraryShell> {
               curve: Motion.shiftMove,
               width: _collapsed ? Layout.sidebarCollapsed : Layout.sidebar,
               decoration: sidebarDecoration(p),
+              // The content takes its final width at once and the edge
+              // slides over it, so labels never squeeze mid-animation; it
+              // fades in again after each toggle.
               child: ClipRect(
-                child: _Sidebar(
-                  collapsed: _collapsed,
-                  onToggle: () => setState(() => _collapsed = !_collapsed),
-                  searchFocus: _searchFocus,
-                  search: _search,
+                child: OverflowBox(
+                  alignment: Alignment.topLeft,
+                  minWidth: _collapsed ? Layout.sidebarCollapsed : Layout.sidebar,
+                  maxWidth: _collapsed ? Layout.sidebarCollapsed : Layout.sidebar,
+                  child: ContentFadeIn(
+                    key: ValueKey(_collapsed),
+                    rise: 0,
+                    child: _Sidebar(
+                      collapsed: _collapsed,
+                      onToggle: () => setState(() => _collapsed = !_collapsed),
+                      searchFocus: _searchFocus,
+                      search: _search,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -158,91 +171,99 @@ class _Sidebar extends ConsumerWidget {
           child: ListView(
             padding: EdgeInsets.symmetric(horizontal: collapsed ? 10 : 12),
             children: [
-              // Collapsed on macOS, the top row belongs to the traffic lights.
-              if (collapsed && PlatformKeys.isMac) ...[toggle, const SizedBox(height: 8)],
-              if (!collapsed)
-                SottoTextField(
-                  controller: search,
-                  focusNode: searchFocus,
-                  placeholder: context.l10n.search,
-                  leading: SottoIcons.search,
-                  shortcutHint: '${PlatformKeys.primary}K',
-                  onChanged: (q) {
-                    ref.read(librarySearchProvider.notifier).set(q);
-                    if (q.isNotEmpty && location != '/scripts') go('/scripts');
-                  },
-                ),
-              const SizedBox(height: 14),
-              NavItem(
-                label: context.l10n.navHome,
-                icon: SottoIcons.home,
-                selected: location == '/',
+              NavHighlight(
                 collapsed: collapsed,
-                onTap: () => go('/'),
-              ),
-              const SizedBox(height: 2),
-              NavItem(
-                label: context.l10n.navAllScripts,
-                icon: SottoIcons.scripts,
-                trailing: '${active.length}',
-                selected: location == '/scripts',
-                collapsed: collapsed,
-                onTap: () => go('/scripts'),
-              ),
-              const SizedBox(height: 2),
-              NavItem(
-                label: context.l10n.navSessions,
-                icon: SottoIcons.sessions,
-                trailing: '${sessions.length}',
-                selected: location == '/sessions',
-                collapsed: collapsed,
-                onTap: () => go('/sessions'),
-              ),
-              const SizedBox(height: 2),
-              // Opt-in (Settings → General → Show chat).
-              if (showChat) ...[
-                NavItem(
-                  label: context.l10n.navChat,
-                  icon: SottoIcons.chat,
-                  selected: location == '/chat',
-                  collapsed: collapsed,
-                  onTap: () => go('/chat'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Collapsed on macOS, the top row belongs to the traffic lights.
+                    if (collapsed && PlatformKeys.isMac) ...[toggle, const SizedBox(height: 8)],
+                    if (!collapsed)
+                      SottoTextField(
+                        controller: search,
+                        focusNode: searchFocus,
+                        placeholder: context.l10n.search,
+                        leading: SottoIcons.search,
+                        shortcutHint: '${PlatformKeys.primary}K',
+                        onChanged: (q) {
+                          ref.read(librarySearchProvider.notifier).set(q);
+                          if (q.isNotEmpty && location != '/scripts') go('/scripts');
+                        },
+                      ),
+                    const SizedBox(height: 14),
+                    NavItem(
+                      label: context.l10n.navHome,
+                      icon: SottoIcons.home,
+                      selected: location == '/',
+                      collapsed: collapsed,
+                      onTap: () => go('/'),
+                    ),
+                    const SizedBox(height: 2),
+                    NavItem(
+                      label: context.l10n.navAllScripts,
+                      icon: SottoIcons.scripts,
+                      trailing: '${active.length}',
+                      selected: location == '/scripts',
+                      collapsed: collapsed,
+                      onTap: () => go('/scripts'),
+                    ),
+                    const SizedBox(height: 2),
+                    NavItem(
+                      label: context.l10n.navSessions,
+                      icon: SottoIcons.sessions,
+                      trailing: '${sessions.length}',
+                      selected: location == '/sessions',
+                      collapsed: collapsed,
+                      onTap: () => go('/sessions'),
+                    ),
+                    const SizedBox(height: 2),
+                    // Opt-in (Settings → General → Show chat).
+                    if (showChat) ...[
+                      NavItem(
+                        label: context.l10n.navChat,
+                        icon: SottoIcons.chat,
+                        selected: location == '/chat',
+                        collapsed: collapsed,
+                        onTap: () => go('/chat'),
+                      ),
+                      const SizedBox(height: 2),
+                    ],
+                    // Settings → General → Show Forms in sidebar (on by default).
+                    if (showForms) ...[
+                      NavItem(
+                        label: context.l10n.navForms,
+                        icon: SottoIcons.form,
+                        selected: location == '/forms',
+                        collapsed: collapsed,
+                        onTap: () => go('/forms'),
+                      ),
+                      const SizedBox(height: 2),
+                    ],
+                    NavItem(
+                      label: context.l10n.navArchive,
+                      icon: SottoIcons.archive,
+                      selected: location == '/archive',
+                      collapsed: collapsed,
+                      onTap: () => go('/archive'),
+                    ),
+                    if (!collapsed) NavHeading(context.l10n.navCollections),
+                    if (collapsed) const SizedBox(height: 16),
+                    for (final c in collections) ...[
+                      NavItem(
+                        label: c.name,
+                        icon: SottoIcons.folder,
+                        iconColor: p.collectionColor(c.tone),
+                        trailing: '${active.where((s) => s.collectionId == c.id).length}',
+                        selected: location == '/collections/${c.id}',
+                        collapsed: collapsed,
+                        onTap: () => go('/collections/${c.id}'),
+                      ),
+                      const SizedBox(height: 2),
+                    ],
+                    if (!collapsed) const _NewCollection(),
+                  ],
                 ),
-                const SizedBox(height: 2),
-              ],
-              // Settings → General → Show Forms in sidebar (on by default).
-              if (showForms) ...[
-                NavItem(
-                  label: context.l10n.navForms,
-                  icon: SottoIcons.form,
-                  selected: location == '/forms',
-                  collapsed: collapsed,
-                  onTap: () => go('/forms'),
-                ),
-                const SizedBox(height: 2),
-              ],
-              NavItem(
-                label: context.l10n.navArchive,
-                icon: SottoIcons.archive,
-                selected: location == '/archive',
-                collapsed: collapsed,
-                onTap: () => go('/archive'),
               ),
-              if (!collapsed) NavHeading(context.l10n.navCollections),
-              if (collapsed) const SizedBox(height: 16),
-              for (final c in collections) ...[
-                NavItem(
-                  label: c.name,
-                  icon: SottoIcons.folder,
-                  iconColor: p.collectionColor(c.tone),
-                  trailing: '${active.where((s) => s.collectionId == c.id).length}',
-                  selected: location == '/collections/${c.id}',
-                  collapsed: collapsed,
-                  onTap: () => go('/collections/${c.id}'),
-                ),
-                const SizedBox(height: 2),
-              ],
-              if (!collapsed) const _NewCollection(),
             ],
           ),
         ),
