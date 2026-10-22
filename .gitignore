@@ -57,3 +57,6 @@ docs/screenshots/
 
 # Release packages (tool/package_windows.ps1, CI)
 /dist/
+
+# Local project notes
+/PROJECT_CONTEXT.md
