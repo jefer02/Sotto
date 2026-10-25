@@ -37,6 +37,11 @@ enum OverlayPlacement {
 
 enum ScrollStyle { glide, step }
 
+/// How the words being said light up on the overlay's current line: not at
+/// all (said words just dim), a soft color sweep, or a cold glow that sweeps
+/// letter by letter with sparkles rising off it.
+enum HighlightEffect { off, simple, glow }
+
 enum AdvanceMode { voice, timed, manual }
 
 enum Sensitivity { low, medium, high }
@@ -58,7 +63,8 @@ enum ScreenTarget { overlayDisplay, cursorDisplay }
 /// still confirm anything that submits, sends, pays, deletes or buys.
 enum AgentAutonomy { confirmEach, auto }
 
-/// Questionnaires on screen: fill at once, or show the answers first.
+/// Questionnaires on screen: fill at once, or show the answers first (the
+/// default: nothing is typed until the presenter presses Enter).
 enum FormFillMode { fillAutomatically, showFirst }
 
 enum FormAnswerLanguage { sameAsForm, appLanguage }
@@ -89,9 +95,13 @@ class AppSettings {
     this.layout = OverlayLayout.auto,
     this.rememberPositionPerDisplay = true,
     this.scrollStyle = ScrollStyle.glide,
+    this.highlightEffect = HighlightEffect.off,
+    this.overlayFont = ScriptFonts.overlayDefault,
+    this.editorFont = ScriptFonts.editorDefault,
     this.reduceMotion = false,
     this.blurBehind = true,
     this.overlaySize = const (480.0, 120.0),
+    this.panelWidth = 440.0,
     this.overlayPositions = const {},
     // Voice & following
     this.microphoneId,
@@ -132,7 +142,7 @@ class AppSettings {
     this.formsEnabled = false,
     this.formsAutoFill = false,
     this.formsScroll = true,
-    this.formsMode = FormFillMode.fillAutomatically,
+    this.formsMode = FormFillMode.showFirst,
     this.formsLanguage = FormAnswerLanguage.sameAsForm,
     this.formsStyle = FormAnswerStyle.short,
     this.formsInstructions = '',
@@ -169,9 +179,24 @@ class AppSettings {
   final OverlayLayout layout;
   final bool rememberPositionPerDisplay;
   final ScrollStyle scrollStyle;
+  final HighlightEffect highlightEffect;
+
+  /// The script's font on the overlay and in the editor, chosen apart.
+  final ScriptFont overlayFont;
+  final ScriptFont editorFont;
   final bool reduceMotion;
   final bool blurBehind;
   final (double, double) overlaySize;
+
+  /// The auto-fill panel's width: a small box of its own, not the reading
+  /// overlay's strip. Its height follows what it shows.
+  final double panelWidth;
+
+  /// The widths [panelWidth] may take: it stays a small box; a saved width
+  /// outside them is dropped. (Saved as `formsPanelWidth`: what an early
+  /// build saved as `panelWidth` was the main window's width.)
+  static const panelWidthMin = 320.0;
+  static const panelWidthMax = 640.0;
 
   /// Bumped when saved overlay geometry can't be trusted any more.
   static const overlayGeometryVersion = 2;
@@ -299,9 +324,13 @@ class AppSettings {
     OverlayLayout? layout,
     bool? rememberPositionPerDisplay,
     ScrollStyle? scrollStyle,
+    HighlightEffect? highlightEffect,
+    ScriptFont? overlayFont,
+    ScriptFont? editorFont,
     bool? reduceMotion,
     bool? blurBehind,
     (double, double)? overlaySize,
+    double? panelWidth,
     Map<String, (double, double)>? overlayPositions,
     String? microphoneId,
     String? questionInputId,
@@ -368,9 +397,13 @@ class AppSettings {
     layout: layout ?? this.layout,
     rememberPositionPerDisplay: rememberPositionPerDisplay ?? this.rememberPositionPerDisplay,
     scrollStyle: scrollStyle ?? this.scrollStyle,
+    highlightEffect: highlightEffect ?? this.highlightEffect,
+    overlayFont: overlayFont ?? this.overlayFont,
+    editorFont: editorFont ?? this.editorFont,
     reduceMotion: reduceMotion ?? this.reduceMotion,
     blurBehind: blurBehind ?? this.blurBehind,
     overlaySize: overlaySize ?? this.overlaySize,
+    panelWidth: panelWidth ?? this.panelWidth,
     overlayPositions: overlayPositions ?? this.overlayPositions,
     microphoneId: microphoneId ?? this.microphoneId,
     questionInputId: clearQuestionInput ? null : (questionInputId ?? this.questionInputId),
@@ -438,10 +471,14 @@ class AppSettings {
     'layout': layout.name,
     'rememberPositionPerDisplay': rememberPositionPerDisplay,
     'scrollStyle': scrollStyle.name,
+    'highlightEffect': highlightEffect.name,
+    'overlayFont': overlayFont.toJson(),
+    'editorFont': editorFont.toJson(),
     'reduceMotion': reduceMotion,
     'blurBehind': blurBehind,
     'overlayGeometryVersion': overlayGeometryVersion,
     'overlaySize': [overlaySize.$1, overlaySize.$2],
+    'formsPanelWidth': panelWidth,
     'overlayPositions': {
       for (final e in overlayPositions.entries) e.key: [e.value.$1, e.value.$2],
     },
@@ -527,9 +564,17 @@ class AppSettings {
       layout: e(OverlayLayout.values, j['layout'], d.layout),
       rememberPositionPerDisplay: j['rememberPositionPerDisplay'] as bool? ?? d.rememberPositionPerDisplay,
       scrollStyle: e(ScrollStyle.values, j['scrollStyle'], d.scrollStyle),
+      highlightEffect: e(HighlightEffect.values, j['highlightEffect'], d.highlightEffect),
+      // Saved before fonts could be chosen: the defaults, as they were.
+      overlayFont: ScriptFont.fromJson(j['overlayFont'], fallback: d.overlayFont),
+      editorFont: ScriptFont.fromJson(j['editorFont'], fallback: d.editorFont),
       reduceMotion: j['reduceMotion'] as bool? ?? d.reduceMotion,
       blurBehind: j['blurBehind'] as bool? ?? d.blurBehind,
       overlaySize: size == null ? d.overlaySize : ((size[0] as num).toDouble(), (size[1] as num).toDouble()),
+      panelWidth: switch (n(j['formsPanelWidth'], d.panelWidth)) {
+        final w when w >= panelWidthMin && w <= panelWidthMax => w,
+        _ => d.panelWidth,
+      },
       overlayPositions: {
         for (final entry in ((geometryOk ? j['overlayPositions'] as Map? : null) ?? const {}).entries)
           entry.key as String: (

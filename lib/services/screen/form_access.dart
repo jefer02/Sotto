@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/forms/autofill_watcher.dart';
+import '../../domain/forms/form_filler.dart' show ElementState;
 import '../../domain/forms/form_model.dart';
 
 class FormAccessException implements Exception {
@@ -72,6 +73,36 @@ class FormAccessService {
 
   Future<bool> invoke(String id) async => await _call<bool>('invoke', {'id': id}) ?? false;
 
+  /// A slider or spinner to [value]; false where the platform can't.
+  Future<bool> setRange(String id, double value) async {
+    try {
+      return await _call<bool>('setRange', {'id': id, 'value': value}) ?? false;
+    } on FormAccessException {
+      return false;
+    }
+  }
+
+  /// One element as it is now; null when it's gone or the platform can't.
+  Future<ElementState?> state(String id) async {
+    try {
+      final json = await _call<String>('state', {'id': id});
+      final m = json == null ? null : jsonDecode(json);
+      return m is Map<Object?, Object?> ? ElementState.fromMap(m) : null;
+    } on FormAccessException {
+      return null;
+    }
+  }
+
+  /// Scrolls the container around [anchor] one screen down through the
+  /// accessibility tree; its new position (0–100), or null when it couldn't.
+  Future<double?> scrollDown({String? anchor}) async {
+    try {
+      return (await _call<num>('scrollDown', {'anchor': ?anchor}))?.toDouble();
+    } on FormAccessException {
+      return null;
+    }
+  }
+
   Future<bool> focus(String id) async => await _call<bool>('focus', {'id': id}) ?? false;
 
   Future<bool> scrollIntoView(String id) async => await _call<bool>('scrollIntoView', {'id': id}) ?? false;
@@ -87,10 +118,11 @@ class FormAccessService {
     }
   }
 
-  /// Whether the front page can scroll further down; null when unknown.
-  Future<bool?> canScrollDown() async {
+  /// Whether the front page — the container around [anchor] — can scroll
+  /// further down; null when unknown.
+  Future<bool?> canScrollDown({String? anchor}) async {
     try {
-      return await _call<bool>('canScrollDown');
+      return await _call<bool>('canScrollDown', {'anchor': ?anchor});
     } on FormAccessException {
       return null;
     }

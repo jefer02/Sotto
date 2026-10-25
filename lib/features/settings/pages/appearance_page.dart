@@ -11,6 +11,7 @@ import '../../../core/design/icons.dart';
 import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
 import '../../../core/design/typography.dart';
+import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/controls.dart';
 import '../../../core/widgets/display.dart';
 import '../../../core/widgets/interactive.dart';
@@ -21,6 +22,7 @@ import '../../live/overlay/overlay_preview.dart';
 import '../../live/overlay/reading_view.dart';
 import '../../live/overlay_palette.dart';
 import '../settings_screen.dart';
+import 'script_font_picker.dart';
 
 /// The script to preview: the focused one, else the most recent.
 final previewScriptProvider = Provider<Script?>((ref) {
@@ -95,6 +97,9 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
             placement: d.placement,
             layout: d.layout,
             scrollStyle: d.scrollStyle,
+            highlightEffect: d.highlightEffect,
+            overlayFont: d.overlayFont,
+            editorFont: d.editorFont,
             reduceMotion: d.reduceMotion,
             blurBehind: d.blurBehind,
             overlaySize: d.overlaySize,
@@ -243,6 +248,45 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
               ),
             ),
             SettingRow(
+              title: context.l10n.highlightEffect,
+              subtitle: switch (s.highlightEffect) {
+                HighlightEffect.off => context.l10n.highlightEffectSub,
+                HighlightEffect.simple => context.l10n.highlightSimpleSub,
+                HighlightEffect.glow => context.l10n.highlightGlowSub,
+              },
+              trailing: SegmentedControl<HighlightEffect>(
+                width: 300,
+                segments: [
+                  Segment(HighlightEffect.off, context.l10n.highlightOff),
+                  Segment(HighlightEffect.simple, context.l10n.highlightSimple),
+                  Segment(HighlightEffect.glow, context.l10n.highlightGlow),
+                ],
+                value: s.highlightEffect,
+                onChanged: (v) => n.update((x) => x.copyWith(highlightEffect: v)),
+              ),
+            ),
+            // The glow was drawn around a thin serif; one click puts it on.
+            if (s.highlightEffect == HighlightEffect.glow &&
+                s.overlayFont.family != ScriptFonts.karaokeSuggestion.family)
+              Padding(
+                padding: const EdgeInsets.only(bottom: Space.s2),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: TextLink(
+                    context.l10n.highlightUseFont(ScriptFonts.karaokeSuggestion.label),
+                    onTap: () => n.update(
+                      (x) => x.copyWith(
+                        overlayFont: ScriptFont(
+                          family: ScriptFonts.karaokeSuggestion.family,
+                          weight: 500,
+                          letterSpacing: x.overlayFont.letterSpacing,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            SettingRow(
               title: context.l10n.linesShown,
               subtitle: context.l10n.linesShownSub,
               trailing: SegmentedControl<int>(
@@ -276,6 +320,23 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
                   marker: 0.7,
                   label: NumberFormat.percentPattern(context.l10n.localeName).format(s.overlayOpacity),
                   onChanged: (v) => n.update((x) => x.copyWith(overlayOpacity: v)),
+                ),
+              ),
+          ],
+        ),
+        SettingsGroup(
+          title: context.l10n.scriptFont,
+          children: [
+            for (final target in ScriptFontTarget.values)
+              SettingRow(
+                title: target == ScriptFontTarget.overlay
+                    ? context.l10n.scriptFontOverlay
+                    : context.l10n.scriptFontEditor,
+                subtitle: _fontSummary(target == ScriptFontTarget.overlay ? s.overlayFont : s.editorFont),
+                trailing: SottoButton(
+                  label: context.l10n.scriptFontChange,
+                  size: ButtonSize.small,
+                  onPressed: () => showScriptFontPicker(context, target),
                 ),
               ),
           ],
@@ -424,6 +485,14 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
   }
 }
 
+/// "Cormorant · 500 · +0.02 em".
+String _fontSummary(ScriptFont f) {
+  final spacing = f.letterSpacing == 0
+      ? ''
+      : ' · ${f.letterSpacing > 0 ? '+' : ''}${f.letterSpacing.toStringAsFixed(2)} em';
+  return '${scriptFontLabel(f)} · ${f.weight}$spacing';
+}
+
 const _textColors = [0xFFFFFFFF, 0xFFFFE55C, 0xFF8BE9FF, 0xFF111111];
 const _outlineColors = [null, 0xFF000000, 0xFFFFFFFF];
 
@@ -451,7 +520,7 @@ class _Swatches extends StatelessWidget {
               child: Interactive(
                 onTap: () => onChanged(c),
                 builder: (context, s) => AnimatedContainer(
-                  duration: Motion.quick,
+                  duration: context.motion(Motion.quick),
                   width: 24,
                   height: 24,
                   alignment: Alignment.center,

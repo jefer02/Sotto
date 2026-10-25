@@ -27,25 +27,25 @@ bool? lightTextFor(OverlayTextColor mode, BackdropTone? backdrop) => switch (mod
 /// is what live mode sees behind the overlay (Overlay text color: Auto).
 OverlayPalette overlayPaletteFor(AppSettings s, {required bool dark, double? opacity, BackdropTone? backdrop}) {
   if (s.overlayStyle == OverlayStyle.textOnly) {
-    final light = lightTextFor(s.overlayTextColor, backdrop);
-    if (light != null) {
-      // Light text reads on dark slides: near-white glyphs, outline and a
-      // soft glow. Dark text on light slides: near-black, with a dark shadow.
+    final light = lightTextFor(s.overlayTextColor, backdrop) ?? (s.overlayTextColor == OverlayTextColor.auto);
+    if (s.overlayTextColor != OverlayTextColor.custom) {
+      // Light text reads on dark slides, near-black text on light ones. A
+      // thin, soft outline and shadow in the opposite color keep each
+      // glyph's edge where the slide is mixed (a chart, a photo) and vanish
+      // into a uniform one. Auto starts light until its first reading.
       final ink = light ? lightInk : darkInk;
       return OverlayPalette.textOnly(
         ink: ink,
-        outline: ink,
-        outlineWidth: s.outlineWidth,
+        outline: (light ? darkInk : lightInk).withValues(alpha: OverlayPalette.contrastOutlineAlpha),
+        outlineWidth: s.outlineWidth * OverlayPalette.contrastOutlineScale,
         shadowStrength: s.shadowStrength,
-        shadowColor: light ? const Color(0xB3FFFFFF) : const Color(0xFF000000),
+        shadowColor: light ? OverlayPalette.shadowUnderLight : OverlayPalette.glowUnderDark,
       );
     }
-    final ink = s.overlayTextColor == OverlayTextColor.custom ? Color(s.textColor) : lightInk;
+    final ink = Color(s.textColor);
     return OverlayPalette.textOnly(
       ink: ink,
-      outline: s.outlineColor == null || s.overlayTextColor != OverlayTextColor.custom
-          ? autoOutline(ink)
-          : Color(s.outlineColor!),
+      outline: s.outlineColor == null ? autoOutline(ink) : Color(s.outlineColor!),
       outlineWidth: s.outlineWidth,
       shadowStrength: s.shadowStrength,
     );

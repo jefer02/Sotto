@@ -186,8 +186,12 @@
   "modelStreamingEnDesc": "Follows your voice word by word",
   "modelStreamingEnLight": "English · streaming (light)",
   "modelStreamingEnLightDesc": "For older or low-power machines",
+  "modelStreamingEs": "Spanish · streaming",
+  "modelStreamingFr": "French · streaming",
+  "modelStreamingDe": "German · streaming",
+  "modelStreamingKrokoDesc": "Follows your voice word by word · Kroko community model, CC BY-SA",
   "modelWhisperBase": "Whisper base",
-  "modelWhisperBaseDesc": "Question transcripts in 99 languages; also follows non-English scripts",
+  "modelWhisperBaseDesc": "Question transcripts in 99 languages; also follows languages without a streaming model",
   "modelWhisperTurbo": "Whisper large-v3 turbo",
   "modelWhisperTurboDesc": "Most accurate question transcripts; needs a fast machine",
   "modelDownloadFailed": "Download failed ({status}).",
@@ -200,10 +204,47 @@
   },
   "modelIncomplete": "The model archive was incomplete.",
   "modelOffline": "No internet connection. Models download once, then work offline.",
+  "modelChecksumFailed": "The download didn't match the published checksum, so it was discarded. Try again.",
+  "modelLicenseTitle": "License of “{model}”",
+  "@modelLicenseTitle": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelLicenseBody": "This model is shared under Creative Commons Attribution-ShareAlike (CC BY-SA); its publisher doesn’t say which version. Sotto downloads it unchanged from the sherpa-onnx project on GitHub, checks it against a pinned checksum, and runs it only on this computer.",
+  "modelLicenseAttribution": "Attribution",
+  "modelLicenseSource": "Source and license: {url}",
+  "@modelLicenseSource": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "modelLicenseAccept": "Accept and download",
+  "modelLicenseView": "License",
   "engineUnavailable": "Unavailable",
   "engineOnDeviceStreaming": "On-device · streaming",
+  "engineOnDeviceStreamingModel": "On-device · streaming · {model}",
+  "@engineOnDeviceStreamingModel": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "engineOnDeviceWhisper": "On-device · Whisper",
   "engineModelsMissing": "Speech models are not installed yet. Download them in Settings → Voice & following.",
+  "engineStreamingRecommended": "Following with Whisper waits for pauses. Download “{model}” in Settings → Voice & following to follow word by word.",
+  "@engineStreamingRecommended": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "sttEngineFailed": "Speech engine failed to start: {error}",
   "@sttEngineFailed": {
     "placeholders": {
@@ -240,6 +281,14 @@
     }
   },
   "readyDownloadModels": "Download speech models in Voice & following",
+  "readyStreamingRecommended": "Follows with Whisper, a phrase at a time. Download “{model}” to follow word by word.",
+  "@readyStreamingRecommended": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "readyHotkeys": "Hotkeys {chord}",
   "@readyHotkeys": {
     "placeholders": {
@@ -923,6 +972,31 @@
   "overlayThemeSub": "Dark disappears into slides and video.",
   "matchApp": "Match app",
   "readability": "Readability",
+  "scriptFont": "Script font",
+  "scriptFontOverlay": "Overlay script",
+  "scriptFontEditor": "Editor script",
+  "scriptFontChange": "Change…",
+  "scriptFontOverlayTitle": "Overlay script font",
+  "scriptFontEditorTitle": "Editor script font",
+  "scriptFontBundled": "Included with Sotto",
+  "scriptFontSystem": "On this computer",
+  "scriptFontSearch": "Search fonts",
+  "scriptFontLoading": "Looking for installed fonts…",
+  "scriptFontNone": "No fonts match",
+  "scriptFontWeight": "Weight",
+  "scriptFontSpacing": "Letter spacing",
+  "scriptFontReset": "Reset to default",
+  "scriptFontApply": "Apply",
+  "scriptFontDefaultTag": "Default",
+  "scriptFontSample": "Thank you all for being here today; let’s look at how the year went.",
+  "scriptFontMissing": "“{family}” isn’t installed on this computer, so Sotto shows the default font instead.",
+  "@scriptFontMissing": {
+    "placeholders": {
+      "family": {
+        "type": "String"
+      }
+    }
+  },
   "textSize": "Text size",
   "linesShown": "Lines shown",
   "linesShownSub": "Before and after the line you are saying",
@@ -944,11 +1018,26 @@
   "metricLineLength": "Line length at this size",
   "motion": "Motion",
   "scrolling": "Scrolling",
-  "scrollingSub": "Glide eases between beats; Step jumps.",
+  "scrollingSub": "Glide follows your voice letter by letter, at your pace; Step moves a line at a time.",
   "scrollGlide": "Glide",
   "scrollStep": "Step",
   "reduceMotion": "Reduce motion",
   "reduceMotionSub": "Also follows your system setting",
+  "highlightEffect": "Highlight effect",
+  "highlightEffectSub": "How the words you’re saying light up on the current line",
+  "highlightOff": "Off",
+  "highlightSimple": "Simple",
+  "highlightGlow": "Glow + sparkles",
+  "highlightGlowSub": "A cold glow sweeps letter by letter as you speak, with sparkles rising off it; the line keeps its color. With Reduce motion it rests on the word you said.",
+  "highlightSimpleSub": "The letters you’re saying take the accent color as you speak.",
+  "highlightUseFont": "Use {font}, the serif it was designed with",
+  "@highlightUseFont": {
+    "placeholders": {
+      "font": {
+        "type": "String"
+      }
+    }
+  },
   "blurBehind": "Blur behind the overlay",
   "blurBehindSub": "Softens busy slides. Uses the system’s vibrancy on macOS and acrylic on Windows 11.",
   "voiceDescription": "How Sotto listens to you while you present. On-device recognition keeps your voice on this computer.",
@@ -969,6 +1058,19 @@
   "addLanguage": "Add a language",
   "engine": "Engine",
   "engineOnDeviceSub": "sherpa-onnx on this computer · no audio leaves it",
+  "followsWith": "Follows with",
+  "followsWhyStreaming": "Word by word: a streaming model hears each word as you say it. Whisper still transcribes questions and dictation.",
+  "followsWhyWhisperUntil": "Whisper only hears whole phrases: the script waits for your pauses, then moves a phrase at once. Download “{model}” to follow word by word.",
+  "@followsWhyWhisperUntil": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "followsWhyWhisperOnly": "No streaming model speaks this language yet: Whisper follows a phrase at a time.",
+  "followsWhyNone": "Download a model below to follow your voice.",
+  "followsNoModel": "No model yet",
   "following": "Following",
   "advance": "Advance",
   "followMyVoice": "Follow my voice",
@@ -988,7 +1090,7 @@
   "ready": "Ready",
   "needsSetup": "Needs setup",
   "onDeviceModels": "On-device models",
-  "onDeviceModelsFooter": "Downloaded once from the sherpa-onnx project, then used offline. Follow English live with a streaming model; Whisper transcribes questions and follows other languages.",
+  "onDeviceModelsFooter": "Downloaded once from the sherpa-onnx project, checked against a pinned checksum, then used offline. A streaming model follows your voice word by word (English, Spanish, French, German); Whisper transcribes questions and dictation, and follows other languages a phrase at a time.",
   "installed": "Installed",
   "removeModel": "Remove model",
   "unpacking": "Unpacking",
@@ -1463,6 +1565,7 @@
   "formsWhyNoMatch": "the answer isn't one of the options",
   "formsWhyNoField": "field not found",
   "formsWhyNoAnswer": "no answer",
+  "formsWhyOffscreen": "never came on screen — fill it in by hand",
   "formsSessionTitle": "Questionnaire on screen",
   "formsReading": "Reading the form…",
   "formsThinking": "Answering the questions…",
@@ -1618,6 +1721,21 @@
   "chatPrivacy": "Chats are stored on this computer and kept for your history period. Screenshots you attach go to DeepSeek and are never saved.",
   "formsNeedsAccessibility": "Sotto needs Accessibility permission to read and fill forms. Allow Sotto in System Settings → Privacy & Security → Accessibility, then press the shortcut again.",
   "formsCouldNotFill": "could not fill — please fill it yourself",
+  "formsManualTitle": "{count, plural, =1{Couldn't fill 1 answer — fill it in by hand} other{Couldn't fill {count} answers — fill them in by hand}}",
+  "@formsManualTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "formsManualAllFilled": "Every answer is in the form — review and submit when ready",
+  "formsCopyAll": "Copy all",
+  "formsCopyAnswer": "Copy answer",
+  "formsNoSuggestion": "No suggested answer",
+  "formsFilledTooltip": "Filled by Sotto",
+  "formsChatPlaceholder": "Ask about this form — \"why this answer?\", \"answer 4 in English\"",
+  "formsChatBusy": "Chat waits while Sotto types into the form",
   "overlayTextColor": "Overlay text color",
   "overlayTextColorAuto": "Auto",
   "overlayTextColorLight": "Always light",
@@ -1815,5 +1933,10 @@
   "readyShareVisible": "Overlay shows in screen shares",
   "readyShareVisibleSub": "On Linux the overlay can't hide from screen capture — share only your slides window, not the whole screen.",
   "readyHotkeysWayland": "Shortcuts need an X11 session",
-  "readyHotkeysWaylandSub": "Wayland doesn't let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay's buttons."
+  "readyHotkeysWaylandSub": "Wayland doesn't let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay's buttons.",
+  "startupFailedTitle": "Sotto couldn't open your data",
+  "startupFailedBody": "Another copy of Sotto may still be open, or a sync app such as OneDrive is holding one of its files. Close it, then try again.",
+  "quit": "Quit",
+  "pasteOrganized": "Organized into sections and beats",
+  "undo": "Undo"
 }

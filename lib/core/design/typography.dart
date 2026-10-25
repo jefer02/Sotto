@@ -1,5 +1,9 @@
 import 'package:flutter/painting.dart';
 
+import 'script_fonts.dart';
+
+export 'script_fonts.dart';
+
 /// Font families bundled in assets/fonts (all OFL).
 abstract final class Fonts {
   static const interface = 'Geist';
@@ -69,13 +73,19 @@ enum ReadingSize {
   String get label => name.toUpperCase();
 }
 
-/// Reading scale · Atkinson Hyperlegible Next.
+/// Reading scale · Atkinson Hyperlegible Next, or the script font the
+/// presenter chose (Settings → Appearance → Script font).
 abstract final class ReadingType {
-  static TextStyle live(double size, {double? lineHeight}) =>
-      _v(Fonts.reading, size, lineHeight ?? size * 1.34, 500, tracking: -0.005);
+  static TextStyle live(double size, {double? lineHeight, ScriptFont? font}) {
+    final base = _v(Fonts.reading, size, lineHeight ?? size * 1.34, 500, tracking: -0.005);
+    return font == null ? base : ScriptFonts.styleFor(base, font);
+  }
 
   static final editor = _v(Fonts.reading, 17, 28, 400);
   static final editorStrong = _v(Fonts.reading, 17, 28, 700);
+
+  /// The editor's script text in [font].
+  static TextStyle editorIn(ScriptFont font) => ScriptFonts.styleFor(editor, font);
 
   static final answerHeadline = _v(Fonts.reading, 22, 29, 600, tracking: -0.01);
   static final answerPoint = _v(Fonts.reading, 16, 23, 400);

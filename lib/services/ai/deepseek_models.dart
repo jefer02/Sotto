@@ -17,6 +17,12 @@ final deepSeekModelsProvider = FutureProvider<List<DeepSeekModel>>((ref) async {
   }
 });
 
+/// Whether [model] reads images, per `GET /models`. With no list yet
+/// (offline, no key checked) it's assumed to — an image it then refuses
+/// switches that fill to text.
+bool visionReadsImages(List<DeepSeekModel> models, String model) =>
+    models.isEmpty || models.any((m) => m.id == model && m.images);
+
 /// The model to send screenshots to: [selected] if it reads images, else
 /// Flash, else the first model that does. Null when none can.
 String? pickVisionModel(List<DeepSeekModel> models, String selected) {

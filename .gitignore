@@ -57,3 +57,33 @@ docs/screenshots/
 
 # Release packages (tool/package_windows.ps1, CI)
 /dist/
+
+# Local overrides and environment files
+pubspec_overrides.yaml
+.env
+.env.*
+.fvm/
+
+# Agent and editor caches
+.claude/settings.local.json
+*.bak
+*.tmp
+*.orig
+
+# OS clutter (Windows, macOS)
+Thumbs.db
+desktop.ini
+.Spotlight-V100
+.Trashes
+
+# Python helpers (tool/make_app_icon.py, test/fixtures/*/generate*.py)
+__pycache__/
+.venv/
+venv/
+
+# Flutter crash screenshots and failed golden images
+flutter_*.png
+**/failures/
+
+# Project context notes (local only)
+/PROJECT_CONTEXT.md

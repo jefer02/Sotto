@@ -78,9 +78,44 @@ abstract final class TextNormalizer {
   };
 
   static const _stopWordsEs = {
-    'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'y', 'e', 'o', 'u', 'de', 'del', 'a', 'al',
-    'en', 'por', 'para', 'con', 'que', 'es', 'se', 'lo', 'le', 'les', 'su', 'sus', 'mi', 'nuestro',
-    'nuestra', 'eh', 'este', 'esta', 'como', 'pero', 'ya', 'muy',
+    'el',
+    'la',
+    'los',
+    'las',
+    'un',
+    'una',
+    'unos',
+    'unas',
+    'y',
+    'e',
+    'o',
+    'u',
+    'de',
+    'del',
+    'a',
+    'al',
+    'en',
+    'por',
+    'para',
+    'con',
+    'que',
+    'es',
+    'se',
+    'lo',
+    'le',
+    'les',
+    'su',
+    'sus',
+    'mi',
+    'nuestro',
+    'nuestra',
+    'eh',
+    'este',
+    'esta',
+    'como',
+    'pero',
+    'ya',
+    'muy',
   };
 
   /// Words that carry little evidence of position, in English or Spanish.
@@ -91,9 +126,28 @@ abstract final class TextNormalizer {
   /// á → a, ñ → n… Recognizers and scripts don't always agree on accents.
   static String _fold(String s) => s.replaceAllMapped(RegExp('[áàäâéèëêíìïîóòöôúùüûñç]'), (m) {
     const map = {
-      'á': 'a', 'à': 'a', 'ä': 'a', 'â': 'a', 'é': 'e', 'è': 'e', 'ë': 'e', 'ê': 'e', 'í': 'i', 'ì': 'i',
-      'ï': 'i', 'î': 'i', 'ó': 'o', 'ò': 'o', 'ö': 'o', 'ô': 'o', 'ú': 'u', 'ù': 'u', 'ü': 'u', 'û': 'u',
-      'ñ': 'n', 'ç': 'c',
+      'á': 'a',
+      'à': 'a',
+      'ä': 'a',
+      'â': 'a',
+      'é': 'e',
+      'è': 'e',
+      'ë': 'e',
+      'ê': 'e',
+      'í': 'i',
+      'ì': 'i',
+      'ï': 'i',
+      'î': 'i',
+      'ó': 'o',
+      'ò': 'o',
+      'ö': 'o',
+      'ô': 'o',
+      'ú': 'u',
+      'ù': 'u',
+      'ü': 'u',
+      'û': 'u',
+      'ñ': 'n',
+      'ç': 'c',
     };
     return map[m[0]]!;
   });
@@ -233,21 +287,60 @@ abstract final class TextNormalizer {
   }
 
   static const _onesEs = [
-    'cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 'once', 'doce',
-    'trece', 'catorce', 'quince', 'dieciseis', 'diecisiete', 'dieciocho', 'diecinueve', 'veinte', 'veintiuno',
-    'veintidos', 'veintitres', 'veinticuatro', 'veinticinco', 'veintiseis', 'veintisiete', 'veintiocho',
+    'cero',
+    'uno',
+    'dos',
+    'tres',
+    'cuatro',
+    'cinco',
+    'seis',
+    'siete',
+    'ocho',
+    'nueve',
+    'diez',
+    'once',
+    'doce',
+    'trece',
+    'catorce',
+    'quince',
+    'dieciseis',
+    'diecisiete',
+    'dieciocho',
+    'diecinueve',
+    'veinte',
+    'veintiuno',
+    'veintidos',
+    'veintitres',
+    'veinticuatro',
+    'veinticinco',
+    'veintiseis',
+    'veintisiete',
+    'veintiocho',
     'veintinueve',
   ];
   static const _tensEs = ['', '', '', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
   static const _hundredsEs = [
-    '', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos',
-    'ochocientos', 'novecientos',
+    '',
+    'ciento',
+    'doscientos',
+    'trescientos',
+    'cuatrocientos',
+    'quinientos',
+    'seiscientos',
+    'setecientos',
+    'ochocientos',
+    'novecientos',
   ];
 
   /// Spanish cardinals, accent-folded: 31 → treinta y uno, 2026 → dos mil veintiseis.
   static List<String> _integerWordsEs(int n) {
     if (n < 30) return [_onesEs[n]];
-    if (n < 100) return [_tensEs[n ~/ 10], if (n % 10 != 0) ...['y', _onesEs[n % 10]]];
+    if (n < 100) {
+      return [
+        _tensEs[n ~/ 10],
+        if (n % 10 != 0) ...['y', _onesEs[n % 10]],
+      ];
+    }
     if (n == 100) return const ['cien'];
     if (n < 1000) return [_hundredsEs[n ~/ 100], if (n % 100 != 0) ..._integerWordsEs(n % 100)];
     if (n < 1000000) {
@@ -303,10 +396,15 @@ abstract final class TextNormalizer {
   /// Similarity in 0..1 between two spoken tokens. Exact matches score 1;
   /// near-misses from the recognizer ("renegotiated" / "renegotiate") score
   /// by normalised edit distance on a light phonetic key.
-  static double similarity(String a, String b) {
+  ///
+  /// [spanish] adds Spanish spelling that sounds alike (b/v, ll/y, silent h,
+  /// qu/gu) and the contractions and conjunction forms recognizers swap:
+  /// "al"/"a", "del"/"de", "y"/"e", "o"/"u", and the decimal "punto"/"coma".
+  static double similarity(String a, String b, {bool spanish = false}) {
     if (a == b) return 1;
     if (a.isEmpty || b.isEmpty) return 0;
-    final ka = _phoneticKey(a), kb = _phoneticKey(b);
+    if (spanish && _sameEs(a, b)) return 0.85;
+    final ka = spanish ? _phoneticKeyEs(a) : _phoneticKey(a), kb = spanish ? _phoneticKeyEs(b) : _phoneticKey(b);
     if (ka == kb) return 0.9;
     final d = _levenshtein(ka, kb);
     final len = ka.length > kb.length ? ka.length : kb.length;
@@ -321,6 +419,28 @@ abstract final class TextNormalizer {
       .replaceAll(RegExp(r'z'), 's')
       .replaceAllMapped(RegExp(r'(.)\1+'), (m) => m[1]!)
       .replaceAll(RegExp(r'(?<=.)[aeiouy]+'), '');
+
+  static const _equivalentEs = [
+    {'al', 'a'},
+    {'del', 'de'},
+    {'y', 'e'},
+    {'o', 'u'},
+    // "4.8" is read "cuatro punto ocho" or "cuatro coma ocho".
+    {'punto', 'coma'},
+  ];
+
+  static bool _sameEs(String a, String b) => _equivalentEs.any((pair) => pair.contains(a) && pair.contains(b));
+
+  /// Spanish spellings of one sound collapse before the generic key: h is
+  /// silent, b/v and ll/y sound alike, qu/k and gu(e|i)/g, z/c(e|i)/s.
+  static String _phoneticKeyEs(String s) => _phoneticKey(
+    s
+        .replaceAll(RegExp(r'^h|(?<=[aeiou])h'), '')
+        .replaceAll('v', 'b')
+        .replaceAll('ll', 'y')
+        .replaceAll(RegExp(r'qu(?=[ei])'), 'k')
+        .replaceAll(RegExp(r'gu(?=[ei])'), 'g'),
+  );
 
   static int _levenshtein(String a, String b) {
     var prev = List<int>.generate(b.length + 1, (i) => i);

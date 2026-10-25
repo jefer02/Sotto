@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../design/icons.dart';
@@ -29,7 +30,7 @@ class SottoToggle extends StatelessWidget {
         enabled: onChanged != null,
         focusRadius: const BorderRadius.all(Radius.circular(9)),
         builder: (context, s) => AnimatedContainer(
-          duration: Motion.snappy,
+          duration: context.motion(Motion.snappy),
           curve: Motion.glideEnter,
           width: 30,
           height: 18,
@@ -39,7 +40,7 @@ class SottoToggle extends StatelessWidget {
             border: Border.all(color: value ? Colors.transparent : p.emphasis),
           ),
           child: AnimatedAlign(
-            duration: Motion.snappy,
+            duration: context.motion(Motion.snappy),
             curve: Motion.glideEnter,
             alignment: value ? Alignment.centerRight : Alignment.centerLeft,
             child: Container(
@@ -74,7 +75,7 @@ class SottoCheckbox extends StatelessWidget {
       onTap: onChanged == null ? null : () => onChanged!(!value),
       focusRadius: Radii.rXs,
       builder: (context, s) => AnimatedContainer(
-        duration: Motion.quick,
+        duration: context.motion(Motion.quick),
         width: 16,
         height: 16,
         alignment: Alignment.center,
@@ -102,7 +103,7 @@ class SottoRadio extends StatelessWidget {
       onTap: onTap,
       focusRadius: const BorderRadius.all(Radius.circular(9)),
       builder: (context, s) => AnimatedContainer(
-        duration: Motion.quick,
+        duration: context.motion(Motion.quick),
         width: 16,
         height: 16,
         alignment: Alignment.center,
@@ -174,7 +175,7 @@ class SegmentedControl<T> extends StatelessWidget {
                     final selected = seg.value == value;
                     final ink = selected ? p.primaryText : (s.hovered ? p.inkSecondary : p.inkTertiary);
                     return AnimatedContainer(
-                      duration: Motion.snappy,
+                      duration: context.motion(Motion.snappy),
                       height: height - 6,
                       padding: EdgeInsets.symmetric(horizontal: width == null ? 10 : 6),
                       alignment: Alignment.center,
@@ -407,7 +408,7 @@ class _SottoTextFieldState extends State<SottoTextField> {
     final style = (widget.mono ? TypeScale.mono.copyWith(fontSize: 13) : TypeScale.body).copyWith(color: p.inkPrimary);
 
     final field = AnimatedContainer(
-      duration: Motion.quick,
+      duration: context.motion(Motion.quick),
       width: widget.width,
       height: multi ? null : 30,
       padding: EdgeInsets.fromLTRB(10, multi ? 8 : 0, 8, multi ? 8 : 0),
@@ -548,7 +549,7 @@ class SottoSelect<T> extends StatelessWidget {
       builder: (context, controller, _) => Interactive(
         onTap: onChanged == null ? null : () => controller.isOpen ? controller.close() : controller.open(),
         builder: (context, s) => AnimatedContainer(
-          duration: Motion.quick,
+          duration: context.motion(Motion.quick),
           width: width,
           height: 30,
           padding: const EdgeInsets.only(left: 10, right: 8),

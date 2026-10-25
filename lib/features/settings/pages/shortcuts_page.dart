@@ -275,7 +275,7 @@ class _ShortcutRowState extends ConsumerState<ShortcutRow> {
         onTap: _start,
         semanticLabel: context.l10n.changeShortcutFor(a.title),
         builder: (context, st) => AnimatedContainer(
-          duration: Motion.quick,
+          duration: context.motion(Motion.quick),
           height: 30,
           padding: const EdgeInsets.symmetric(horizontal: 6),
           decoration: BoxDecoration(

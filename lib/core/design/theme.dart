@@ -29,6 +29,15 @@ extension SottoThemeContext on BuildContext {
   OverlayPalette get overlayPalette => Theme.of(this).extension<SottoTheme>()!.overlay;
 }
 
+extension SottoMotionContext on BuildContext {
+  /// Whether motion is reduced — the system setting, or Settings ›
+  /// Appearance › Reduce motion (both apps fold it into [MediaQuery]).
+  bool get stillMotion => MediaQuery.maybeDisableAnimationsOf(this) ?? false;
+
+  /// [d], or no time at all when motion is reduced.
+  Duration motion(Duration d) => stillMotion ? Duration.zero : d;
+}
+
 ThemeData buildSottoTheme(SottoPalette p, {OverlayPalette? overlay}) {
   final base = p.isDark ? ThemeData.dark() : ThemeData.light();
   final text = TextTheme(

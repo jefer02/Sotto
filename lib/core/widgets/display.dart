@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/rendering.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 import '../design/icons.dart';
 import '../design/theme.dart';
@@ -295,6 +298,10 @@ class SettingsGroup extends StatelessWidget {
   }
 }
 
+/// A setting: its title and description, and the control beside them —
+/// or under them at full width when the control is too wide to leave the
+/// text [SettingRowLayout.minLabel] (a four-way segmented control in a
+/// narrow column).
 class SettingRow extends StatelessWidget {
   const SettingRow({super.key, required this.title, this.subtitle, this.trailing, this.below, this.leading});
 
@@ -307,29 +314,29 @@ class SettingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final label = Row(
+      children: [
+        if (leading != null) ...[leading!, const SizedBox(width: 10)],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(subtitle!, style: TypeScale.caption.copyWith(color: p.inkTertiary, height: 1.4)),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 14, vertical: subtitle == null ? 13 : 11),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              if (leading != null) ...[leading!, const SizedBox(width: 10)],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(subtitle!, style: TypeScale.caption.copyWith(color: p.inkTertiary, height: 1.4)),
-                    ],
-                  ],
-                ),
-              ),
-              if (trailing != null) ...[const SizedBox(width: 16), trailing!],
-            ],
-          ),
+          if (trailing == null) label else SettingRowLayout(label: label, trailing: trailing!),
           if (below != null) ...[const SizedBox(height: 10), below!],
         ],
       ),
@@ -337,9 +344,167 @@ class SettingRow extends StatelessWidget {
   }
 }
 
+/// [label] and [trailing] side by side while the label keeps at least
+/// [minLabel]; otherwise [trailing] goes under it, as wide as the row.
+class SettingRowLayout extends MultiChildRenderObjectWidget {
+  SettingRowLayout({super.key, required Widget label, required Widget trailing}) : super(children: [label, trailing]);
+
+  /// The narrowest the title and description get beside a control.
+  static const minLabel = 240.0;
+  static const gap = 16.0;
+  static const stackGap = 10.0;
+
+  @override
+  RenderSettingRow createRenderObject(BuildContext context) => RenderSettingRow();
+}
+
+class _SettingRowData extends ContainerBoxParentData<RenderBox> {}
+
+class RenderSettingRow extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _SettingRowData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _SettingRowData> {
+  /// The control went under the label.
+  bool get stacked => _stacked;
+  bool _stacked = false;
+
+  RenderBox get _label => firstChild!;
+  RenderBox get _trailing => lastChild!;
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _SettingRowData) child.parentData = _SettingRowData();
+  }
+
+  static bool _fits(double width, double trailing) =>
+      !width.isFinite || width - trailing - SettingRowLayout.gap >= SettingRowLayout.minLabel;
+
+  @override
+  void performLayout() {
+    final width = constraints.maxWidth;
+    _trailing.layout(BoxConstraints(maxWidth: width), parentUsesSize: true);
+    final tw = _trailing.size.width;
+    _stacked = !_fits(width, tw);
+    final labelData = _label.parentData! as _SettingRowData;
+    final trailingData = _trailing.parentData! as _SettingRowData;
+    if (!_stacked) {
+      final lw = width.isFinite ? width - tw - SettingRowLayout.gap : _label.getMaxIntrinsicWidth(double.infinity);
+      _label.layout(BoxConstraints.tightFor(width: lw), parentUsesSize: true);
+      final h = math.max(_label.size.height, _trailing.size.height);
+      labelData.offset = Offset(0, (h - _label.size.height) / 2);
+      trailingData.offset = Offset(lw + SettingRowLayout.gap, (h - _trailing.size.height) / 2);
+      size = constraints.constrain(Size(lw + SettingRowLayout.gap + tw, h));
+      return;
+    }
+    _label.layout(BoxConstraints.tightFor(width: width), parentUsesSize: true);
+    _trailing.layout(BoxConstraints.tightFor(width: width), parentUsesSize: true);
+    labelData.offset = Offset.zero;
+    trailingData.offset = Offset(0, _label.size.height + SettingRowLayout.stackGap);
+    size = constraints.constrain(Size(width, _label.size.height + SettingRowLayout.stackGap + _trailing.size.height));
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) =>
+      math.max(_label.getMinIntrinsicWidth(height), _trailing.getMinIntrinsicWidth(height));
+
+  @override
+  double computeMaxIntrinsicWidth(double height) =>
+      _label.getMaxIntrinsicWidth(height) + SettingRowLayout.gap + _trailing.getMaxIntrinsicWidth(height);
+
+  @override
+  double computeMinIntrinsicHeight(double width) => computeMaxIntrinsicHeight(width);
+
+  @override
+  double computeMaxIntrinsicHeight(double width) {
+    final tw = _trailing.getMaxIntrinsicWidth(double.infinity);
+    if (_fits(width, tw)) {
+      final lw = width.isFinite ? width - tw - SettingRowLayout.gap : double.infinity;
+      return math.max(_label.getMaxIntrinsicHeight(lw), _trailing.getMaxIntrinsicHeight(tw));
+    }
+    return _label.getMaxIntrinsicHeight(width) + SettingRowLayout.stackGap + _trailing.getMaxIntrinsicHeight(width);
+  }
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) {
+    final width = constraints.maxWidth;
+    final t = _trailing.getDryLayout(BoxConstraints(maxWidth: width));
+    if (_fits(width, t.width)) {
+      final lw = width.isFinite ? width - t.width - SettingRowLayout.gap : _label.getMaxIntrinsicWidth(double.infinity);
+      final l = _label.getDryLayout(BoxConstraints.tightFor(width: lw));
+      return constraints.constrain(Size(lw + SettingRowLayout.gap + t.width, math.max(l.height, t.height)));
+    }
+    final l = _label.getDryLayout(BoxConstraints.tightFor(width: width));
+    final s = _trailing.getDryLayout(BoxConstraints.tightFor(width: width));
+    return constraints.constrain(Size(width, l.height + SettingRowLayout.stackGap + s.height));
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
+
+  @override
+  void paint(PaintingContext context, Offset offset) => defaultPaint(context, offset);
+}
+
 // ───────────────────────────── Meters ─────────────────────────────
 
 /// A row of section segments sized by duration; the current one can glow.
+/// A section's name under its segment, never cut off: it wraps by words
+/// onto two lines where it has room, and where even one word won't fit it
+/// gives way to the section's number. Hovering always shows the full name.
+class _SegmentLabel extends StatelessWidget {
+  const _SegmentLabel(this.title, {required this.number});
+
+  final String title;
+  final int number;
+
+  static const _maxLines = 2;
+
+  /// Whether [title] fits [width] in [style] without breaking a word or
+  /// running past [_maxLines].
+  static bool _fits(String title, TextStyle style, double width, TextScaler scaler, TextDirection dir) {
+    TextPainter painter(String text, {double maxWidth = double.infinity, int? maxLines}) => TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: dir,
+      textScaler: scaler,
+      maxLines: maxLines,
+    )..layout(maxWidth: maxWidth);
+    for (final word in title.split(RegExp(r'\s+')).where((w) => w.isNotEmpty)) {
+      final w = painter(word);
+      final wide = w.width > width;
+      w.dispose();
+      if (wide) return false;
+    }
+    final all = painter(title, maxWidth: width, maxLines: _maxLines);
+    final over = all.didExceedMaxLines;
+    all.dispose();
+    return !over;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final style = TypeScale.caption.copyWith(color: p.inkTertiary, fontSize: 11);
+    final number = this.number.toString().padLeft(2, '0');
+    final numberStyle = TypeScale.monoSmall.copyWith(color: p.inkTertiary);
+    return Tooltip(
+      message: title,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final scaler = MediaQuery.textScalerOf(context);
+          final dir = Directionality.of(context);
+          if (_fits(title, style, c.maxWidth, scaler, dir)) {
+            return Text(title, maxLines: _maxLines, softWrap: true, style: style);
+          }
+          // Too narrow even for the number: the tooltip carries the name.
+          if (!_fits(number, numberStyle, c.maxWidth, scaler, dir)) return const SizedBox.shrink();
+          return ExcludeSemantics(child: Text(number, maxLines: 1, style: numberStyle));
+        },
+      ),
+    );
+  }
+}
+
 class SectionBar extends StatelessWidget {
   const SectionBar({
     super.key,
@@ -393,15 +558,7 @@ class SectionBar extends StatelessWidget {
                           : (trackColor ?? p.primaryTrack),
                     ),
                   ),
-                  if (labels != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      labels![i],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TypeScale.caption.copyWith(color: p.inkTertiary, fontSize: 11),
-                    ),
-                  ],
+                  if (labels != null) ...[const SizedBox(height: 8), _SegmentLabel(labels![i], number: i + 1)],
                 ],
               ),
             ),
@@ -551,7 +708,7 @@ class SurfaceCard extends StatelessWidget {
         ? Color.alphaBlend(accent!.withValues(alpha: (p.isDark ? 0.16 : 0.11) + (hovered ? 0.05 : 0)), top)
         : top;
     final card = AnimatedContainer(
-      duration: Motion.quick,
+      duration: context.motion(Motion.quick),
       padding: padding,
       decoration: BoxDecoration(
         gradient: LinearGradient(

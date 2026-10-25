@@ -8,6 +8,14 @@ abstract final class ChatContext {
   static const system = '''
 You are Sotto's assistant, helping a presenter before and during their talks. Be direct and concise; use short paragraphs and Markdown (bold, lists, code blocks) when it helps. Answer in the language the user writes in.''';
 
+  /// The forms panel's chat: the same assistant, about one form, under the
+  /// same rules as filling it.
+  static const formRules = '''
+The user is filling in a form on their screen with Sotto's help, and asks about it. Sotto read the form below (questions numbered as the user sees them) and suggested answers; you can explain an answer, rephrase it, translate it or answer a question again, keeping the format the field needs (an option's exact text for choices).
+Rules, always:
+- A graded test, quiz or exam (questions with right and wrong answers that assess the user's knowledge) is out of scope: don't answer, solve, hint at or check its questions; say briefly that Sotto doesn't help with graded tests.
+- Never read, guess or suggest passwords, security codes, payment, card or billing details, or ID numbers.''';
+
   /// The messages that fit, oldest first.
   static List<ChatMessage> window(List<ChatMessage> messages, {int maxMessages = 20, int maxChars = 24000}) {
     final usable = [
@@ -46,17 +54,21 @@ You are Sotto's assistant, helping a presenter before and during their talks. Be
     int maxChars = 24000,
     String? screenshot,
     String? scriptContext,
+    String? formContext,
     bool thinking = false,
   }) {
     final picked = window(c.messages, maxMessages: maxMessages, maxChars: maxChars);
     final lastUser = picked.lastIndexWhere((m) => m.role == ChatRole.user);
+    final prompt = StringBuffer(system);
+    if (scriptContext != null && scriptContext.trim().isNotEmpty) {
+      prompt.write('\n\nThe presenter\'s script, for context:\n"""\n${clip(scriptContext, 12000)}\n"""');
+    }
+    if (formContext != null) {
+      final form = formContext.trim();
+      prompt.write('\n\n$formRules\n\nThe form:\n"""\n${form.isEmpty ? '(nothing read yet)' : clip(form, 12000)}\n"""');
+    }
     return [
-      {
-        'role': 'system',
-        'content': scriptContext == null || scriptContext.trim().isEmpty
-            ? system
-            : '$system\n\nThe presenter\'s script, for context:\n"""\n${clip(scriptContext, 12000)}\n"""',
-      },
+      {'role': 'system', 'content': prompt.toString()},
       for (var i = 0; i < picked.length; i++)
         if (picked[i].role == ChatRole.user)
           {

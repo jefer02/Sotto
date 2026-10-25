@@ -204,7 +204,18 @@ class FakeBrowser implements FormDriver {
   Future<void> drag(Offset from, Offset to) async => drags.add((from, to));
 
   @override
-  Future<bool?> canScrollDown() async => null;
+  Future<bool?> canScrollDown({String? anchor}) async => null;
+
+  /// No tree: the wheel scrolls.
+  @override
+  Future<void> scrollDown({String? anchor, required Offset fallback}) => scroll(fallback, 5);
+
+  @override
+  Future<bool> setRange(String elementId, double value) async => false;
+  @override
+  Future<bool> focusElement(String elementId) async => false;
+  @override
+  Future<ElementState?> state(String elementId) async => null;
 
   @override
   Future<FocusInfo?> focused() async => FocusInfo(isPassword: focus?.kind == Kind.password);

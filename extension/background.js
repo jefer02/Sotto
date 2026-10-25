@@ -39,6 +39,14 @@ function iconPaths(connected) {
   return Object.fromEntries(ICON_SIZES.map((s) => [s, `icons/${name}-${s}.png`]));
 }
 
+/**
+ * How long to wait before reconnecting to the host after losing it (Sotto
+ * restarted, the host was closed): 2 s, doubling, at most a minute.
+ */
+function retryDelay(attempt) {
+  return Math.min(60000, 2000 * 2 ** Math.max(0, attempt));
+}
+
 function browserName(nav, api) {
   if (api && api.runtime && typeof api.runtime.getBrowserInfo === 'function') return 'firefox';
   const brands = (nav.userAgentData && nav.userAgentData.brands) || [];
@@ -47,7 +55,7 @@ function browserName(nav, api) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { validRequest, browserName, hostEvent, fillingLabel, iconPaths };
+  module.exports = { validRequest, browserName, hostEvent, fillingLabel, iconPaths, retryDelay };
 } else {
   const api = globalThis.browser ?? globalThis.chrome;
   let port = null;
@@ -56,9 +64,13 @@ if (typeof module !== 'undefined' && module.exports) {
   let sotto = false;
   // The tab showing the "Sotto is filling" badge.
   let badgeTab = null;
+  // Reconnection after the host goes away; reset once Sotto answers.
+  let retries = 0;
+  let retryTimer = null;
 
   const setSotto = (connected) => {
     sotto = connected;
+    if (connected) retries = 0;
     void api.action.setIcon({ path: iconPaths(connected) }).catch(() => {});
     if (!connected) void hideBadge();
   };
@@ -82,6 +94,8 @@ if (typeof module !== 'undefined' && module.exports) {
 
   const connect = () => {
     if (port) return;
+    clearTimeout(retryTimer);
+    retryTimer = null;
     try {
       port = api.runtime.connectNative(HOST);
     } catch (_) {
@@ -97,6 +111,9 @@ if (typeof module !== 'undefined' && module.exports) {
       armed = false;
       generation++;
       setSotto(false);
+      // Try again while this worker lives; once it has been stopped, the
+      // next tab or window switch wakes it and connects (below).
+      retryTimer = setTimeout(connect, retryDelay(retries++));
     });
   };
 
@@ -188,5 +205,9 @@ if (typeof module !== 'undefined' && module.exports) {
 
   api.runtime.onStartup.addListener(connect);
   api.runtime.onInstalled.addListener(connect);
+  // Sotto restarted (a new build, the host closed): switching tabs or
+  // windows reconnects, without opening the popup. Neither needs a permission.
+  api.tabs.onActivated.addListener(connect);
+  api.windows.onFocusChanged.addListener(connect);
   connect();
 }

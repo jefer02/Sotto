@@ -19,30 +19,42 @@ import '../../data/models/session_record.dart';
 import '../../data/repositories.dart';
 import 'library_shell.dart';
 import 'practice_bars.dart';
+import '../../core/widgets/motion_effects.dart';
+import '../../core/widgets/stage_transitions.dart';
 
 class SessionsScreen extends ConsumerWidget {
   const SessionsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sessions = ref.watch(sessionsProvider).value ?? const <SessionRecord>[];
+    final loaded = ref.watch(sessionsProvider);
+    final sessions = loaded.value ?? const <SessionRecord>[];
     return Column(
       children: [
         LibraryHeader(title: context.l10n.navSessions),
         Expanded(
-          child: sessions.isEmpty
-              ? EmptyState(
-                  icon: SottoIcons.sessions,
-                  title: context.l10n.emptyNoSessions,
-                  body: context.l10n.emptyNoSessionsHint,
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(40, 28, 40, 40),
-                  itemCount: sessions.length + 1,
-                  separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 20 : 8),
-                  itemBuilder: (context, i) =>
-                      i == 0 ? PracticeBars(sessions: sessions) : SessionTile(record: sessions[i - 1]),
-                ),
+          // Nothing until the sessions load, so "no sessions" never flashes.
+          child: FadeSwitch(
+            child: !loaded.hasValue
+                ? const SizedBox.shrink(key: ValueKey('loading'))
+                : sessions.isEmpty
+                ? KeyedSubtree(
+                    key: const ValueKey('empty'),
+                    child: EmptyState(
+                      icon: SottoIcons.sessions,
+                      title: context.l10n.emptyNoSessions,
+                      body: context.l10n.emptyNoSessionsHint,
+                    ),
+                  )
+                : ListView.separated(
+                    key: const ValueKey('list'),
+                    padding: const EdgeInsets.fromLTRB(40, 28, 40, 40),
+                    itemCount: sessions.length + 1,
+                    separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 20 : 8),
+                    itemBuilder: (context, i) =>
+                        i == 0 ? PracticeBars(sessions: sessions) : SessionTile(record: sessions[i - 1]),
+                  ),
+          ),
         ),
       ],
     );
@@ -175,7 +187,7 @@ class SessionTile extends ConsumerWidget {
 }
 
 /// Every field a questionnaire run answered, for review after the fact.
-Future<void> showFormLog(BuildContext context, FormRunRecord run) => showDialog<void>(
+Future<void> showFormLog(BuildContext context, FormRunRecord run) => showSottoDialog<void>(
   context: context,
   builder: (context) {
     final p = context.palette;
@@ -225,7 +237,7 @@ Future<void> showFormLog(BuildContext context, FormRunRecord run) => showDialog<
 );
 
 /// Every action an agent task took, for review after the fact.
-Future<void> showAgentLog(BuildContext context, AgentRunRecord run) => showDialog<void>(
+Future<void> showAgentLog(BuildContext context, AgentRunRecord run) => showSottoDialog<void>(
   context: context,
   builder: (context) {
     final p = context.palette;

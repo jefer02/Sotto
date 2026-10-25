@@ -74,6 +74,22 @@ bool GetBool(const flutter::EncodableMap& args, const char* key) {
   return value != nullptr && *value;
 }
 
+// Window placements are in workspace coordinates (shifted by a taskbar at
+// the top or left of the display) unless the window is a tool window: the
+// shift from workspace to screen coordinates for |r|.
+POINT WorkspaceShift(HWND hwnd, const RECT& r) {
+  if (GetWindowLongPtr(hwnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW) return {0, 0};
+  MONITORINFO info{};
+  info.cbSize = sizeof(info);
+  if (!GetMonitorInfo(MonitorFromRect(&r, MONITOR_DEFAULTTONEAREST), &info)) return {0, 0};
+  return {info.rcWork.left - info.rcMonitor.left, info.rcWork.top - info.rcMonitor.top};
+}
+
+// Logical pixels per physical pixel, as window_manager's bounds use them.
+double WindowScale(HWND hwnd) {
+  return FlutterDesktopGetDpiForMonitor(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST)) / 96.0;
+}
+
 }  // namespace
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -110,6 +126,67 @@ bool FlutterWindow::OnCreate() {
         if (call.method_name() == "keyboard") {
           SetOverlayKeyboard(args != nullptr && GetBool(*args, "on"));
           result->Success();
+          return;
+        }
+        // A minimised window about to become the overlay: its normal frame
+        // (logical screen pixels) and whether it would come back maximised.
+        if (call.method_name() == "placement") {
+          HWND hwnd = GetHandle();
+          WINDOWPLACEMENT placement{};
+          placement.length = sizeof(placement);
+          if (hwnd == nullptr || !IsIconic(hwnd) || !GetWindowPlacement(hwnd, &placement)) {
+            result->Success();
+            return;
+          }
+          RECT r = placement.rcNormalPosition;
+          const POINT shift = WorkspaceShift(hwnd, r);
+          OffsetRect(&r, shift.x, shift.y);
+          const double scale = WindowScale(hwnd);
+          result->Success(flutter::EncodableValue(flutter::EncodableMap{
+              {flutter::EncodableValue("x"), flutter::EncodableValue(r.left / scale)},
+              {flutter::EncodableValue("y"), flutter::EncodableValue(r.top / scale)},
+              {flutter::EncodableValue("width"), flutter::EncodableValue((r.right - r.left) / scale)},
+              {flutter::EncodableValue("height"), flutter::EncodableValue((r.bottom - r.top) / scale)},
+              {flutter::EncodableValue("maximized"),
+               flutter::EncodableValue((placement.flags & WPF_RESTORETOMAXIMIZED) != 0)},
+          }));
+          return;
+        }
+        // ...and back it comes, straight at the overlay's frame: never
+        // maximised, never at the main window's size, without focus.
+        // (SC_RESTORE, which window_manager's show and restore post, would
+        // land after the overlay's bounds and undo them.)
+        if (call.method_name() == "unminimize") {
+          HWND hwnd = GetHandle();
+          WINDOWPLACEMENT placement{};
+          placement.length = sizeof(placement);
+          if (hwnd == nullptr || args == nullptr || !GetWindowPlacement(hwnd, &placement)) {
+            result->Success();
+            return;
+          }
+          const double scale = WindowScale(hwnd);
+          RECT r{static_cast<LONG>(GetDouble(*args, "x") * scale), static_cast<LONG>(GetDouble(*args, "y") * scale),
+                 static_cast<LONG>((GetDouble(*args, "x") + GetDouble(*args, "width")) * scale),
+                 static_cast<LONG>((GetDouble(*args, "y") + GetDouble(*args, "height")) * scale)};
+          const POINT shift = WorkspaceShift(hwnd, r);
+          OffsetRect(&r, -shift.x, -shift.y);
+          placement.rcNormalPosition = r;
+          placement.flags &= ~WPF_RESTORETOMAXIMIZED;
+          placement.showCmd = IsIconic(hwnd) ? SW_SHOWNOACTIVATE : SW_SHOWNA;
+          SetWindowPlacement(hwnd, &placement);
+          result->Success();
+          return;
+        }
+        // Snapped to a half or a quarter of the screen (Snap Assist, Win +
+        // arrow): the frame is Windows', so Sotto leaves it alone.
+        // IsWindowArranged is looked up because Windows 10 before 1903 lacks it.
+        if (call.method_name() == "arranged") {
+          using IsWindowArrangedFn = BOOL(WINAPI*)(HWND);
+          static const auto is_arranged = reinterpret_cast<IsWindowArrangedFn>(
+              GetProcAddress(GetModuleHandleW(L"user32.dll"), "IsWindowArranged"));
+          HWND hwnd = GetHandle();
+          const bool arranged = is_arranged != nullptr && hwnd != nullptr && is_arranged(hwnd) != FALSE;
+          result->Success(flutter::EncodableValue(arranged));
           return;
         }
         if (call.method_name() != "configure") {
@@ -280,6 +357,7 @@ void FlutterWindow::HandleScreenCall(
   }
   const int max_side = GetInt(a, "maxSide", 1300);
   const int quality = GetInt(a, "quality", 80);
+  const bool ocr = GetBool(a, "ocr");
   std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> reply(std::move(result));
   // Back on the platform thread: the window's affinity first.
   auto done = [this, hwnd]() {
@@ -288,9 +366,9 @@ void FlutterWindow::HandleScreenCall(
   // Capture and JPEG encoding run on the capture thread; the raw pixels are
   // freed there and only the JPEG crosses back.
   capture_worker_.Post(
-      [monitor, max_side, quality, reply, done]() -> NativeWorker::Reply {
+      [monitor, max_side, quality, ocr, reply, done]() -> NativeWorker::Reply {
         SottoCapture capture{};
-        if (!SottoCaptureMonitor(monitor, max_side, quality, &capture)) {
+        if (!SottoCaptureMonitor(monitor, max_side, quality, ocr, &capture)) {
           std::string error(capture.error);
           return [reply, done, error]() {
             done();
@@ -309,6 +387,10 @@ void FlutterWindow::HandleScreenCall(
             {flutter::EncodableValue("scale"), flutter::EncodableValue(capture.scale)},
             {flutter::EncodableValue("method"), flutter::EncodableValue(std::string(capture.method))},
         });
+        if (capture.ocr_json != nullptr) {
+          std::get<flutter::EncodableMap>(*value)[flutter::EncodableValue("ocr")] =
+              flutter::EncodableValue(std::string(capture.ocr_json));
+        }
         SottoCaptureFree(&capture);
         return [reply, done, value]() {
           done();
@@ -413,8 +495,9 @@ void FlutterWindow::HandleFormsCall(
     result->Success(flutter::EncodableValue("granted"));  // UI Automation needs none
     return;
   }
-  static const char* const kMethods[] = {"foreground", "canScrollDown", "read",   "setValue",       "select",
-                                         "toggle",     "choose",        "invoke", "scrollIntoView", "focus"};
+  static const char* const kMethods[] = {"foreground",     "canScrollDown", "scrollDown", "read",  "setValue",
+                                         "setRange",       "select",        "toggle",     "choose", "invoke",
+                                         "scrollIntoView", "focus",         "state"};
   if (std::none_of(std::begin(kMethods), std::end(kMethods), [&](const char* m) { return method == m; })) {
     result->NotImplemented();
     return;
@@ -438,13 +521,26 @@ void FlutterWindow::HandleFormsCall(
           return [reply, out]() { reply->Success(*out); };
         }
         if (method == "canScrollDown") {
-          const int r = SottoFormCanScrollDown();
+          const int r = SottoFormCanScrollDown(GetString(a, "anchor").c_str());
           return [reply, r]() { reply->Success(r < 0 ? EncodableValue() : EncodableValue(r == 1)); };
         }
+        if (method == "scrollDown") {
+          const double r = SottoFormScrollDown(GetString(a, "anchor").c_str());
+          return [reply, r]() { reply->Success(r < 0 ? EncodableValue() : EncodableValue(r)); };
+        }
         const std::string id = GetString(a, "id");
+        if (method == "state") {
+          char* json = nullptr;
+          if (!SottoFormState(id.c_str(), &json)) return [reply]() { reply->Success(); };
+          auto out = std::make_shared<EncodableValue>(std::string(json));
+          SottoFormFree(json);
+          return [reply, out]() { reply->Success(*out); };
+        }
         bool ok = false;
         if (method == "setValue") {
           ok = SottoFormSetValue(id.c_str(), Wide(GetString(a, "text")).c_str());
+        } else if (method == "setRange") {
+          ok = SottoFormSetRange(id.c_str(), GetDouble(a, "value"));
         } else if (method == "select") {
           ok = SottoFormSelect(id.c_str());
         } else if (method == "toggle") {
@@ -622,9 +718,10 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     return MA_NOACTIVATE;
   }
   // The overlay is a small floating window: never maximised by a
-  // double-click on its drag area or by the system menu. (Without
-  // WS_MAXIMIZEBOX, set from Dart, Aero Snap won't fill the screen when it
-  // is dragged to the top edge either.) Resizing by its edges still works.
+  // double-click on its drag area or by the system menu. It keeps
+  // WS_MAXIMIZEBOX (set from Dart) so Snap Assist and its layouts can tile
+  // it to a half or a quarter; a drag to the top edge that maximises it
+  // anyway is undone from Dart. Resizing by its edges still works.
   if (overlay_) {
     if (message == WM_NCLBUTTONDBLCLK) return 0;
     if (message == WM_SYSCOMMAND && (wparam & 0xFFF0) == SC_MAXIMIZE) return 0;

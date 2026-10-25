@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sotto/core/design/icons.dart';
 import 'package:sotto/core/design/theme.dart';
@@ -19,6 +20,13 @@ Widget _app(Widget home, {bool still = false, GlobalKey<NavigatorState>? nav}) =
   ),
   home: home,
 );
+
+/// Compositing layers of type [L] still doing work. Settled effects keep
+/// their widgets (so nothing is rebuilt) but must leave no blending or
+/// filtering behind — a fully opaque opacity layer is drawn as a plain
+/// offset and costs nothing.
+Iterable<L> _layers<L extends Layer>(WidgetTester tester) =>
+    tester.layers.whereType<L>().where((l) => l is! OpacityLayer || (l.alpha ?? 255) < 255);
 
 void main() {
   setUp(LaunchCurtain.reset);
@@ -106,14 +114,39 @@ void main() {
     expect(find.text('REHEARSAL'), findsNothing);
   });
 
+  testWidgets('going live resolves within 400 ms, so the session starts promptly', (tester) async {
+    expect(Motion.goLive.inMilliseconds, lessThanOrEqualTo(400));
+    final nav = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(_app(const Text('library'), nav: nav));
+    var resolved = false;
+    unawaited(
+      playGoLive(
+        nav.currentState!.overlay!,
+        rehearsal: false,
+        label: 'Live',
+        title: 'Q3',
+        lamp: const Color(0xFFF96050),
+        still: false,
+      ).then((_) => resolved = true),
+    );
+    // The entry builds, then its animation takes its first frame as time 0.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(resolved, isFalse);
+    await tester.pump(Motion.goLive);
+    await tester.pump();
+    expect(resolved, isTrue);
+  });
+
   testWidgets('the overlay comes into focus, then gets out of the way', (tester) async {
     await tester.pumpWidget(
       _app(const OverlayEntrance(enabled: true, sweep: Color(0xFF2F6BFF), child: Text('reading'))),
     );
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byType(ImageFiltered), findsOneWidget);
+    expect(_layers<ImageFilterLayer>(tester), isNotEmpty);
     await tester.pump(const Duration(seconds: 1));
-    expect(find.byType(ImageFiltered), findsNothing);
+    expect(_layers<ImageFilterLayer>(tester), isEmpty);
+    expect(_layers<OpacityLayer>(tester), isEmpty);
     expect(tester.hasRunningAnimations, isFalse);
   });
 }

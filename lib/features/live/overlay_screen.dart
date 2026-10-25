@@ -20,6 +20,7 @@ import '../../data/models/settings.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
 import '../../domain/overlay/auto_height.dart';
+import '../../services/system_fonts.dart';
 import '../agent/agent_controller.dart';
 import '../agent/agent_view.dart';
 import '../chat/chat_controller.dart';
@@ -35,6 +36,10 @@ import 'overlay/meta_strip.dart';
 import 'overlay/overlay_controls.dart';
 import 'overlay/qa_views.dart';
 import 'overlay/reading_view.dart';
+
+/// The hover controls (tests measure them against the script).
+@visibleForTesting
+const overlayControlsKey = ValueKey('overlay-controls');
 
 /// The overlay: frameless, always on top, semi-transparent, draggable and
 /// resizable. The only object in Sotto that floats — so the only one with a
@@ -81,11 +86,22 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   /// Set once the presenter drags the height: the most auto-height may use
   /// for the rest of the session.
   double? _userCap;
+
+  /// Snap Assist tiled the window: its height is the OS's, and the layout
+  /// follows it until the presenter drags it out of the snap.
+  bool _snapped = false;
+  Size? _windowSize;
   bool _widened = false;
   ResolvedLayout? _layout;
   int _layoutBeat = -1;
   bool _showClickThroughEdge = false;
   Timer? _edgeTimer;
+
+  /// The hovered control's name, shown in the meta strip.
+  final _hint = ValueNotifier<String?>(null);
+
+  /// Height reserved for the controls under (or over) the reading area.
+  double _band = 0;
 
   WindowService get _window => ref.read(windowServiceProvider);
 
@@ -123,6 +139,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     _geometryDebounce?.cancel();
     _saveDebounce?.cancel();
     _edgeTimer?.cancel();
+    _hint.dispose();
     super.dispose();
   }
 
@@ -147,6 +164,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   @override
   void onWindowMoved() {
     if (_programmatic) return;
+    unawaited(_checkSnap());
     _geometryDebounce?.cancel();
     _geometryDebounce = Timer(const Duration(milliseconds: 160), () async {
       _markProgrammatic();
@@ -169,8 +187,24 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     _saveGeometryLater();
   }
 
-  // The overlay is never maximised, zoomed or tiled by the OS — only the
-  // presenter's own edge drag makes it big.
+  /// Snapped by a drag, or by Win + arrow — which sends no event of its
+  /// own, hence also on size changes that aren't Sotto's.
+  Future<void> _checkSnap() async {
+    final snapped = await _window.isArranged();
+    if (mounted && snapped != _snapped) setState(() => _snapped = snapped);
+  }
+
+  void _onWindowSize(Size size) {
+    final was = _windowSize;
+    _windowSize = size;
+    if (was == null || _programmatic) return;
+    if ((was.width - size.width).abs() < 2 && (was.height - size.height).abs() < 2) return;
+    unawaited(_checkSnap());
+  }
+
+  // The overlay is never maximised, zoomed or filled by the OS — only the
+  // presenter's own edge drag, or Snap Assist's halves and quarters, make
+  // it big.
   @override
   void onWindowMaximize() => unawaited(_undoFill());
 
@@ -194,10 +228,12 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
   }
 
   /// Auto-height: after each advance the window is just tall enough for
-  /// the lines showing (150 ms ease-out), up to the setting's share of the
-  /// display or the height the presenter dragged. Only while reading —
-  /// answers, chat, agent and forms size the window themselves.
+  /// the lines showing ([Motion.overlayFit], instant under reduced motion),
+  /// up to the setting's share of the display or the height the presenter
+  /// dragged. Only while reading — answers, chat, agent and forms size the
+  /// window themselves.
   Future<void> _onFit(double area) async {
+    final duration = context.motion(Motion.overlayFit);
     final live = ref.read(liveControllerProvider);
     final reading =
         live.phase == LivePhase.standby || live.phase == LivePhase.reading || live.phase == LivePhase.paused;
@@ -209,14 +245,14 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     }
     final screen = await _window.displayArea();
     final target = AutoHeight.clamp(
-      area + _metaHeight,
+      area + _metaHeight + _band,
       screenHeight: screen.height,
       maxFraction: ref.read(settingsProvider).maxOverlayHeight,
       userCap: _userCap,
     );
     _readingHeight = target;
     _markProgrammatic();
-    await _window.animateHeight(target, fromBottom: _bottomDocked);
+    await _window.animateHeight(target, fromBottom: _bottomDocked, duration: duration);
   }
 
   /// Answers grow the window away from the camera edge, once, then shrink
@@ -267,6 +303,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 
   void _onExit() {
     _hovering = false;
+    _hint.value = null;
     _hideChromeLater();
     _panelHide?.cancel();
     _panelHide = Timer(_chromeLinger, () {
@@ -326,15 +363,31 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
     final o = context.overlayPalette;
     final size = MediaQuery.sizeOf(context);
     final reduceMotion = settings.reduceMotion || MediaQuery.disableAnimationsOf(context);
+    if (size != _windowSize) WidgetsBinding.instance.addPostFrameCallback((_) => _onWindowSize(size));
+    final layoutHeight = _snapped ? size.height : _layoutHeight;
 
     // Layout switches only between beats, never mid-sentence.
     final readingWidth = s.historyOpen && _widened ? size.width - _historyWidth : size.width;
-    final candidate = resolveLayout(settings.layout, Size(readingWidth, _layoutHeight));
+    final candidate = resolveLayout(settings.layout, Size(readingWidth, layoutHeight));
     if (_layout == null || s.position.beat != _layoutBeat || !s.following) {
       _layout = candidate;
       _layoutBeat = s.position.beat;
     }
     final layout = _layout!;
+
+    // The controls get room of their own, away from the camera edge: a band
+    // between the strip and the script (overlay low on the display) or under
+    // it (overlay high). The band stays while reading, hovered or not, so
+    // the script never shifts when the pointer comes and goes. The rail is
+    // one line tall: there the controls take its side column instead. A
+    // window dragged too short for the band and two lines of script flips
+    // them onto the meta strip: chrome over chrome, never over the words.
+    final controlsShown = s.phase != LivePhase.answer;
+    final controlsInRail = controlsShown && layout == ResolvedLayout.rail && s.flat != null;
+    final line = readingLineHeight(layout, readingWidth, s.readingSize);
+    final roomForBand = layoutHeight - _metaHeight - Layout.overlayControlsBand >= 2.2 * line;
+    final controlsOnStrip = controlsShown && !controlsInRail && !roomForBand;
+    _band = controlsShown && !controlsInRail && roomForBand ? Layout.overlayControlsBand : 0;
 
     final style = ReadingStyle(
       size: s.readingSize,
@@ -343,6 +396,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
       reduceMotion: reduceMotion,
       plate: !o.textOnly && settings.overlayOpacity < 0.7,
       wpm: settings.wordsPerMinute,
+      font: ref.watch(overlayScriptFontProvider),
+      highlight: settings.highlightEffect,
     );
 
     final reading = s.flat == null
@@ -351,7 +406,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
             state: s,
             layout: layout,
             style: style,
-            anchorOffset: (_layoutHeight - _metaHeight) * Layout.overlayAnchor,
+            anchorOffset: (layoutHeight - _metaHeight - _band) * Layout.overlayAnchor,
             onFit: (h) => unawaited(_onFit(h)),
           );
 
@@ -389,12 +444,39 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
         ? IgnorePointer(
             ignoring: !chrome,
             child: AnimatedOpacity(
-              duration: chrome ? Motion.quick : Motion.smooth,
+              duration: context.motion(chrome ? Motion.quick : Motion.smooth),
               opacity: chrome ? 1 : 0,
               child: child,
             ),
           )
         : child;
+
+    // Shown on hover, never in click-through. A hovered button names itself
+    // in the meta strip, so no tooltip floats over the words.
+    Widget controls({bool wrap = false}) => TooltipVisibility(
+      visible: false,
+      child: IgnorePointer(
+        ignoring: !panelShown,
+        child: AnimatedOpacity(
+          duration: context.motion(panelShown ? Motion.quick : Motion.smooth),
+          opacity: panelShown ? 1 : 0,
+          child: OverlayControls(
+            key: overlayControlsKey,
+            state: s,
+            onEnd: () => unawaited(_end()),
+            onHint: (h) => _hint.value = h,
+            wrap: wrap,
+          ),
+        ),
+      ),
+    );
+    // Narrower than the row of buttons (the 320 px minimum): it scales down.
+    final controlsBand = SizedBox(
+      height: _band,
+      child: Center(
+        child: FittedBox(fit: BoxFit.scaleDown, child: controls()),
+      ),
+    );
 
     final surface = ClipRRect(
       borderRadius: Radii.rXl,
@@ -405,15 +487,26 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
             Expanded(
               child: Column(
                 children: [
-                  fading(
-                    MetaStrip(
-                      density: s.phase == LivePhase.answer ? MetaDensity.full : metaDensityFor(layout),
-                      onDragStart: () => unawaited(_window.startDragging()),
+                  // The strip's voice meter and clock repaint on their own
+                  // layer, never with the script under them.
+                  RepaintBoundary(
+                    child: fading(
+                      ValueListenableBuilder<String?>(
+                        valueListenable: _hint,
+                        builder: (context, hint, _) => MetaStrip(
+                          density: s.phase == LivePhase.answer
+                              ? MetaDensity.full
+                              : metaDensityFor(layout, readingWidth),
+                          onDragStart: () => unawaited(_window.startDragging()),
+                          hint: panelShown && !controlsOnStrip ? hint : null,
+                        ),
+                      ),
                     ),
                   ),
                   if (layout == ResolvedLayout.ticker && s.flat != null) fading(_TickerProgress(state: s)),
                   // Auto-fill's status bar stays while it's on.
                   if (autoFillOn) const Padding(padding: EdgeInsets.fromLTRB(10, 2, 10, 6), child: AutoFillBar()),
+                  if (_band > 0 && _panelAtTop) controlsBand,
                   Expanded(
                     child: Listener(
                       onPointerSignal: _onWheel,
@@ -421,7 +514,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
                         behavior: HitTestBehavior.translucent,
                         onPanStart: s.phase == LivePhase.answer ? null : (_) => unawaited(_window.startDragging()),
                         child: AnimatedSwitcher(
-                          duration: reduceMotion ? Motion.reducedMotionFade : Motion.smooth,
+                          duration: reduceMotion ? Duration.zero : Motion.smooth,
                           switchInCurve: Motion.glideEnter,
                           switchOutCurve: Motion.leaveExit,
                           layoutBuilder: (current, previous) =>
@@ -434,6 +527,7 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
                       ),
                     ),
                   ),
+                  if (_band > 0 && !_panelAtTop) controlsBand,
                 ],
               ),
             ),
@@ -481,21 +575,26 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
                     top: 0.5,
                     child: IgnorePointer(child: Container(height: 1, color: o.innerHighlight)),
                   ),
-                if (s.phase != LivePhase.answer)
+                if (controlsOnStrip)
                   Positioned(
                     left: 0,
                     right: s.historyOpen ? _historyWidth : 0,
-                    top: _panelAtTop ? _metaHeight + 2 : null,
-                    bottom: _panelAtTop ? null : 10,
+                    top: 0,
+                    height: _metaHeight,
                     child: Center(
-                      child: IgnorePointer(
-                        ignoring: !panelShown,
-                        child: AnimatedOpacity(
-                          duration: panelShown ? Motion.quick : Motion.smooth,
-                          opacity: panelShown ? 1 : 0,
-                          child: OverlayControls(state: s, onEnd: () => unawaited(_end())),
-                        ),
-                      ),
+                      child: FittedBox(fit: BoxFit.scaleDown, child: controls()),
+                    ),
+                  ),
+                // The rail's side column holds the section and the clock: the
+                // controls cover those while hovered, never the line.
+                if (controlsInRail)
+                  Positioned(
+                    left: 0,
+                    top: _metaHeight,
+                    bottom: 0,
+                    width: Layout.overlayRailSide,
+                    child: Center(
+                      child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: controls(wrap: true)),
                     ),
                   ),
                 // Always visible while a screenshot is taken: nothing is captured silently.
@@ -575,7 +674,8 @@ class _OverlayScreenState extends ConsumerState<OverlayScreen> with WindowListen
 }
 
 /// While the room is being captured the script steps back: 7 % and a 3 px
-/// blur, so it's there but unreadable.
+/// blur, so it's there but unreadable. It sits on its own layer, so the
+/// live waveform above never makes it repaint under the blur.
 class _Behind extends StatelessWidget {
   const _Behind({required this.script, required this.child});
   final Widget script;
@@ -588,7 +688,10 @@ class _Behind extends StatelessWidget {
       IgnorePointer(
         child: Opacity(
           opacity: 0.07,
-          child: ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3), child: script),
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+            child: RepaintBoundary(child: script),
+          ),
         ),
       ),
       child,

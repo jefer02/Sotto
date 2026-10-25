@@ -8,18 +8,26 @@
 #include <windows.graphics.directx.direct3d11.interop.h>
 
 #include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Graphics.Capture.h>
 #include <winrt/Windows.Graphics.DirectX.Direct3D11.h>
+#include <winrt/Windows.Graphics.Imaging.h>
+#include <winrt/Windows.Media.Ocr.h>
+#include <winrt/Windows.Storage.Streams.h>
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 #include <vector>
 
 namespace {
 
 namespace wgc = winrt::Windows::Graphics::Capture;
 namespace wdx = winrt::Windows::Graphics::DirectX;
+namespace wgi = winrt::Windows::Graphics::Imaging;
+namespace ocr = winrt::Windows::Media::Ocr;
 
 struct Pixels {
   std::vector<unsigned char> bgra;  // top-down, 4 bytes per pixel
@@ -210,9 +218,100 @@ bool EncodeJpeg(const Pixels& px, int max_side, int quality, SottoCapture* out) 
   return true;
 }
 
+// ───────────────────────── Text (Windows.Media.Ocr) ─────────────────────────
+
+void JsonText(std::string& out, const std::string& s) {
+  out.push_back('"');
+  for (unsigned char c : s) {
+    if (c == '"' || c == '\\') {
+      out.push_back('\\');
+      out.push_back(static_cast<char>(c));
+    } else if (c < 0x20) {
+      char buf[8];
+      std::snprintf(buf, sizeof(buf), "\\u%04x", c);
+      out += buf;
+    } else {
+      out.push_back(static_cast<char>(c));
+    }
+  }
+  out.push_back('"');
+}
+
+std::string Utf8(const winrt::hstring& s) { return winrt::to_string(s); }
+
+// The text on [px], line by line, boxes multiplied by [k] (the encoded
+// image's scale). The OCR engine takes at most MaxImageDimension a side: a
+// bigger capture is read at that size and the boxes scaled back.
+char* Recognize(const Pixels& px, double k) {
+  try {
+    ocr::OcrEngine engine = ocr::OcrEngine::TryCreateFromUserProfileLanguages();
+    if (!engine) return nullptr;
+    const int limit = static_cast<int>(ocr::OcrEngine::MaxImageDimension());
+    const int longest = px.width > px.height ? px.width : px.height;
+    const int step = longest > limit ? (longest + limit - 1) / limit : 1;
+    const int w = px.width / step;
+    const int h = px.height / step;
+    wgi::SoftwareBitmap bitmap(wgi::BitmapPixelFormat::Bgra8, w, h, wgi::BitmapAlphaMode::Premultiplied);
+    winrt::Windows::Storage::Streams::Buffer buffer(static_cast<uint32_t>(w * h * 4));
+    buffer.Length(buffer.Capacity());
+    unsigned char* dst = buffer.data();
+    for (int y = 0; y < h; ++y) {
+      for (int x = 0; x < w; ++x) {
+        std::memcpy(dst + (static_cast<size_t>(y) * w + x) * 4,
+                    px.bgra.data() + (static_cast<size_t>(y * step) * px.width + x * step) * 4, 4);
+      }
+    }
+    bitmap.CopyFromBuffer(buffer);
+    const ocr::OcrResult result = engine.RecognizeAsync(bitmap).get();
+    const double f = k * step;
+    auto box = [f](const winrt::Windows::Foundation::Rect& r, std::string& out) {
+      char nums[96];
+      std::snprintf(nums, sizeof(nums), "%d,%d,%d,%d", static_cast<int>(r.X * f), static_cast<int>(r.Y * f),
+                    static_cast<int>(r.Width * f + 0.5), static_cast<int>(r.Height * f + 0.5));
+      out += nums;
+    };
+    std::string out = "{\"lines\":[";
+    bool first_line = true;
+    for (const auto& line : result.Lines()) {
+      float l = 1e9f, t = 1e9f, r = -1e9f, b = -1e9f;
+      std::string words = "[";
+      bool first_word = true;
+      for (const auto& word : line.Words()) {
+        const auto rect = word.BoundingRect();
+        l = (std::min)(l, rect.X);
+        t = (std::min)(t, rect.Y);
+        r = (std::max)(r, rect.X + rect.Width);
+        b = (std::max)(b, rect.Y + rect.Height);
+        if (!first_word) words.push_back(',');
+        first_word = false;
+        words.push_back('[');
+        box(rect, words);
+        words.push_back(',');
+        JsonText(words, Utf8(word.Text()));
+        words.push_back(']');
+      }
+      words.push_back(']');
+      if (first_word) continue;
+      if (!first_line) out.push_back(',');
+      first_line = false;
+      out += "{\"text\":";
+      JsonText(out, Utf8(line.Text()));
+      out += ",\"box\":[";
+      box(winrt::Windows::Foundation::Rect{l, t, r - l, b - t}, out);
+      out += "],\"words\":" + words + "}";
+    }
+    out += "]}";
+    char* json = static_cast<char*>(std::malloc(out.size() + 1));
+    if (json != nullptr) std::memcpy(json, out.c_str(), out.size() + 1);
+    return json;
+  } catch (...) {
+    return nullptr;
+  }
+}
+
 }  // namespace
 
-bool SottoCaptureMonitor(HMONITOR monitor, int max_side, int quality, SottoCapture* out) {
+bool SottoCaptureMonitor(HMONITOR monitor, int max_side, int quality, bool ocr, SottoCapture* out) {
   std::memset(out, 0, sizeof(*out));
   MONITORINFO info{sizeof(MONITORINFO)};
   if (!GetMonitorInfoW(monitor, &info)) {
@@ -241,6 +340,10 @@ bool SottoCaptureMonitor(HMONITOR monitor, int max_side, int quality, SottoCaptu
     std::snprintf(out->error, sizeof(out->error), "JPEG encoding failed");
     return false;
   }
+  if (ocr && px.width > 0) {
+    // The same scale EncodeJpeg used, so boxes land on the encoded image.
+    out->ocr_json = Recognize(px, static_cast<double>(out->width) / px.width);
+  }
   return true;
 }
 
@@ -248,4 +351,6 @@ void SottoCaptureFree(SottoCapture* capture) {
   if (capture->jpeg != nullptr) std::free(capture->jpeg);
   capture->jpeg = nullptr;
   capture->jpeg_size = 0;
+  if (capture->ocr_json != nullptr) std::free(capture->ocr_json);
+  capture->ocr_json = nullptr;
 }

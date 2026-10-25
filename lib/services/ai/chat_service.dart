@@ -9,18 +9,26 @@ class ChatService {
 
   final LlmClient client;
 
-  Stream<LlmDelta> reply(Conversation c, {int maxMessages = 20, String? screenshot, String? scriptContext}) =>
-      client.streamMessages(
-        messages: ChatContext.build(
-          c,
-          maxMessages: maxMessages,
-          screenshot: screenshot,
-          scriptContext: scriptContext,
-          thinking: c.thinkDeeper,
-        ),
-        profile: DeepSeekTaskProfile.chat(thinkDeeper: c.thinkDeeper),
-        // Reasoning counts against max_tokens.
-        maxTokens: c.thinkDeeper ? 12000 : 4096,
-        vision: screenshot != null,
-      );
+  /// [formContext]: the forms panel's chat — the form Sotto read, under
+  /// [ChatContext.formRules].
+  Stream<LlmDelta> reply(
+    Conversation c, {
+    int maxMessages = 20,
+    String? screenshot,
+    String? scriptContext,
+    String? formContext,
+  }) => client.streamMessages(
+    messages: ChatContext.build(
+      c,
+      maxMessages: maxMessages,
+      screenshot: screenshot,
+      scriptContext: scriptContext,
+      formContext: formContext,
+      thinking: c.thinkDeeper,
+    ),
+    profile: DeepSeekTaskProfile.chat(thinkDeeper: c.thinkDeeper),
+    // Reasoning counts against max_tokens.
+    maxTokens: c.thinkDeeper ? 12000 : 4096,
+    vision: screenshot != null,
+  );
 }

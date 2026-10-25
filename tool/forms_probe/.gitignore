@@ -1,0 +1,7 @@
+# Built by build.bat; not part of the app.
+probe.exe
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib

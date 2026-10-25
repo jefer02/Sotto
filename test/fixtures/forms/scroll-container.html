@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sotto form fixture — scroll container</title>
+<link rel="stylesheet" href="fixture.css">
+<style>
+  /* The page itself never scrolls: the form scrolls inside its own panel,
+     beside a sidebar that scrolls too. Scrolling the screen centre or the
+     first scrollable element is not enough here. */
+  html, body { height: 100%; overflow: hidden; }
+  .panel { position: fixed; top: 0; bottom: 0; left: 240px; right: 0; overflow-y: auto; }
+  .panel main { margin-left: 0; }
+</style>
+</head>
+<body>
+<nav class="side" aria-label="Sections">
+  <strong>Sections</strong>
+  <a href="#">Overview</a><a href="#">Settings</a><a href="#">Billing</a><a href="#">Team</a><a href="#">Reports</a>
+  <a href="#">Archive 2019</a><a href="#">Archive 2020</a><a href="#">Archive 2021</a><a href="#">Archive 2022</a>
+  <a href="#">Archive 2023</a><a href="#">Archive 2024</a><a href="#">Archive 2025</a><a href="#">Archive 2026</a>
+  <a href="#">Help</a><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a><a href="#">Accessibility</a>
+  <a href="#">Jobs</a><a href="#">Press</a><a href="#">Blog</a><a href="#">Status</a><a href="#">Changelog</a>
+  <a href="#">Docs</a><a href="#">API</a><a href="#">Community</a><a href="#">Events</a><a href="#">Partners</a>
+</nav>
+
+<div class="panel">
+<main>
+<h1>Event sign-up</h1>
+<form>
+<section>
+  <p><label for="name">Name</label></p>
+  <input id="name" type="text" data-q="1 name">
+  <div class="question">Which session will you attend?</div>
+  <label><input type="radio" name="session" value="Morning" data-q="2 session"> Morning</label><br>
+  <label><input type="radio" name="session" value="Afternoon" data-q="2 session"> Afternoon</label>
+</section>
+
+<div class="spacer">Scroll inside this panel.</div>
+
+<section>
+  <p><label for="diet">Dietary needs</label></p>
+  <select id="diet" data-q="3 diet">
+    <option value="">Choose…</option>
+    <option>None</option>
+    <option>Vegetarian</option>
+    <option>Vegan</option>
+    <option>Gluten-free</option>
+  </select>
+</section>
+
+<div class="spacer">Further down.</div>
+
+<section>
+  <div class="question">Anything we should know?</div>
+  <textarea rows="3" data-q="4 notes"></textarea>
+</section>
+
+<p><button type="submit">Register</button></p>
+</form>
+</main>
+</div>
+
+<div id="status" aria-hidden="true"></div>
+<script src="fixture.js"></script>
+</body>
+</html>

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
 import 'package:desktop_drop/desktop_drop.dart';
@@ -33,6 +32,7 @@ import '../preflight/preflight_dialog.dart';
 import 'library_actions.dart';
 import 'organize_jobs.dart';
 import 'library_shell.dart';
+import '../../core/widgets/stage_transitions.dart';
 
 class LibraryFilter {
   const LibraryFilter.all() : collectionId = null, archive = false;
@@ -147,7 +147,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scripts = ref.watch(scriptsProvider).value ?? const <Script>[];
+    final loaded = ref.watch(scriptsProvider);
+    final scripts = loaded.value ?? const <Script>[];
     final next = upNext(scripts);
     // The global ⌃⌥L starts "Up next" from the library.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -179,7 +180,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(height: 12),
                   Reveal(
                     enabled: _intro,
-                    delay: const Duration(milliseconds: 120),
+                    delay: Motion.introStep * 2,
                     duration: Motion.glide,
                     child: _UpNextCard(script: next),
                   ),
@@ -215,14 +216,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                if (recent.isEmpty)
-                  EmptyState(
-                    icon: SottoIcons.doc,
-                    title: context.l10n.emptyNoScriptsHere,
-                    body: context.l10n.emptyWriteOrDrop,
-                  )
-                else
-                  ScriptCollectionView(scripts: recent.take(9).toList(), grid: _grid, intro: _intro),
+                // A new filter or view fades in; nothing until the scripts
+                // load, so "no scripts" never flashes.
+                FadeSwitch(
+                  child: KeyedSubtree(
+                    key: ValueKey((loaded.hasValue, recent.isEmpty, _filter, _grid)),
+                    child: !loaded.hasValue
+                        ? const SizedBox.shrink()
+                        : recent.isEmpty
+                        ? EmptyState(
+                            icon: SottoIcons.doc,
+                            title: context.l10n.emptyNoScriptsHere,
+                            body: context.l10n.emptyWriteOrDrop,
+                          )
+                        : ScriptCollectionView(scripts: recent.take(9).toList(), grid: _grid, intro: _intro),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 ImportDropHint(
                   active: _DraggingScope.of(context),
@@ -284,14 +293,13 @@ class _Greeting extends ConsumerWidget {
         RevealWords(
           greeting,
           enabled: intro,
-          delay: const Duration(milliseconds: 60),
+          delay: Motion.introStep,
           style: TypeScale.display.copyWith(color: p.inkPrimary),
         ),
         const SizedBox(height: 10),
         Reveal(
           enabled: intro,
-          delay: const Duration(milliseconds: 180),
-          blur: 4,
+          delay: Motion.introStep * 3,
           child: Text.rich(
             TextSpan(
               children: [
@@ -315,6 +323,12 @@ class _Greeting extends ConsumerWidget {
 class _UpNextCard extends ConsumerWidget {
   const _UpNextCard({required this.script});
   final Script script;
+
+  /// The Go live / Rehearse column, and the space either side of the
+  /// divider before it.
+  static const _upNextActions = 212.0;
+  static const _upNextGap = Space.s6;
+  static const _upNextActionsGap = Space.s8;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -366,98 +380,106 @@ class _UpNextCard extends ConsumerWidget {
               ),
             ],
           ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(when(), style: TypeScale.mono.copyWith(color: p.primaryText)),
-                          if (minutesAway != null && minutesAway > 0 && minutesAway < 24 * 60) ...[
-                            const SizedBox(width: 10),
-                            StatusChip(
-                              minutesAway < 60
-                                  ? context.l10n.inMinutes(minutesAway)
-                                  : context.l10n.inHours((minutesAway / 60).round()),
-                              tone: ChipTone.cue,
-                            ),
+          // The divider spans the taller side as a positioned layer rather
+          // than through an intrinsic-height pass, so the section labels can
+          // measure the room they have.
+          child: Stack(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(when(), style: TypeScale.mono.copyWith(color: p.primaryText)),
+                            if (minutesAway != null && minutesAway > 0 && minutesAway < 24 * 60) ...[
+                              const SizedBox(width: 10),
+                              StatusChip(
+                                minutesAway < 60
+                                    ? context.l10n.inMinutes(minutesAway)
+                                    : context.l10n.inHours((minutesAway / 60).round()),
+                                tone: ChipTone.cue,
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Interactive(
-                        onTap: () => context.go('/script/${script.id}'),
-                        builder: (context, s) => Text(
-                          displayTitle(script.title),
-                          style: TypeScale.title1.copyWith(color: s.hovered ? p.cueText : p.inkPrimary),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        [
-                          context.l10n.sectionsCount(script.sections.length),
-                          context.l10n.atYourPace(formatMinutes(total), wpm),
-                          if (script.rehearsalCount > 0) context.l10n.rehearsedTimes(script.rehearsalCount),
-                          if (script.prepDocs.isNotEmpty) context.l10n.prepDocsCount(script.prepDocs.length),
-                        ].join(' · '),
-                        style: TypeScale.body.copyWith(color: p.inkSecondary),
-                      ),
-                      const SizedBox(height: 22),
-                      SectionBar(
-                        weights: [for (final s in script.sections) s.estimatedSeconds(wpm).toDouble().clamp(1, 1e9)],
-                        labels: [for (final s in script.sections) s.title],
-                        height: 4,
-                        // The next script's sections are lit: this is the one going on stage.
-                        trackColor: p.isDark ? p.cueText.withValues(alpha: 0.75) : p.primary.withValues(alpha: 0.55),
-                      ),
-                    ],
+                        const SizedBox(height: 10),
+                        Interactive(
+                          onTap: () => context.go('/script/${script.id}'),
+                          builder: (context, s) => Text(
+                            displayTitle(script.title),
+                            style: TypeScale.title1.copyWith(color: s.hovered ? p.cueText : p.inkPrimary),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          [
+                            context.l10n.sectionsCount(script.sections.length),
+                            context.l10n.atYourPace(formatMinutes(total), wpm),
+                            if (script.rehearsalCount > 0) context.l10n.rehearsedTimes(script.rehearsalCount),
+                            if (script.prepDocs.isNotEmpty) context.l10n.prepDocsCount(script.prepDocs.length),
+                          ].join(' · '),
+                          style: TypeScale.body.copyWith(color: p.inkSecondary),
+                        ),
+                        const SizedBox(height: 22),
+                        SectionBar(
+                          weights: [for (final s in script.sections) s.estimatedSeconds(wpm).toDouble().clamp(1, 1e9)],
+                          labels: [for (final s in script.sections) s.title],
+                          height: 4,
+                          // The next script's sections are lit: this is the one going on stage.
+                          trackColor: p.isDark ? p.cueText.withValues(alpha: 0.75) : p.primary.withValues(alpha: 0.55),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 24),
-                VerticalDivider(width: 1, thickness: 1, color: p.hairline),
-                const SizedBox(width: 32),
-                SizedBox(
-                  width: 212,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SottoButton.primary(
-                        label: context.l10n.goLive,
-                        icon: SottoIcons.play,
-                        size: ButtonSize.large,
-                        expand: true,
-                        shortcut: settings.shortcutFor(LiveAction.goLive),
-                        onPressed: () => unawaited(showPreflight(context, ref, script.id)),
-                      ),
-                      const SizedBox(height: 10),
-                      SottoButton(
-                        label: context.l10n.rehearse,
-                        icon: SottoIcons.rehearse,
-                        size: ButtonSize.large,
-                        expand: true,
-                        onPressed: () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        last == null
-                            ? context.l10n.notRehearsedYet
-                            : context.l10n.lastRehearsal(formatDuration(last.durationSeconds)) +
-                                  (last.plannedSeconds == null
-                                      ? ''
-                                      : ' · ${last.durationSeconds >= last.plannedSeconds! ? '+' : '−'}${formatDuration((last.durationSeconds - last.plannedSeconds!).abs())}'),
-                        textAlign: TextAlign.center,
-                        style: TypeScale.caption.copyWith(color: p.inkTertiary),
-                      ),
-                    ],
+                  const SizedBox(width: _upNextGap + 1 + _upNextActionsGap),
+                  SizedBox(
+                    width: _upNextActions,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SottoButton.primary(
+                          label: context.l10n.goLive,
+                          icon: SottoIcons.play,
+                          size: ButtonSize.large,
+                          expand: true,
+                          shortcut: settings.shortcutFor(LiveAction.goLive),
+                          onPressed: () => unawaited(showPreflight(context, ref, script.id)),
+                        ),
+                        const SizedBox(height: 10),
+                        SottoButton(
+                          label: context.l10n.rehearse,
+                          icon: SottoIcons.rehearse,
+                          size: ButtonSize.large,
+                          expand: true,
+                          onPressed: () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          last == null
+                              ? context.l10n.notRehearsedYet
+                              : context.l10n.lastRehearsal(formatDuration(last.durationSeconds)) +
+                                    (last.plannedSeconds == null
+                                        ? ''
+                                        : ' · ${last.durationSeconds >= last.plannedSeconds! ? '+' : '−'}${formatDuration((last.durationSeconds - last.plannedSeconds!).abs())}'),
+                          textAlign: TextAlign.center,
+                          style: TypeScale.caption.copyWith(color: p.inkTertiary),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+              Positioned(
+                top: 0,
+                bottom: 0,
+                right: _upNextActions + _upNextActionsGap,
+                child: VerticalDivider(width: 1, thickness: 1, color: p.hairline),
+              ),
+            ],
           ),
         ),
       ),
@@ -483,7 +505,8 @@ class _ScriptListScreenState extends ConsumerState<ScriptListScreen> {
     final f = widget.filter;
     final query = ref.watch(librarySearchProvider).trim().toLowerCase();
     final collections = ref.watch(collectionsProvider).value ?? const <Collection>[];
-    final all = ref.watch(scriptsProvider).value ?? const <Script>[];
+    final loaded = ref.watch(scriptsProvider);
+    final all = loaded.value ?? const <Script>[];
     final collection = collections.firstWhereOrNull((c) => c.id == f.collectionId);
 
     final scripts = all.where((s) {
@@ -516,87 +539,99 @@ class _ScriptListScreenState extends ConsumerState<ScriptListScreen> {
             ],
           ),
           Expanded(
-            child: scripts.isEmpty
-                ? EmptyState(
-                    icon: f.archive
-                        ? SottoIcons.archive
-                        : query.isEmpty
-                        ? (f.collectionId != null ? SottoIcons.folder : SottoIcons.doc)
-                        : SottoIcons.search,
-                    title: f.archive
-                        ? context.l10n.emptyNothingArchived
-                        : (query.isEmpty ? context.l10n.emptyNoScripts : context.l10n.emptyNoMatches),
-                    body: f.archive
-                        ? context.l10n.emptyArchivedHint
-                        : query.isEmpty
-                        ? context.l10n.emptyWriteOrDrop
-                        : context.l10n.emptyNoMatchesHint(query),
-                    action: f.archive || query.isNotEmpty
-                        ? null
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SottoButton(
-                                label: context.l10n.import,
-                                icon: SottoIcons.import,
-                                onPressed: () => unawaited(importFiles(ref, context, collectionId: f.collectionId)),
+            child: FadeSwitch(
+              child: KeyedSubtree(
+                key: ValueKey((loaded.hasValue, scripts.isEmpty)),
+                child: !loaded.hasValue
+                    ? const SizedBox.shrink()
+                    : scripts.isEmpty
+                    ? EmptyState(
+                        icon: f.archive
+                            ? SottoIcons.archive
+                            : query.isEmpty
+                            ? (f.collectionId != null ? SottoIcons.folder : SottoIcons.doc)
+                            : SottoIcons.search,
+                        title: f.archive
+                            ? context.l10n.emptyNothingArchived
+                            : (query.isEmpty ? context.l10n.emptyNoScripts : context.l10n.emptyNoMatches),
+                        body: f.archive
+                            ? context.l10n.emptyArchivedHint
+                            : query.isEmpty
+                            ? context.l10n.emptyWriteOrDrop
+                            : context.l10n.emptyNoMatchesHint(query),
+                        action: f.archive || query.isNotEmpty
+                            ? null
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SottoButton(
+                                    label: context.l10n.import,
+                                    icon: SottoIcons.import,
+                                    onPressed: () => unawaited(importFiles(ref, context, collectionId: f.collectionId)),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  SottoButton.primary(
+                                    label: context.l10n.newScript,
+                                    icon: SottoIcons.plus,
+                                    onPressed: () => unawaited(createScriptAndOpen(ref, collectionId: f.collectionId)),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              SottoButton.primary(
-                                label: context.l10n.newScript,
-                                icon: SottoIcons.plus,
-                                onPressed: () => unawaited(createScriptAndOpen(ref, collectionId: f.collectionId)),
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(40, 28, 40, 40),
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              if (collection != null) ...[
+                                _ToneDot(color: context.palette.collectionColor(collection.tone)),
+                                const SizedBox(width: 12),
+                              ],
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TypeScale.display.copyWith(
+                                          fontSize: 26,
+                                          color: context.palette.inkPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Text(
+                                      context.l10n.scriptsCount(scripts.length),
+                                      style: TypeScale.mono.copyWith(color: context.palette.inkTertiary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SottoIconButton(
+                                icon: SottoIcons.layers,
+                                tooltip: context.l10n.gridView,
+                                selected: _grid,
+                                onPressed: () => setState(() => _grid = true),
+                              ),
+                              SottoIconButton(
+                                icon: SottoIcons.structure,
+                                tooltip: context.l10n.listView,
+                                selected: !_grid,
+                                onPressed: () => setState(() => _grid = false),
                               ),
                             ],
                           ),
-                  )
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(40, 28, 40, 40),
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          if (collection != null) ...[
-                            _ToneDot(color: context.palette.collectionColor(collection.tone)),
-                            const SizedBox(width: 12),
-                          ],
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TypeScale.display.copyWith(fontSize: 26, color: context.palette.inkPrimary),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Text(
-                                  context.l10n.scriptsCount(scripts.length),
-                                  style: TypeScale.mono.copyWith(color: context.palette.inkTertiary),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SottoIconButton(
-                            icon: SottoIcons.layers,
-                            tooltip: context.l10n.gridView,
-                            selected: _grid,
-                            onPressed: () => setState(() => _grid = true),
-                          ),
-                          SottoIconButton(
-                            icon: SottoIcons.structure,
-                            tooltip: context.l10n.listView,
-                            selected: !_grid,
-                            onPressed: () => setState(() => _grid = false),
+                          const SizedBox(height: 22),
+                          FadeSwitch(
+                            child: ScriptCollectionView(key: ValueKey(_grid), scripts: scripts, grid: _grid),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 22),
-                      ScriptCollectionView(scripts: scripts, grid: _grid),
-                    ],
-                  ),
+              ),
+            ),
           ),
         ],
       ),
@@ -627,13 +662,34 @@ class ScriptCollectionView extends StatelessWidget {
   final List<Script> scripts;
   final bool grid;
 
-  /// Cards rise in one after another — only the home's first look.
+  /// The home's first look: cards rise in slowly, one after another.
+  /// Otherwise only scripts new to this run arrive, in a quick, light
+  /// stagger — coming back to a list shows it at once.
   final bool intro;
+
+  /// Scripts already shown in a list this run.
+  static final _seen = <String>{};
+
+  Widget _enter(int i, Script s, Widget child) => Reveal(
+    enabled: _seen.add(s.id) || intro,
+    delay: intro ? Motion.introStagger(i) : Motion.stagger(i),
+    duration: intro ? Motion.glide : Motion.smooth,
+    rise: intro ? 10 : 6,
+    child: child,
+  );
 
   @override
   Widget build(BuildContext context) {
     if (!grid) {
-      return Column(children: [for (final s in scripts) ScriptRow(script: s)]);
+      return Column(
+        children: [
+          for (final (i, s) in scripts.indexed)
+            KeyedSubtree(
+              key: ValueKey(s.id),
+              child: _enter(i, s, ScriptRow(script: s)),
+            ),
+        ],
+      );
     }
     return LayoutBuilder(
       builder: (context, c) {
@@ -648,13 +704,7 @@ class ScriptCollectionView extends StatelessWidget {
               SizedBox(
                 key: ValueKey(s.id),
                 width: w,
-                child: Reveal(
-                  enabled: intro,
-                  delay: Duration(milliseconds: 160 + 35 * math.min(i, 6)),
-                  duration: Motion.glide,
-                  blur: 0,
-                  child: ScriptCard(script: s),
-                ),
+                child: _enter(i, s, ScriptCard(script: s)),
               ),
           ],
         );
@@ -681,85 +731,96 @@ class ScriptCard extends ConsumerWidget {
       script: script,
       child: Interactive(
         onTap: () => context.go('/script/${script.id}'),
-        builder: (context, s) => HoverLift(
-          lifted: s.hovered,
-          child: CursorSpotlight(
-            color: (collection == null ? p.primary : tone).withValues(alpha: p.isDark ? 0.09 : 0.07),
-            child: SurfaceCard(
-              hovered: s.hovered,
-              accent: collection == null ? null : tone,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 20,
-                    child: Row(
-                      children: [
-                        SottoIcon(SottoIcons.folder, size: 13, color: tone),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            collection?.name ?? context.l10n.noCollection,
-                            overflow: TextOverflow.ellipsis,
-                            // The collection's name in its own color: wayfinding, not decoration.
-                            style: TypeScale.caption.copyWith(
-                              color: collection == null
-                                  ? p.inkTertiary
-                                  : Color.lerp(tone, p.inkPrimary, p.isDark ? 0.15 : 0.35),
+        builder: (context, s) => PressScale(
+          pressed: s.pressed,
+          child: HoverLift(
+            lifted: s.hovered,
+            child: CursorSpotlight(
+              color: (collection == null ? p.primary : tone).withValues(alpha: p.isDark ? 0.09 : 0.07),
+              child: SurfaceCard(
+                hovered: s.hovered,
+                accent: collection == null ? null : tone,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 20,
+                      child: Row(
+                        children: [
+                          SottoIcon(SottoIcons.folder, size: 13, color: tone),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              collection?.name ?? context.l10n.noCollection,
+                              overflow: TextOverflow.ellipsis,
+                              // The collection's name in its own color: wayfinding, not decoration.
+                              style: TypeScale.caption.copyWith(
+                                color: collection == null
+                                    ? p.inkTertiary
+                                    : Color.lerp(tone, p.inkPrimary, p.isDark ? 0.15 : 0.35),
+                              ),
                             ),
                           ),
+                          StatusChip.forScript(context, script),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      displayTitle(script.title),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TypeScale.title3.copyWith(color: p.inkPrimary),
+                    ),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      height: 40,
+                      child: Text(
+                        organizing && script.excerpt.isEmpty
+                            ? context.l10n.importedFinding(script.sourceName ?? context.l10n.importedFromText)
+                            : (script.excerpt.isEmpty ? context.l10n.emptyScript : script.excerpt),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TypeScale.body.copyWith(color: p.inkSecondary),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    if (organizing)
+                      progress == null ? const _OrganizingBar() : RefineProgressBar(fraction: progress.fraction)
+                    else
+                      SectionBar(
+                        weights: [
+                          for (final sec in script.sections) sec.estimatedSeconds(wpm).toDouble().clamp(1, 1e9),
+                        ],
+                        trackColor: collection == null ? null : tone.withValues(alpha: p.isDark ? 0.7 : 0.6),
+                      ),
+                    const SizedBox(height: 14),
+                    // A narrow card (the 960 px window) shortens the length
+                    // and section count; when it was edited stays whole.
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            organizing
+                                ? (progress == null
+                                      ? context.l10n.statusOrganizing
+                                      : context.l10n.refiningProgress(progress.done, progress.total))
+                                : '${formatMinutes(script.estimatedSeconds(wpm))} · ${context.l10n.sectionsCount(script.sections.length)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
+                          ),
                         ),
-                        StatusChip.forScript(context, script),
+                        const SizedBox(width: 8),
+                        Text(
+                          organizing ? context.l10n.timeJustNow : relativeTime(script.updatedAt),
+                          style: TypeScale.caption.copyWith(color: p.inkTertiary),
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    displayTitle(script.title),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TypeScale.title3.copyWith(color: p.inkPrimary),
-                  ),
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    height: 40,
-                    child: Text(
-                      organizing && script.excerpt.isEmpty
-                          ? context.l10n.importedFinding(script.sourceName ?? context.l10n.importedFromText)
-                          : (script.excerpt.isEmpty ? context.l10n.emptyScript : script.excerpt),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TypeScale.body.copyWith(color: p.inkSecondary),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  if (organizing)
-                    progress == null ? const _OrganizingBar() : RefineProgressBar(fraction: progress.fraction)
-                  else
-                    SectionBar(
-                      weights: [for (final sec in script.sections) sec.estimatedSeconds(wpm).toDouble().clamp(1, 1e9)],
-                      trackColor: collection == null ? null : tone.withValues(alpha: p.isDark ? 0.7 : 0.6),
-                    ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Text(
-                        organizing
-                            ? (progress == null
-                                  ? context.l10n.statusOrganizing
-                                  : context.l10n.refiningProgress(progress.done, progress.total))
-                            : '${formatMinutes(script.estimatedSeconds(wpm))} · ${context.l10n.sectionsCount(script.sections.length)}',
-                        style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
-                      ),
-                      const Spacer(),
-                      Text(
-                        organizing ? context.l10n.timeJustNow : relativeTime(script.updatedAt),
-                        style: TypeScale.caption.copyWith(color: p.inkTertiary),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -779,7 +840,7 @@ class RefineProgressBar extends StatelessWidget {
     final p = context.palette;
     return TweenAnimationBuilder<double>(
       tween: Tween(end: fraction.clamp(0.0, 1.0)),
-      duration: Motion.smooth,
+      duration: context.motion(Motion.smooth),
       builder: (context, t, _) => ClipRRect(
         borderRadius: BorderRadius.circular(3),
         child: SizedBox(
@@ -810,7 +871,7 @@ class _OrganizingBar extends StatefulWidget {
 }
 
 class _OrganizingBarState extends State<_OrganizingBar> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
+  late final _c = AnimationController(vsync: this, duration: Motion.organizingLoop);
 
   // Under reduce motion the segments hold still, half lit.
   @override
@@ -874,7 +935,7 @@ class ScriptRow extends ConsumerWidget {
       child: Interactive(
         onTap: () => context.go('/script/${script.id}'),
         builder: (context, s) => AnimatedContainer(
-          duration: Motion.quick,
+          duration: context.motion(Motion.quick),
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
@@ -1069,7 +1130,7 @@ class _ScriptContextMenuState extends ConsumerState<ScriptContextMenu> {
 
   Future<void> _confirmDelete(BuildContext context, Script s) async {
     final p = context.palette;
-    final ok = await showDialog<bool>(
+    final ok = await showSottoDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: p.float,

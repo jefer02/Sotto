@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../core/design/icons.dart';
@@ -12,6 +13,7 @@ import '../../core/widgets/display.dart';
 import '../../core/widgets/interactive.dart';
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
+import '../../services/system_fonts.dart';
 import 'editor_controller.dart';
 import 'emphasis_controller.dart';
 
@@ -42,6 +44,17 @@ class _WriteTabState extends ConsumerState<WriteTab> {
     final p = context.palette;
     final e = ref.watch(editorProvider(widget.scriptId));
     final c = ref.read(editorProvider(widget.scriptId).notifier);
+    // A paste was organized in place: say so, and offer one step back.
+    ref.listen(editorProvider(widget.scriptId).select((s) => s.pastesOrganized), (was, now) {
+      if (now <= (was ?? 0)) return;
+      final messenger = ScaffoldMessenger.maybeOf(context)?..hideCurrentSnackBar();
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.pasteOrganized),
+          action: SnackBarAction(label: context.l10n.undo, onPressed: c.undoOrganize),
+        ),
+      );
+    });
     final wpm = ref.watch(settingsProvider.select((s) => s.wordsPerMinute));
     final script = e.script;
     if (script == null) return const SizedBox.shrink();
@@ -64,7 +77,12 @@ class _WriteTabState extends ConsumerState<WriteTab> {
                 Padding(
                   padding: const EdgeInsets.only(left: 60),
                   child: Text(
-                    context.l10n.sectionHeader(si + 1, script.sections.length, formatDuration(section.estimatedSeconds(wpm)), formatDuration(start)),
+                    context.l10n.sectionHeader(
+                      si + 1,
+                      script.sections.length,
+                      formatDuration(section.estimatedSeconds(wpm)),
+                      formatDuration(start),
+                    ),
                     style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
                   ),
                 ),
@@ -281,6 +299,7 @@ class _BeatRowState extends ConsumerState<BeatRow> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final focused = _focus.hasFocus || widget.focused;
+    final editorText = ReadingType.editorIn(ref.watch(editorScriptFontProvider));
     _text.markerColor = p.inkDisabled;
     final c = ref.read(editorProvider(widget.scriptId).notifier);
     var nextSlide = 1;
@@ -308,7 +327,7 @@ class _BeatRowState extends ConsumerState<BeatRow> {
             child: Transform.translate(
               offset: const Offset(-14, 0),
               child: AnimatedContainer(
-                duration: Motion.quick,
+                duration: context.motion(Motion.quick),
                 padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
                 decoration: BoxDecoration(
                   color: focused ? p.raised : Colors.transparent,
@@ -332,16 +351,14 @@ class _BeatRowState extends ConsumerState<BeatRow> {
                         controller: _text,
                         focusNode: _focus,
                         maxLines: null,
-                        style: ReadingType.editor.copyWith(color: p.inkPrimary),
+                        style: editorText.copyWith(color: p.inkPrimary),
                         cursorWidth: 2,
                         decoration: InputDecoration(
                           isCollapsed: true,
                           border: InputBorder.none,
                           // A hidden hint still takes layout space, so only set it when empty.
-                          hintText: _text.text.isEmpty
-                              ? context.l10n.beatHint
-                              : null,
-                          hintStyle: ReadingType.editor.copyWith(color: p.inkDisabled),
+                          hintText: _text.text.isEmpty ? context.l10n.beatHint : null,
+                          hintStyle: editorText.copyWith(color: p.inkDisabled),
                         ),
                         onChanged: (t) => c.setBeatText(widget.beat.id, t),
                       ),
@@ -462,9 +479,7 @@ class _LongBeatHint extends StatelessWidget {
                       style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary),
                     ),
                     TextSpan(
-                      text: word == null
-                          ? context.l10n.longBeatPause
-                          : context.l10n.longBeatSplitAfter(word),
+                      text: word == null ? context.l10n.longBeatPause : context.l10n.longBeatSplitAfter(word),
                       style: TypeScale.body.copyWith(color: p.inkSecondary),
                     ),
                   ],

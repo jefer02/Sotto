@@ -16,6 +16,7 @@ import '../forms/browser_extension_rows.dart';
 import '../library/library_actions.dart';
 import '../settings/pages/voice_page.dart';
 import '../../core/platform/platform_features.dart';
+import '../../core/widgets/stage_transitions.dart';
 
 /// Shows the first-run welcome once. Answers need no setup (the DeepSeek key
 /// is built in), so it only covers voice models, the optional browser
@@ -24,7 +25,7 @@ import '../../core/platform/platform_features.dart';
 /// action runs after it closes.
 Future<void> showWelcomeIfNeeded(BuildContext context, WidgetRef ref) async {
   if (ref.read(settingsProvider).welcomeDone) return;
-  final choice = await showDialog<WelcomeChoice>(
+  final choice = await showSottoDialog<WelcomeChoice>(
     context: context,
     barrierDismissible: false,
     barrierColor: const Color(0x99000000),
@@ -45,9 +46,14 @@ Future<void> showWelcomeIfNeeded(BuildContext context, WidgetRef ref) async {
 
 enum WelcomeChoice { importFile, paste, write }
 
-/// Models that make voice following work for the presenter's language.
+/// Models that make voice following work for the presenter's language: a
+/// streaming model to follow word by word where one exists (the light one
+/// for English), and Whisper for questions and other languages.
 List<SpeechModel> recommendedModels(String language) => [
-  if (language.toLowerCase().startsWith('en')) ModelCatalog.streamingEnLight,
+  if (language.toLowerCase().startsWith('en'))
+    ModelCatalog.streamingEnLight
+  else
+    ...ModelCatalog.streamingFor(language).take(1),
   ModelCatalog.whisperBase,
 ];
 
@@ -96,7 +102,7 @@ class _WelcomeDialogState extends ConsumerState<WelcomeDialog> {
                   ),
                   const SizedBox(height: 8),
                   AnimatedSwitcher(
-                    duration: Motion.snappy,
+                    duration: context.motion(Motion.snappy),
                     child: switch (_step) {
                       0 => _ModelsStep(key: const ValueKey(0)),
                       1 => const _BrowserStep(key: ValueKey(1)),
@@ -268,7 +274,7 @@ class _Choice extends StatelessWidget {
     return Interactive(
       onTap: onTap,
       builder: (context, s) => AnimatedContainer(
-        duration: Motion.quick,
+        duration: context.motion(Motion.quick),
         height: 108,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(

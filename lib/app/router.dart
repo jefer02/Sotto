@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/widgets/stage_transitions.dart';
 import '../features/chat/chat_screen.dart';
 import '../features/forms/forms_screen.dart';
 import '../features/editor/editor_screen.dart';
@@ -12,22 +13,24 @@ import '../features/settings/settings_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
-/// A quick fade between pages: the new one is there within 150 ms and the
-/// old one leaves at once, so switching sections never feels like waiting.
-/// Instant under reduced motion.
-Page<void> _fade(GoRouterState state, Widget child) => CustomTransitionPage<void>(
-  key: state.pageKey,
-  child: child,
-  transitionDuration: const Duration(milliseconds: 150),
-  reverseTransitionDuration: Duration.zero,
-  transitionsBuilder: (context, animation, _, child) {
-    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return child;
-    return FadeTransition(
-      opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-      child: child,
-    );
-  },
-);
+/// Between pages ([PageFadeThrough]): the page leaving is hidden on the
+/// first frame and the new one fades in, so two layouts are never on screen
+/// at once. (`go` removes the old page, and a removed page stays painted
+/// under the new one until the new one's transition ends — so it has to
+/// hide itself.) Under reduced motion the route takes no time at all: a
+/// route still running holds the new page offstage for its first frame (the
+/// hero check) while the old one is already hidden — a blank frame.
+Page<void> fadeThroughPage(BuildContext context, GoRouterState state, Widget child) {
+  final duration = (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ? Duration.zero : PageFadeThrough.duration;
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: duration,
+    reverseTransitionDuration: duration,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+        PageFadeThrough(animation: animation, secondaryAnimation: secondaryAnimation, child: child),
+  );
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -35,30 +38,39 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     routes: [
       ShellRoute(
-        pageBuilder: (context, state, child) => _fade(state, LibraryShell(child: child)),
+        pageBuilder: (context, state, child) => fadeThroughPage(context, state, LibraryShell(child: child)),
         routes: [
-          GoRoute(path: '/', pageBuilder: (c, s) => _fade(s, const HomeScreen())),
+          GoRoute(path: '/', pageBuilder: (c, s) => fadeThroughPage(c, s, const HomeScreen())),
           GoRoute(
             path: '/scripts',
-            pageBuilder: (c, s) => _fade(s, const ScriptListScreen(filter: LibraryFilter.all())),
+            pageBuilder: (c, s) => fadeThroughPage(c, s, const ScriptListScreen(filter: LibraryFilter.all())),
           ),
           GoRoute(
             path: '/archive',
-            pageBuilder: (c, s) => _fade(s, const ScriptListScreen(filter: LibraryFilter.archive())),
+            pageBuilder: (c, s) => fadeThroughPage(c, s, const ScriptListScreen(filter: LibraryFilter.archive())),
           ),
           GoRoute(
             path: '/collections/:id',
-            pageBuilder: (c, s) =>
-                _fade(s, ScriptListScreen(filter: LibraryFilter.collection(s.pathParameters['id']!))),
+            // One route for every collection (the page key is the path
+            // pattern), so switching between them fades the content in.
+            pageBuilder: (c, s) => fadeThroughPage(
+              c,
+              s,
+              ContentFadeIn(
+                key: ValueKey(s.pathParameters['id']),
+                child: ScriptListScreen(filter: LibraryFilter.collection(s.pathParameters['id']!)),
+              ),
+            ),
           ),
-          GoRoute(path: '/sessions', pageBuilder: (c, s) => _fade(s, const SessionsScreen())),
-          GoRoute(path: '/chat', pageBuilder: (c, s) => _fade(s, const ChatScreen())),
-          GoRoute(path: '/forms', pageBuilder: (c, s) => _fade(s, const FormsScreen())),
+          GoRoute(path: '/sessions', pageBuilder: (c, s) => fadeThroughPage(c, s, const SessionsScreen())),
+          GoRoute(path: '/chat', pageBuilder: (c, s) => fadeThroughPage(c, s, const ChatScreen())),
+          GoRoute(path: '/forms', pageBuilder: (c, s) => fadeThroughPage(c, s, const FormsScreen())),
         ],
       ),
       GoRoute(
         path: '/script/:id',
-        pageBuilder: (c, s) => _fade(
+        pageBuilder: (c, s) => fadeThroughPage(
+          c,
           s,
           EditorScreen(
             scriptId: s.pathParameters['id']!,
@@ -69,7 +81,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/settings', redirect: (c, s) => '/settings/shortcuts'),
       GoRoute(
         path: '/settings/:page',
-        pageBuilder: (c, s) => _fade(
+        pageBuilder: (c, s) => fadeThroughPage(
+          c,
           s,
           SettingsScreen(page: SettingsPage.values.asNameMap()[s.pathParameters['page']] ?? SettingsPage.shortcuts),
         ),

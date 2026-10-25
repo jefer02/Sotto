@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/animation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,7 +18,8 @@ export 'overlay_geometry.dart' show DisplayArea, OverlayGeometry;
 ///   Space and over full-screen apps, `sharingType = .none`, vibrancy blur,
 ///   and no zoom / tiling to fill the screen.
 /// * Windows — WS_EX_NOACTIVATE / TOOLWINDOW, WDA_EXCLUDEFROMCAPTURE, DWM
-///   acrylic backdrop with rounded corners, and no maximise / Aero Snap.
+///   acrylic backdrop with rounded corners, no maximise, and whether Snap
+///   Assist has tiled it.
 class _OverlayNative {
   static const _channel = MethodChannel('app.sotto/overlay');
 
@@ -44,6 +44,18 @@ class _OverlayNative {
       // Linux / tests: the overlay still works, just without the extras.
     } on PlatformException catch (e) {
       debugPrint('overlay native configure failed: ${e.message}');
+    }
+  }
+
+  /// Windows snapped the window to a half or a quarter of the screen.
+  static Future<bool> arranged() async {
+    try {
+      return await _channel.invokeMethod<bool>('arranged') ?? false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException catch (e) {
+      debugPrint('overlay arranged failed: ${e.message}');
+      return false;
     }
   }
 
@@ -90,8 +102,21 @@ abstract class WindowHost {
   Future<bool> isMinimized();
   Future<void> restore();
 
+  /// Snap Assist (or Win + arrow) tiled the window to part of the screen.
+  Future<bool> isArranged();
+
+  /// A minimised window's normal frame and whether it un-minimises
+  /// maximised — null when it isn't minimised (or, where the platform can't
+  /// tell, after restoring it to an ordinary window).
+  Future<({Rect bounds, bool maximized})?> minimizedPlacement();
+
+  /// Brings a minimised window back straight at [frame]: not maximised, not
+  /// at its old size, and without taking focus.
+  Future<void> unminimizeTo(Rect frame);
+
   /// The floating overlay's window chrome: frameless, always on top, out of
-  /// the taskbar, not maximisable, resizable down to [minimumSize] — or,
+  /// the taskbar, resizable down to [minimumSize] and, on Windows, snappable
+  /// to a half or a quarter of the screen (never maximised) — or,
   /// with [on] false, the main window's again.
   Future<void> setOverlayChrome(bool on, {required Size minimumSize, bool shadow = true});
   Future<void> show({bool inactive = false});
@@ -167,6 +192,48 @@ class PluginWindowHost implements WindowHost {
   Future<void> restore() => windowManager.restore();
 
   @override
+  Future<bool> isArranged() => Platform.isWindows ? _OverlayNative.arranged() : Future.value(false);
+
+  @override
+  Future<({Rect bounds, bool maximized})?> minimizedPlacement() async {
+    if (!await windowManager.isMinimized()) return null;
+    try {
+      final m = await _OverlayNative._channel.invokeMapMethod<String, Object?>('placement');
+      // Null: it was restored in the meantime.
+      if (m == null) return null;
+      double v(String k) => (m[k] as num?)?.toDouble() ?? 0;
+      return (bounds: Rect.fromLTWH(v('x'), v('y'), v('width'), v('height')), maximized: m['maximized'] == true);
+    } on MissingPluginException {
+      // macOS / Linux: below.
+    } on PlatformException catch (e) {
+      debugPrint('overlay placement failed: ${e.message}');
+    }
+    // No native placement: restore it and treat it as an ordinary window.
+    await windowManager.restore();
+    for (var i = 0; i < 30 && await windowManager.isMinimized(); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+    return null;
+  }
+
+  @override
+  Future<void> unminimizeTo(Rect frame) async {
+    try {
+      await _OverlayNative._channel.invokeMethod('unminimize', {
+        'x': frame.left,
+        'y': frame.top,
+        'width': frame.width,
+        'height': frame.height,
+      });
+    } on MissingPluginException {
+      await windowManager.restore();
+    } on PlatformException catch (e) {
+      debugPrint('overlay unminimize failed: ${e.message}');
+      await windowManager.restore();
+    }
+  }
+
+  @override
   Future<void> setOverlayChrome(bool on, {required Size minimumSize, bool shadow = true}) async {
     if (on) {
       await windowManager.setTitleBarStyle(TitleBarStyle.hidden, windowButtonVisibility: false);
@@ -176,8 +243,10 @@ class PluginWindowHost implements WindowHost {
       await windowManager.setAlwaysOnTop(true);
       await windowManager.setSkipTaskbar(true);
       await windowManager.setResizable(true);
-      // No maximise button: no double-click maximise, no Aero Snap to fill.
-      await windowManager.setMaximizable(false);
+      // Windows: Snap Assist only tiles windows that have a maximise box;
+      // the runner still refuses the maximise itself. Elsewhere none: no
+      // zoom, no tiling to fill the screen.
+      await windowManager.setMaximizable(Platform.isWindows);
       if (Platform.isMacOS) await windowManager.setVisibleOnAllWorkspaces(true, visibleOnFullScreen: true);
       await windowManager.setHasShadow(shadow);
     } else {
@@ -238,6 +307,13 @@ class WindowService {
   /// The overlay's last frame that was not forced on it by the OS.
   Rect? _overlayFrame;
 
+  /// Set while [enterOverlay] runs. The overlay's screen is up at once and
+  /// may ask for a height straight away; resizes wait for this, or they
+  /// would start from the main window's frame and keep its width.
+  Completer<void>? _entering;
+
+  Future<void> _entered() async => _entering?.future;
+
   bool get isOverlay => _overlay;
   bool get isHidden => _hidden;
   bool get isClickThrough => _clickThrough;
@@ -256,11 +332,12 @@ class WindowService {
   }
 
   /// The display under the window's centre, else the primary one.
-  Future<DisplayArea> _currentDisplay([List<DisplayArea>? all]) async {
-    final displays = all ?? await _displays();
-    final center = (await _host.getBounds()).center;
+  Future<DisplayArea> _currentDisplay([List<DisplayArea>? all]) async =>
+      _displayAt(all ?? await _displays(), (await _host.getBounds()).center);
+
+  static DisplayArea _displayAt(List<DisplayArea> displays, Offset point) {
     for (final d in displays) {
-      if (d.visible.contains(center)) return d;
+      if (d.visible.contains(point)) return d;
     }
     return displays.firstWhere((d) => d.primary, orElse: () => displays.first);
   }
@@ -281,21 +358,48 @@ class WindowService {
     if (await _host.isMaximized()) await _host.unmaximize();
   }
 
-  /// [height]: a panel (questionnaire, agent, auto-fill) that needs at
-  /// least this much room; the reading overlay takes its saved size.
-  Future<void> enterOverlay(AppSettings s, {double? height}) async {
+  /// [height]: a panel (questionnaire, agent) that needs at least this much
+  /// room; the reading overlay takes its saved size. [size]: a panel with a
+  /// shape of its own (auto-fill's small box), at the overlay's position.
+  ///
+  /// Auto-fill and chord + F turn the window into the overlay while the
+  /// presenter is in another app — often with Sotto minimised. A minimised
+  /// window comes back straight as the overlay: restoring it first (what
+  /// showing it does) would bring back the main window's frame, maximised
+  /// if it was, after the overlay's had been set.
+  Future<void> enterOverlay(AppSettings s, {double? height, Size? size}) async {
     if (!supported || _overlay) return;
     _overlay = true;
-    _mainFullScreen = await _host.isFullScreen();
-    _mainMaximized = !_mainFullScreen && await _host.isMaximized();
-    await _leaveFilledState();
-    _mainBounds = await _host.getBounds();
+    final entering = _entering = Completer<void>();
+    try {
+      await _enterOverlay(s, height: height, size: size);
+    } finally {
+      entering.complete();
+      if (identical(_entering, entering)) _entering = null;
+    }
+  }
+
+  Future<void> _enterOverlay(AppSettings s, {double? height, Size? size}) async {
+    final minimized = await _host.minimizedPlacement();
+    if (minimized != null) {
+      _mainFullScreen = false;
+      _mainMaximized = minimized.maximized;
+      _mainBounds = minimized.bounds;
+    } else {
+      _mainFullScreen = await _host.isFullScreen();
+      _mainMaximized = !_mainFullScreen && await _host.isMaximized();
+      await _leaveFilledState();
+      _mainBounds = await _host.getBounds();
+    }
 
     final displays = await _displays();
-    final display = OverlayGeometry.displayFor(s, displays, current: await _currentDisplay(displays));
+    final current = minimized != null ? _displayAt(displays, minimized.bounds.center) : await _currentDisplay(displays);
+    final display = OverlayGeometry.displayFor(s, displays, current: current);
     _displayId = display.id;
     var frame = OverlayGeometry.frame(s, display);
-    if (height != null && frame.height < height) {
+    if (size != null) {
+      frame = OverlayGeometry.clampInto(frame.topLeft & OverlayGeometry.fit(size, display.visible), display.visible);
+    } else if (height != null && frame.height < height) {
       frame = OverlayGeometry.clampInto(
         Rect.fromLTWH(frame.left, frame.top, frame.width, height.clamp(frame.height, display.visible.height)),
         display.visible,
@@ -317,14 +421,21 @@ class WindowService {
     );
     // Only the presenter's own drag makes it this big; say so to macOS.
     if (OverlayGeometry.fills(frame, display.visible)) await _OverlayNative.allowFill();
+    if (minimized != null) await _host.unminimizeTo(frame);
     // After the style changes: some of them reset the frame on their way.
     await _host.setBounds(frame);
     _overlayFrame = frame;
     await _host.show(inactive: true);
+    // Whatever slipped through (a restore still queued) is undone.
+    if (await _host.isMaximized()) await undoFill();
   }
 
   Future<void> exitOverlay() async {
     if (!supported || !_overlay) return;
+    // An overlay still opening finishes first: its last steps (chrome,
+    // bounds, show) would otherwise land on the restored main window.
+    await _entered();
+    if (!_overlay) return;
     _overlay = false;
     _hidden = false;
     await setClickThrough(false);
@@ -347,8 +458,14 @@ class WindowService {
   }
 
   /// The overlay's current frame is one the presenter chose (dragged or
-  /// resized) — false while the OS holds it maximised or full screen.
-  Future<bool> ownsFrame() async => _overlay && !await _host.isFullScreen() && !await _host.isMaximized();
+  /// resized) — false while the OS holds it maximised, full screen or
+  /// snapped.
+  Future<bool> ownsFrame() async =>
+      _overlay && !await _host.isFullScreen() && !await _host.isMaximized() && !await _host.isArranged();
+
+  /// Snap Assist tiled the overlay: its frame is the OS's until the
+  /// presenter drags it out, so nothing resizes, moves or saves it.
+  Future<bool> isArranged() async => _overlay && await _host.isArranged();
 
   /// Records the frame the overlay should return to if the OS fills it.
   void noteFrame(Rect frame) => _overlayFrame = frame;
@@ -382,7 +499,8 @@ class WindowService {
   /// Answers grow away from the camera edge: downward when docked at the
   /// top, so the eye-line never moves.
   Future<void> resizeOverlay(double height, {bool fromBottom = false, double maxFraction = 0.6}) async {
-    if (!_overlay) return;
+    await _entered();
+    if (!_overlay || await _host.isArranged()) return;
     final b = await _host.getBounds();
     final display = await _currentDisplay();
     final minH = OverlayGeometry.minimum.height;
@@ -399,20 +517,18 @@ class WindowService {
   /// Eases the overlay to [height] over [duration] (ease-out), growing away
   /// from the docked edge. A newer call cancels one still running. The
   /// caller clamps [height].
-  Future<void> animateHeight(
-    double height, {
-    bool fromBottom = false,
-    Duration duration = const Duration(milliseconds: 150),
-  }) async {
+  Future<void> animateHeight(double height, {bool fromBottom = false, Duration duration = Motion.overlayFit}) async {
     if (!_overlay) return;
     final id = ++_heightAnimation;
+    await _entered();
+    if (id != _heightAnimation || !_overlay || await _host.isArranged()) return;
     final b = await _host.getBounds();
     if ((height - b.height).abs() < 1) return;
     const frame = Duration(milliseconds: 16);
     final steps = duration.inMilliseconds ~/ frame.inMilliseconds;
     for (var i = 1; i <= (steps < 1 ? 1 : steps); i++) {
       if (id != _heightAnimation || !_overlay) return;
-      final h = b.height + (height - b.height) * Curves.easeOut.transform(steps < 1 ? 1 : i / steps);
+      final h = b.height + (height - b.height) * Motion.fade.transform(steps < 1 ? 1 : i / steps);
       final r = Rect.fromLTWH(b.left, fromBottom ? b.bottom - h : b.top, b.width, h);
       await _host.setBounds(r);
       _overlayFrame = r;
@@ -421,7 +537,8 @@ class WindowService {
   }
 
   Future<void> setOverlayWidth(double width) async {
-    if (!_overlay) return;
+    await _entered();
+    if (!_overlay || await _host.isArranged()) return;
     final b = await _host.getBounds();
     final frame = Rect.fromLTWH(b.left, b.top, width, b.height);
     await _host.setBounds(frame);
@@ -457,7 +574,7 @@ class WindowService {
 
   /// Snaps within 12 px of the camera (top centre), the edges and centre.
   Future<Offset?> snapAfterDrag() async {
-    if (!_overlay) return null;
+    if (!_overlay || await _host.isArranged()) return null;
     final b = await _host.getBounds();
     final d = await _currentDisplay();
     final area = d.visible;

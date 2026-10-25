@@ -12,6 +12,7 @@ import '../../../data/repositories.dart';
 import '../../../domain/following/follow_engine.dart';
 import '../../../domain/following/script_aligner.dart';
 import '../../../l10n/l10n.dart';
+import '../../../services/system_fonts.dart';
 import '../live_state.dart';
 import '../overlay_palette.dart';
 import 'meta_strip.dart';
@@ -36,6 +37,7 @@ class OverlayPreview extends ConsumerWidget {
     this.opacity,
     this.readingSize,
     this.showCamera = true,
+    this.font,
   });
 
   final Script script;
@@ -47,6 +49,9 @@ class OverlayPreview extends ConsumerWidget {
   final double? opacity;
   final ReadingSize? readingSize;
   final bool showCamera;
+
+  /// A script font to preview instead of the chosen one.
+  final ScriptFont? font;
 
   static Size cardSize(ResolvedLayout l) => switch (l) {
     ResolvedLayout.ticker => const Size(320, 96),
@@ -95,6 +100,10 @@ class OverlayPreview extends ConsumerWidget {
       reduceMotion: settings.reduceMotion,
       plate: !overlay.textOnly && (opacity ?? settings.overlayOpacity) < 0.7,
       wpm: settings.wordsPerMinute,
+      font: font ?? ref.watch(overlayScriptFontProvider),
+      highlight: settings.highlightEffect,
+      // A still frame: the highlight shows as it rests on the word said.
+      highlightStill: true,
     );
     final card = cardSize(layout);
 

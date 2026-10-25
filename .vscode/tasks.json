@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // Sotto runs one copy at a time: an open Sotto (or the browser
+      // extension's bridge, which is the same sotto.exe) keeps the new build
+      // from starting or even linking. Close them before every run.
+      "label": "Cerrar Sotto abierto",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "Get-Process sotto -ErrorAction SilentlyContinue | Stop-Process -Force; exit 0"
+      ],
+      "presentation": { "reveal": "silent", "panel": "shared", "close": true },
+      "problemMatcher": []
+    }
+  ]
+}

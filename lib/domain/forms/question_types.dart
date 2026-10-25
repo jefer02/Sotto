@@ -100,6 +100,8 @@ abstract final class QuestionTypes {
         return QuestionType.checkboxes;
       case FieldRole.combo:
         return QuestionType.dropdown;
+      case FieldRole.range:
+        return QuestionType.scale;
       case FieldRole.radio:
         final labels = [for (final o in f.options) OptionMatcher.fold(o.label.replaceFirst(_enumerator, ''))];
         if (labels.length == 2 && labels.any(_true.contains) && labels.any(_false.contains)) {

@@ -42,6 +42,8 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   path_provider: ^2.1.6
   http: ^1.6.0
+  # Numbered marks drawn on form screenshots (domain/forms/screen_text.dart).
+  image: ^4.10.1
   record: ^7.1.1
   sherpa_onnx: ^1.13.8
   flutter_tts: ^4.2.5
@@ -93,3 +95,13 @@ flutter:
         - asset: assets/fonts/AtkinsonHyperlegibleNext-Variable.ttf
         - asset: assets/fonts/AtkinsonHyperlegibleNext-Italic-Variable.ttf
           style: italic
+    # Script font choices (Settings → Appearance → Script font).
+    - family: Cormorant
+      fonts:
+        - asset: assets/fonts/Cormorant-Variable.ttf
+    - family: SourceSans3
+      fonts:
+        - asset: assets/fonts/SourceSans3-Variable.ttf
+    - family: Lexend
+      fonts:
+        - asset: assets/fonts/Lexend-Variable.ttf

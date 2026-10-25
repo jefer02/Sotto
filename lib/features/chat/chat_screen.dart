@@ -16,6 +16,7 @@ import '../../l10n/l10n.dart';
 import '../library/library_shell.dart' show LibraryHeader;
 import 'chat_controller.dart';
 import 'chat_widgets.dart';
+import '../../core/widgets/stage_transitions.dart';
 
 /// Chat in the main window: conversations on the left, the open one on
 /// the right.
@@ -78,7 +79,7 @@ class _ConversationRow extends ConsumerWidget {
   Future<void> _rename(BuildContext context, WidgetRef ref) async {
     final l = context.l10n;
     final text = TextEditingController(text: conversation.title);
-    final ok = await showDialog<bool>(
+    final ok = await showSottoDialog<bool>(
       context: context,
       builder: (context) {
         final p = context.palette;

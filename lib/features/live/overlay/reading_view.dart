@@ -1,7 +1,8 @@
 import 'dart:math' as math;
-import 'dart:ui' show lerpDouble;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../../l10n/l10n.dart';
@@ -15,7 +16,10 @@ import '../../../domain/following/script_aligner.dart';
 import '../../../domain/following/text_normalizer.dart';
 import '../../../domain/overlay/auto_height.dart';
 import '../live_state.dart';
+import 'karaoke.dart';
 import 'meta_strip.dart';
+import 'reading_cursor.dart';
+import 'script_scroll.dart';
 
 enum ResolvedLayout { ticker, compact, standard, column, rail }
 
@@ -41,11 +45,34 @@ ResolvedLayout resolveLayout(OverlayLayout pref, Size size) {
   }
 }
 
-MetaDensity metaDensityFor(ResolvedLayout l) => switch (l) {
-  ResolvedLayout.ticker => MetaDensity.ticker,
-  ResolvedLayout.compact => MetaDensity.compact,
-  _ => MetaDensity.full,
-};
+/// The height of one line of script in [layout] at [width] — what each
+/// layout below draws its lines at.
+double readingLineHeight(ResolvedLayout layout, double width, ReadingSize size) {
+  final font = overlayFontSize(width, size);
+  return 1.34 *
+      switch (layout) {
+        ResolvedLayout.ticker => (font * 0.78).clamp(17.0, 24.0),
+        ResolvedLayout.column => font * 0.86,
+        ResolvedLayout.rail => font * 1.1,
+        _ => font,
+      };
+}
+
+/// The meta strip's density for [l] — and for [width]: a layout chosen by
+/// hand can be narrower than the strip it would carry.
+MetaDensity metaDensityFor(ResolvedLayout l, [double width = double.infinity]) {
+  final byLayout = switch (l) {
+    ResolvedLayout.ticker => MetaDensity.ticker,
+    ResolvedLayout.compact => MetaDensity.compact,
+    _ => MetaDensity.full,
+  };
+  final byWidth = width < 380
+      ? MetaDensity.ticker
+      : width < 520
+      ? MetaDensity.compact
+      : MetaDensity.full;
+  return byLayout.index < byWidth.index ? byLayout : byWidth;
+}
 
 /// Display settings for the reading surface.
 class ReadingStyle {
@@ -56,6 +83,9 @@ class ReadingStyle {
     required this.reduceMotion,
     required this.plate,
     this.wpm = 148,
+    this.font = ScriptFonts.overlayDefault,
+    this.highlight = HighlightEffect.off,
+    this.highlightStill = false,
   });
 
   final ReadingSize size;
@@ -63,6 +93,15 @@ class ReadingStyle {
   final int linesShown;
   final bool glide;
   final bool reduceMotion;
+
+  /// The script font (resolved: a missing system font is already the
+  /// default here) and the karaoke highlight.
+  final ScriptFont font;
+  final HighlightEffect highlight;
+
+  /// Previews: the highlight rests on the last word said, as under reduced
+  /// motion.
+  final bool highlightStill;
 
   /// Below 70 % opacity a plate appears behind the current line.
   final bool plate;
@@ -158,7 +197,17 @@ class ReadingView extends StatelessWidget {
       builder: (context, c) {
         final width = c.maxWidth;
         return switch (layout) {
-          ResolvedLayout.ticker => _TickerView(state: state, style: style, width: width),
+          // Small windows: small type, the line being read at the top. It
+          // scrolls with the voice like the other layouts — a block
+          // replaced by the next made the text jump at every beat.
+          ResolvedLayout.ticker => AnchoredScript(
+            state: state,
+            style: style,
+            fontSize: (overlayFontSize(width, style.size) * 0.78).clamp(17.0, 24.0),
+            anchorOffset: 0,
+            fadeTop: 14,
+            fadeBottom: 18,
+          ),
           ResolvedLayout.rail => _RailView(state: state, style: style, width: width),
           ResolvedLayout.column => _ColumnView(state: state, style: style, width: width),
           _ => AnchoredScript(
@@ -176,8 +225,9 @@ class ReadingView extends StatelessWidget {
   }
 }
 
-/// The standard surface: the current beat sits on the eye-line (30 %),
-/// words already said dim, and the column glides one beat at a time.
+/// The standard surface: the line being read sits on the eye-line (30 %),
+/// words already said dim, and the column follows the voice word by word
+/// ([ScriptScroll]) — a line at a time with [ScrollStyle.step].
 class AnchoredScript extends StatefulWidget {
   const AnchoredScript({
     super.key,
@@ -216,51 +266,117 @@ class AnchoredScript extends StatefulWidget {
   State<AnchoredScript> createState() => _AnchoredScriptState();
 }
 
+/// The transform that scrolls the script (tests read its offset).
+@visibleForTesting
+const scrollKey = ValueKey('script-scroll');
+
+/// The current line and the one after it (tests measure them against the
+/// overlay's controls).
+@visibleForTesting
+const currentLineKey = ValueKey('current-line');
+@visibleForTesting
+const nextLineKey = ValueKey('next-line');
+
 class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStateMixin {
   final _columnKey = GlobalKey();
   final _keys = <int, GlobalKey>{};
   final _dy = <int, double>{};
-  late final _glide = AnimationController(vsync: this, duration: Motion.glide);
+
+  /// The column's offset: the reading position held on the eye-line.
+  late final _scroll = ScriptScroll(this);
+
+  /// Where the reading is, letter by letter, and where the last word said
+  /// ends: the scroll follows the first, the highlight sweeps up to it.
+  late final _cursor = ReadingCursor(this)..addListener(_followCursor);
+  final _said = ValueNotifier<double>(0);
+  late ScriptChars? _chars = _charsFor(widget.state.flat);
+
+  /// Each beat's laid-out paragraph and its top within the beat's box.
+  final _paragraphs = <int, RenderParagraph>{};
+  final _paragraphTop = <int, double>{};
   late final _pulse = AnimationController(vsync: this, duration: Motion.cuePulse);
-  late final _sweep = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
-  double _from = 0, _to = 0;
+  late final _sweep = AnimationController(vsync: this, duration: Motion.cueSweep);
   bool _measured = false;
   bool _needsMeasure = true;
   double _areaHeight = 0;
 
   final _h = <int, double>{};
 
+  /// The line last built for each beat, with what it was built from. The
+  /// overlay rebuilds on every voice level and clock tick; a line whose
+  /// reading level and spoken words haven't moved comes back as the same
+  /// widget, so Flutter skips it instead of rebuilding every beat. Anything
+  /// a line shows is in its key: the beat itself (a reorganized script
+  /// brings new beats), its level, its spoken words, the text style (text
+  /// size, layout), the palette (the auto text color), plate, reduce
+  /// motion and the locale.
+  final _lines = <int, (Object, Widget)>{};
+
+  Widget _line(int i, Object inputs, Widget Function() build) {
+    final cached = _lines[i];
+    if (cached != null && cached.$1 == inputs) return cached.$2;
+    final line = build();
+    _lines[i] = (inputs, line);
+    return line;
+  }
+
   /// A fixed eye-line stays clear of the top fade.
   double get _anchorY => widget.anchorOffset == null
       ? _areaHeight * widget.anchor
       : math.max(widget.anchorOffset!, widget.fadeTop * 0.75 + _lineHeight / 2);
 
-  double get _translate =>
-      lerpDouble(_from, _to, (widget.style.glide ? Motion.glideEnter : Motion.shiftMove).transform(_glide.value))!;
-
   GlobalKey _key(int i) => _keys.putIfAbsent(i, GlobalKey.new);
+
+  static ScriptChars? _charsFor(FlatScript? flat) => flat == null ? null : ScriptChars(flat);
+
+  /// The end of the last word said, in global characters.
+  double get _saidEnd => _chars?.saidEnd(widget.state.position.saidBeat, widget.state.position.saidWords) ?? 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _said.value = _saidEnd;
+    _cursor.jumpTo(_said.value);
+  }
 
   @override
   void didUpdateWidget(AnchoredScript old) {
     super.didUpdateWidget(old);
-    final beatChanged = old.state.position.beat != widget.state.position.beat;
-    if (beatChanged ||
+    final was = old.state.position, now = widget.state.position;
+    final moved = was.beat != now.beat || was.saidBeat != now.saidBeat || was.saidWords != now.saidWords;
+    if (old.state.flat != widget.state.flat) {
+      _chars = _charsFor(widget.state.flat);
+      _said.value = _saidEnd;
+      _cursor.jumpTo(_said.value);
+    } else if (old.state.jumps != widget.state.jumps) {
+      // A key, the clicker or a relock skipped text: no sweep through it.
+      _said.value = _saidEnd;
+      _cursor.jumpTo(_said.value);
+    } else if (moved) {
+      _said.value = _saidEnd;
+      _cursor.moveTo(_said.value, rate: now.charsPerSecond);
+    }
+    if (moved ||
         old.fontSize != widget.fontSize ||
         old.state.script != widget.state.script ||
-        old.style.size != widget.style.size) {
+        old.style.size != widget.style.size ||
+        old.style.font != widget.style.font ||
+        old.style.highlight != widget.style.highlight) {
       _needsMeasure = true;
     }
     if (old.state.lastAdvanceAt != widget.state.lastAdvanceAt && !widget.style.reduceMotion) {
       _pulse.forward(from: 0);
     }
-    if (old.state.resumedAt != widget.state.resumedAt && widget.state.resumedAt != null) {
+    if (old.state.resumedAt != widget.state.resumedAt && widget.state.resumedAt != null && !widget.style.reduceMotion) {
       _sweep.forward(from: 0);
     }
   }
 
   @override
   void dispose() {
-    _glide.dispose();
+    _cursor.dispose();
+    _said.dispose();
+    _scroll.dispose();
     _pulse.dispose();
     _sweep.dispose();
     super.dispose();
@@ -272,32 +388,78 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
     if (column == null || !column.hasSize) return;
     _dy.clear();
     _h.clear();
+    _paragraphs.clear();
+    _paragraphTop.clear();
     for (final e in _keys.entries) {
       final box = e.value.currentContext?.findRenderObject() as RenderBox?;
       if (box != null && box.attached) {
         _dy[e.key] = box.localToGlobal(Offset.zero, ancestor: column).dy;
         _h[e.key] = box.size.height;
+        final paragraph = _paragraphIn(box);
+        if (paragraph != null && paragraph.hasSize && paragraph.attached) {
+          _paragraphs[e.key] = paragraph;
+          _paragraphTop[e.key] = paragraph.localToGlobal(Offset.zero, ancestor: box).dy;
+        }
       }
     }
-    final cur = widget.state.position.beat;
-    final dy = _dy[cur];
-    if (dy == null) return;
-    final target = _anchorY - _lineHeight * 0.5 - dy;
+    final pos = widget.state.position;
+    final cur = pos.beat;
+    final said = _dy[pos.saidBeat];
+    if (said == null || _dy[cur] == null) return;
     _needsMeasure = false;
-    _reportFit(cur, dy);
-    if (!_measured || widget.style.reduceMotion || !widget.style.glide) {
-      setState(() {
-        _from = _to = target;
-        _measured = true;
-      });
+    _reportFit(cur, _dy[cur]!);
+    // Gliding, the column follows the reading cursor letter by letter;
+    // stepping, it moves a line at a time to the top of the beat being said.
+    final step = _anchorY - _lineHeight * 0.5 - said;
+    final target = widget.style.glide ? (_targetFor(_cursor.value) ?? step) : step;
+    if (!_measured) {
+      _scroll.jumpTo(target);
+      setState(() => _measured = true);
       return;
     }
-    if ((target - _to).abs() < 0.5) return;
-    _from = _translate;
-    _to = target;
-    // Manual advances use the shorter "shift" motion; auto-advance glides.
-    _glide.duration = Motion.glide;
-    _glide.forward(from: 0);
+    _scroll.glideTo(target, calm: widget.style.reduceMotion || !widget.style.glide, line: _lineHeight);
+  }
+
+  /// Every frame the cursor moves: keep the letters being said level with
+  /// the eye-line.
+  void _followCursor() {
+    if (!_measured || !widget.style.glide || _needsMeasure) return;
+    final target = _targetFor(_cursor.value);
+    if (target != null) _scroll.glideTo(target, calm: widget.style.reduceMotion, line: _lineHeight);
+  }
+
+  /// The column offset that puts global character [c] on the eye-line: the
+  /// line holding it, crept up by the share of that line already read, so
+  /// the column glides on as a line is read instead of jumping when it ends.
+  /// Read from the laid-out text; O(1) paragraph queries.
+  double? _targetFor(double c) {
+    final chars = _chars;
+    if (chars == null) return null;
+    final beat = chars.beatOf(c);
+    final top = _dy[beat];
+    if (top == null) return null;
+    final local = c - chars.beatStart[beat];
+    final paragraph = _paragraphs[beat];
+    var offset = 0.0;
+    if (paragraph != null && paragraph.attached && local > 0) {
+      final starts = chars.wordStart[beat];
+      final length = starts.isEmpty ? 0 : starts.last + chars.wordLength[beat].last;
+      final at = local.clamp(0.0, length.toDouble());
+      final i = at.floor();
+      final line = lineRange(paragraph, i, _lineHeight);
+      final y = paragraph.getOffsetForCaret(TextPosition(offset: i), Rect.zero).dy;
+      final span = math.max(1, line.end - line.start);
+      final read = ((at - line.start) / span).clamp(0.0, 1.0);
+      offset = (_paragraphTop[beat] ?? 0) + y + read * _lineHeight;
+    }
+    return _anchorY - _lineHeight * 0.5 - (top + offset);
+  }
+
+  static RenderParagraph? _paragraphIn(RenderObject root) {
+    if (root is RenderParagraph) return root;
+    RenderParagraph? found;
+    root.visitChildren((child) => found ??= _paragraphIn(child));
+    return found;
   }
 
   double get _lineHeight => widget.fontSize * 1.34;
@@ -331,10 +493,16 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
     if (flat == null) return const SizedBox.shrink();
     if (_needsMeasure) SchedulerBinding.instance.addPostFrameCallback((_) => _measure());
 
-    final text = ReadingType.live(widget.fontSize, lineHeight: _lineHeight);
+    final text = ReadingType.live(widget.fontSize, lineHeight: _lineHeight, font: widget.style.font);
     final gap = widget.fontSize * 0.46;
     final (before, after) = widget.style.window;
     final cur = s.position.beat;
+    // The lines the highlight sweeps: the one being said and, past "Move on
+    // when said", the one shown as current.
+    final hostFrom = s.position.saidBeat, hostTo = math.max(s.position.saidBeat, cur);
+    // Cue chips name their cue in the interface language.
+    final locale = Localizations.maybeLocaleOf(context);
+    _lines.removeWhere((i, _) => i >= flat.length);
 
     return LayoutBuilder(
       builder: (context, c) {
@@ -365,10 +533,10 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
                 left: widget.leftInset,
                 right: widget.rightInset,
                 child: AnimatedBuilder(
-                  animation: _glide,
+                  animation: _scroll,
                   builder: (context, child) => Opacity(
                     opacity: _measured ? 1 : 0,
-                    child: Transform.translate(offset: Offset(0, _translate), child: child),
+                    child: Transform.translate(key: scrollKey, offset: Offset(0, _scroll.value), child: child),
                   ),
                   child: RepaintBoundary(
                     child: Column(
@@ -376,20 +544,51 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         for (var i = 0; i < flat.length; i++)
-                          KeyedSubtree(
-                            key: _key(i),
-                            child: Padding(
-                              padding: EdgeInsets.only(bottom: gap),
-                              child: _BeatLine(
-                                beat: flat.beats[i],
-                                index: i,
-                                current: cur,
-                                spoken: i == cur ? s.position.spokenWords : 0,
-                                visible: i >= cur - before && i <= cur + after,
-                                style: text,
-                                plate: widget.style.plate && i == cur,
-                                reduceMotion: widget.style.reduceMotion,
-                                palette: o,
+                          _line(
+                            i,
+                            (
+                              flat.beats[i],
+                              // Its reading level: done, now, next or later.
+                              (i - cur).clamp(-1, 2),
+                              i >= cur - before && i <= cur + after,
+                              i == cur ? s.position.spokenWords : 0,
+                              text,
+                              gap,
+                              widget.style.plate,
+                              widget.style.reduceMotion,
+                              o,
+                              locale,
+                              widget.style.font,
+                              widget.style.highlight,
+                              widget.style.highlightStill,
+                              i >= hostFrom && i <= hostTo,
+                            ),
+                            () => KeyedSubtree(
+                              key: _key(i),
+                              child: Padding(
+                                padding: EdgeInsets.only(bottom: gap),
+                                child: KeyedSubtree(
+                                  key: i == cur ? currentLineKey : (i == cur + 1 ? nextLineKey : null),
+                                  child: _BeatLine(
+                                    beat: flat.beats[i],
+                                    index: i,
+                                    current: cur,
+                                    spoken: i == cur ? s.position.spokenWords : 0,
+                                    visible: i >= cur - before && i <= cur + after,
+                                    style: text,
+                                    plate: widget.style.plate && i == cur,
+                                    reduceMotion: widget.style.reduceMotion,
+                                    stillHighlight: widget.style.highlightStill,
+                                    palette: o,
+                                    highlight: i >= hostFrom && i <= hostTo
+                                        ? widget.style.highlight
+                                        : HighlightEffect.off,
+                                    cursor: _cursor,
+                                    said: _said,
+                                    beatStart: _chars?.beatStart[i] ?? 0,
+                                    fontSize: widget.fontSize,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -398,49 +597,55 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
                   ),
                 ),
               ),
-              // The cue dot never moves — it is the eye-line.
+              // The cue dot never moves — it is the eye-line. Its pulse
+              // repaints its own layer, not the script column.
               Positioned(
                 left: Layout.overlayCueColumn,
                 top: anchorY - 3,
-                child: AnimatedBuilder(
-                  animation: _pulse,
-                  builder: (context, _) {
-                    final t = _pulse.value;
-                    final scale = t < 0.5 ? 1 + 0.8 * t : 1.4 - 0.8 * (t - 0.5);
-                    return Transform.scale(
-                      scale: _pulse.isAnimating ? scale : 1,
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: s.phase == LivePhase.paused ? o.inkAt(0.4) : o.cue,
-                          boxShadow: [BoxShadow(color: o.cue.withValues(alpha: 0.12), spreadRadius: 3)],
+                child: RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: _pulse,
+                    builder: (context, _) {
+                      final t = _pulse.value;
+                      final scale = t < 0.5 ? 1 + 0.8 * t : 1.4 - 0.8 * (t - 0.5);
+                      return Transform.scale(
+                        scale: _pulse.isAnimating ? scale : 1,
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: s.phase == LivePhase.paused ? o.inkAt(0.4) : o.cue,
+                            boxShadow: [BoxShadow(color: o.cue.withValues(alpha: 0.12), spreadRadius: 3)],
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
-              // After Dismiss: a 300 ms cue sweep re-anchors the eye.
+              // After Dismiss: a cue sweep re-anchors the eye (none under
+              // reduced motion).
               Positioned(
                 left: widget.leftInset,
                 right: widget.rightInset,
                 top: anchorY + _lineHeight * 0.5 + 2,
-                child: AnimatedBuilder(
-                  animation: _sweep,
-                  builder: (context, _) => !_sweep.isAnimating
-                      ? const SizedBox.shrink()
-                      : Align(
-                          alignment: Alignment.centerLeft,
-                          child: FractionallySizedBox(
-                            widthFactor: Motion.glideEnter.transform(_sweep.value),
-                            child: Opacity(
-                              opacity: 1 - _sweep.value * 0.6,
-                              child: Container(height: 1.5, color: o.cue),
+                child: RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: _sweep,
+                    builder: (context, _) => !_sweep.isAnimating
+                        ? const SizedBox.shrink()
+                        : Align(
+                            alignment: Alignment.centerLeft,
+                            child: FractionallySizedBox(
+                              widthFactor: Motion.glideEnter.transform(_sweep.value),
+                              child: Opacity(
+                                opacity: 1 - _sweep.value * 0.6,
+                                child: Container(height: 1.5, color: o.cue),
+                              ),
                             ),
                           ),
-                        ),
+                  ),
                 ),
               ),
             ],
@@ -463,6 +668,12 @@ class _BeatLine extends StatefulWidget {
     required this.plate,
     required this.reduceMotion,
     required this.palette,
+    this.highlight = HighlightEffect.off,
+    this.stillHighlight = false,
+    this.cursor,
+    this.said,
+    this.beatStart = 0,
+    this.fontSize = 26,
   });
 
   final FlatBeat beat;
@@ -475,6 +686,14 @@ class _BeatLine extends StatefulWidget {
   final bool reduceMotion;
   final OverlayPalette palette;
 
+  /// The karaoke highlight this line carries (off unless it's being said).
+  final HighlightEffect highlight;
+  final bool stillHighlight;
+  final ValueListenable<double>? cursor;
+  final ValueListenable<double>? said;
+  final int beatStart;
+  final double fontSize;
+
   @override
   State<_BeatLine> createState() => _BeatLineState();
 }
@@ -483,6 +702,28 @@ class _BeatLineState extends State<_BeatLine> with SingleTickerProviderStateMixi
   late final _dim = AnimationController(vsync: this, duration: Motion.wordDim);
   late List<ScriptWord> _words = splitWords(widget.beat.beat.text);
   int _dimFrom = 0;
+  final _paragraphKey = GlobalKey();
+
+  /// A word's text as laid out: words are joined by one space, a glued pair
+  /// by a non-breaking one.
+  String _wordText(int i) => _words[i].text + (i == _words.length - 1 ? '' : (_words[i].glueNext ? '\u00a0' : ' '));
+
+  /// The line as one span drawn with [foreground], for the highlight: the
+  /// same words, weights and cue placeholder as the line itself.
+  InlineSpan _replica(Paint foreground) => TextSpan(
+    style: widget.style.copyWith(foreground: foreground, shadows: const []),
+    children: [
+      if (widget.beat.beat.cue != null)
+        const WidgetSpan(alignment: PlaceholderAlignment.middle, child: SizedBox.shrink()),
+      for (var i = 0; i < _words.length; i++)
+        TextSpan(
+          text: _wordText(i),
+          style: _words[i].bold
+              ? const TextStyle(fontWeight: FontWeight.w700, fontVariations: [FontVariation.weight(700)])
+              : null,
+        ),
+    ],
+  );
 
   @override
   void didUpdateWidget(_BeatLine old) {
@@ -523,12 +764,15 @@ class _BeatLineState extends State<_BeatLine> with SingleTickerProviderStateMixi
     final isCurrent = widget.index == widget.current;
     final base = widget.style.copyWith(color: o.inkAt(_level), shadows: o.textShadows(_level));
     final cue = widget.beat.beat.cue;
+    // Under the glow the line keeps its color: what was said stays lit.
+    final dims = widget.highlight != HighlightEffect.glow;
 
     Widget text = AnimatedBuilder(
       animation: _dim,
       builder: (context, _) {
         final done = o.inkAt(o.readDone);
         return Text.rich(
+          key: _paragraphKey,
           TextSpan(
             children: [
               if (cue != null)
@@ -537,7 +781,7 @@ class _BeatLineState extends State<_BeatLine> with SingleTickerProviderStateMixi
                   child: Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: AnimatedOpacity(
-                      duration: Motion.glide,
+                      duration: context.motion(Motion.glide),
                       opacity: widget.visible ? 1 : 0,
                       child: CueChip(cue, color: o.cue, dimmed: true),
                     ),
@@ -545,9 +789,9 @@ class _BeatLineState extends State<_BeatLine> with SingleTickerProviderStateMixi
                 ),
               for (var i = 0; i < _words.length; i++)
                 TextSpan(
-                  text: _words[i].text + (i == _words.length - 1 ? '' : (_words[i].glueNext ? ' ' : ' ')),
+                  text: _wordText(i),
                   style: () {
-                    final color = !isCurrent
+                    final color = !isCurrent || !dims
                         ? null
                         : i < _dimFrom
                         ? done
@@ -568,8 +812,32 @@ class _BeatLineState extends State<_BeatLine> with SingleTickerProviderStateMixi
       },
     );
 
+    if (widget.highlight != HighlightEffect.off && widget.cursor != null && widget.said != null) {
+      final starts = <int>[], lengths = <int>[];
+      var c = cue == null ? 0 : 1;
+      for (var i = 0; i < _words.length; i++) {
+        starts.add(c);
+        lengths.add(_words[i].text.length);
+        c += _wordText(i).length;
+      }
+      text = KaraokeLine(
+        effect: widget.highlight,
+        reduceMotion: widget.reduceMotion || widget.stillHighlight,
+        palette: o,
+        fontSize: widget.fontSize,
+        cursor: widget.cursor!,
+        said: widget.said!,
+        beatStart: widget.beatStart,
+        wordStarts: starts,
+        wordLengths: lengths,
+        paragraphKey: _paragraphKey,
+        replica: _replica,
+        child: text,
+      );
+    }
+
     text = AnimatedDefaultTextStyle(
-      duration: widget.reduceMotion ? Motion.reducedMotionFade : Motion.glide,
+      duration: widget.reduceMotion ? Duration.zero : Motion.glide,
       curve: Motion.glideEnter,
       style: base,
       child: text,
@@ -586,78 +854,11 @@ class _BeatLineState extends State<_BeatLine> with SingleTickerProviderStateMixi
         ),
       );
     }
-    return isCurrent ? RepaintBoundary(child: text) : text;
-  }
-}
-
-// ─────────────────────────── Ticker ───────────────────────────
-
-/// < 380 px: spoken words slide out to the left, so the line always starts
-/// with the next word to say.
-class _TickerView extends StatelessWidget {
-  const _TickerView({required this.state, required this.style, required this.width});
-  final LiveState state;
-  final ReadingStyle style;
-  final double width;
-
-  @override
-  Widget build(BuildContext context) {
-    final o = context.overlayPalette;
-    final flat = state.flat!;
-    final beat = flat.beats[state.position.beat];
-    final words = splitWords(beat.beat.text);
-    final spoken = state.position.spokenWords.clamp(0, words.length);
-    final size = (overlayFontSize(width, style.size) * 0.78).clamp(17.0, 24.0);
-    final text = ReadingType.live(size);
-    final rest = words.sublist(spoken);
-    String join(List<ScriptWord> ws) =>
-        [for (var i = 0; i < ws.length; i++) ws[i].text + (i == ws.length - 1 ? '' : (ws[i].glueNext ? ' ' : ' '))]
-            .join();
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(26, 4, 16, 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: size * 0.67 - 3, right: 8),
-            child: Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: o.cue),
-            ),
-          ),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: style.reduceMotion ? Motion.reducedMotionFade : Motion.smooth,
-              transitionBuilder: (child, anim) => FadeTransition(
-                opacity: anim,
-                child: SlideTransition(
-                  position: Tween(begin: const Offset(0.06, 0), end: Offset.zero).animate(anim),
-                  child: child,
-                ),
-              ),
-              child: Text.rich(
-                key: ValueKey('${state.position.beat}:$spoken'),
-                TextSpan(
-                  children: [
-                    if (spoken > 0)
-                      TextSpan(
-                        text: '…${words[spoken - 1].text} ',
-                        style: TextStyle(color: o.inkAt(o.readDone), shadows: o.textShadows(o.readDone)),
-                      ),
-                    TextSpan(text: join(rest)),
-                  ],
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: text.copyWith(color: o.ink, shadows: o.textShadows()),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    // Every shown line on its own layer: a line that changes (a word
+    // dimming, a level easing at a beat change) re-rasterizes alone, and the
+    // still ones stay cached. Text-only glyphs carry a 13-shadow outline, so
+    // re-drawing the whole column for one line cost 100–200 ms a frame.
+    return widget.visible || isCurrent ? RepaintBoundary(child: text) : text;
   }
 }
 
@@ -773,8 +974,24 @@ class _RailView extends StatelessWidget {
     final words = splitWords(beat.beat.text);
     final spoken = state.position.spokenWords.clamp(0, words.length);
     final nextBeat = cur + 1 < flat.length ? flat.beats[cur + 1] : null;
-    final size = overlayFontSize(640, style.size) * 1.1;
 
+    return LayoutBuilder(
+      builder: (context, c) {
+        // Two lines always fit the rail's height, whatever the text size.
+        final size = math.min(overlayFontSize(640, style.size) * 1.1, (c.maxHeight - 6) / (2 * 1.34));
+        return _rail(context, o, words, spoken, nextBeat, size);
+      },
+    );
+  }
+
+  Widget _rail(
+    BuildContext context,
+    OverlayPalette o,
+    List<ScriptWord> words,
+    int spoken,
+    FlatBeat? nextBeat,
+    double size,
+  ) {
     return Row(
       children: [
         Container(
@@ -831,6 +1048,7 @@ class _RailView extends StatelessWidget {
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text.rich(
+                    key: currentLineKey,
                     TextSpan(
                       children: [
                         for (var i = 0; i < words.length; i++)
@@ -845,7 +1063,7 @@ class _RailView extends StatelessWidget {
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: ReadingType.live(size),
+                    style: ReadingType.live(size, font: style.font),
                   ),
                 ),
               ],
@@ -866,9 +1084,10 @@ class _RailView extends StatelessWidget {
                 Text(context.l10n.next, style: TypeScale.captionStrong.copyWith(color: o.inkAt(0.6))),
                 const SizedBox(height: 6),
                 ScriptText(
+                  key: nextLineKey,
                   nextBeat.beat.text,
                   maxLines: 3,
-                  style: ReadingType.live(17, lineHeight: 23).copyWith(color: o.inkAt(0.82)),
+                  style: ReadingType.live(17, lineHeight: 23, font: style.font).copyWith(color: o.inkAt(0.82)),
                 ),
               ],
             ),

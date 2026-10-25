@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sotto form fixture — long page</title>
+<link rel="stylesheet" href="fixture.css">
+</head>
+<body>
+<!-- A sidebar with its own scroll container: scrolling must move the page,
+     not this. -->
+<nav class="side" aria-label="Sections">
+  <strong>Sections</strong>
+  <a href="#about">About you</a>
+  <a href="#choices">Choices</a>
+  <a href="#widgets">Custom widgets</a>
+  <a href="#more">More about you</a>
+  <a href="#account">Account</a>
+  <!-- Enough links that the sidebar scrolls on its own. -->
+  <a href="#">Archive 2019</a><a href="#">Archive 2020</a><a href="#">Archive 2021</a><a href="#">Archive 2022</a>
+  <a href="#">Archive 2023</a><a href="#">Archive 2024</a><a href="#">Archive 2025</a><a href="#">Archive 2026</a>
+  <a href="#">Help</a><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a><a href="#">Accessibility</a>
+  <a href="#">Jobs</a><a href="#">Press</a><a href="#">Blog</a><a href="#">Status</a><a href="#">Changelog</a>
+  <a href="#">Docs</a><a href="#">API</a><a href="#">Community</a><a href="#">Events</a><a href="#">Partners</a>
+  <a href="#">Store</a><a href="#">Gift cards</a><a href="#">Students</a><a href="#">Teachers</a><a href="#">Newsroom</a>
+</nav>
+
+<main>
+<h1>Community survey</h1>
+<p>An ordinary survey — not a test. Fill it in from the presenter's instructions.</p>
+
+<form>
+<section id="about">
+  <h2>About you</h2>
+
+  <!-- 1. Labelled only by the text right above it: no <label>, no aria. -->
+  <div class="question">What is your full name?</div>
+  <input type="text" data-q="1 full name">
+
+  <!-- 2. Labelled only by a heading. -->
+  <h3>Which city do you live in?</h3>
+  <input type="text" data-q="2 city">
+
+  <!-- 3. A proper label plus help text (aria-describedby). -->
+  <p><label for="email">Email address</label></p>
+  <input id="email" type="text" data-q="3 email" aria-describedby="email-help">
+  <div id="email-help" class="help">We only use it to send you the results.</div>
+
+  <!-- 4. A text area labelled by nearby text. -->
+  <div class="question">What would you improve first?</div>
+  <textarea rows="3" data-q="4 improve"></textarea>
+</section>
+
+<div class="spacer">Scroll down: more questions below.</div>
+
+<section id="choices">
+  <h2>Choices</h2>
+
+  <!-- 5. Radio group in a fieldset with a legend. -->
+  <fieldset>
+    <legend>How often do you use the app?</legend>
+    <label><input type="radio" name="often" value="Daily" data-q="5 how often"> Daily</label><br>
+    <label><input type="radio" name="often" value="Weekly" data-q="5 how often"> Weekly</label><br>
+    <label><input type="radio" name="often" value="Monthly" data-q="5 how often"> Monthly</label><br>
+    <label><input type="radio" name="often" value="Rarely" data-q="5 how often"> Rarely</label>
+  </fieldset>
+
+  <!-- 6. Checkbox group labelled by aria-labelledby. -->
+  <div role="group" aria-labelledby="feat-q">
+    <p id="feat-q" class="question">Which features do you use? (select all that apply)</p>
+    <label><input type="checkbox" value="Teleprompter" data-q="6 features"> Teleprompter</label><br>
+    <label><input type="checkbox" value="Answers" data-q="6 features"> Answers</label><br>
+    <label><input type="checkbox" value="Forms" data-q="6 features"> Forms</label><br>
+    <label><input type="checkbox" value="Chat" data-q="6 features"> Chat</label>
+  </div>
+
+  <!-- 7. Native select. -->
+  <p><label for="role">Your role</label></p>
+  <select id="role" data-q="7 role">
+    <option value="">Choose…</option>
+    <option>Student</option>
+    <option>Teacher</option>
+    <option>Engineer</option>
+    <option>Designer</option>
+    <option>Other</option>
+  </select>
+
+  <!-- 8. A single yes/no checkbox. -->
+  <p><label><input type="checkbox" value="yes" data-q="8 newsletter"> Send me the newsletter</label></p>
+</section>
+
+<div class="spacer">Keep scrolling.</div>
+
+<section id="widgets">
+  <h2>Custom widgets</h2>
+
+  <!-- 9. Custom dropdown: the listbox is appended to <body> when opened,
+       nowhere near the combo in the tree. -->
+  <div class="question" id="country-q">Country</div>
+  <div role="combobox" class="combo" tabindex="0" aria-labelledby="country-q" aria-haspopup="listbox"
+       aria-expanded="false" aria-controls="country-list" data-q="9 country"
+       data-options="Argentina|Chile|Colombia|Dominican Republic|Mexico|Spain|United States">
+    <span class="combo-value">Select a country</span> ▾
+  </div>
+
+  <!-- 10. Native range input (a 1–10 scale). -->
+  <p><label for="likely">How likely are you to recommend us? (1–10)</label></p>
+  <input id="likely" type="range" min="1" max="10" step="1" value="5" data-q="10 recommend">
+
+  <!-- 11. Custom ARIA slider (1–5 stars). -->
+  <div class="question" id="sat-q">Overall satisfaction (1–5)</div>
+  <div role="slider" class="track" tabindex="0" aria-labelledby="sat-q" aria-valuemin="1" aria-valuemax="5"
+       aria-valuenow="3" data-q="11 satisfaction"><div class="thumb"></div></div>
+
+  <!-- 12. Spinner. -->
+  <p><label for="years">How many years have you been presenting?</label></p>
+  <input id="years" type="number" min="0" max="60" step="1" data-q="12 years">
+</section>
+
+<div class="spacer">Almost there.</div>
+
+<section id="more">
+  <h2>More about you</h2>
+  <!-- 13. Labelled by nearby text, far down the page (several scrolls). -->
+  <div class="question">Which language do you present in most?</div>
+  <input type="text" data-q="13 language">
+</section>
+
+<section id="account">
+  <h2>Account</h2>
+  <!-- Never read, never answered: the alarm in the status box lights up if
+       either is focused or changed. -->
+  <p><label for="pw">Choose a password</label></p>
+  <input id="pw" type="password" autocomplete="new-password" data-q="password" data-sensitive="1">
+  <p><label for="cc">Card number</label></p>
+  <input id="cc" type="text" inputmode="numeric" autocomplete="cc-number" data-q="card number" data-sensitive="1">
+</section>
+
+<p><button type="submit">Submit</button></p>
+</form>
+</main>
+
+<div id="status" aria-hidden="true"></div>
+<script src="fixture.js"></script>
+</body>
+</html>

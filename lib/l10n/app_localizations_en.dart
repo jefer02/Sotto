@@ -265,10 +265,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modelStreamingEnLightDesc => 'For older or low-power machines';
 
   @override
+  String get modelStreamingEs => 'Spanish · streaming';
+
+  @override
+  String get modelStreamingFr => 'French · streaming';
+
+  @override
+  String get modelStreamingDe => 'German · streaming';
+
+  @override
+  String get modelStreamingKrokoDesc => 'Follows your voice word by word · Kroko community model, CC BY-SA';
+
+  @override
   String get modelWhisperBase => 'Whisper base';
 
   @override
-  String get modelWhisperBaseDesc => 'Question transcripts in 99 languages; also follows non-English scripts';
+  String get modelWhisperBaseDesc =>
+      'Question transcripts in 99 languages; also follows languages without a streaming model';
 
   @override
   String get modelWhisperTurbo => 'Whisper large-v3 turbo';
@@ -288,10 +301,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modelOffline => 'No internet connection. Models download once, then work offline.';
 
   @override
+  String get modelChecksumFailed =>
+      'The download didn\'t match the published checksum, so it was discarded. Try again.';
+
+  @override
+  String modelLicenseTitle(String model) {
+    return 'License of “$model”';
+  }
+
+  @override
+  String get modelLicenseBody =>
+      'This model is shared under Creative Commons Attribution-ShareAlike (CC BY-SA); its publisher doesn’t say which version. Sotto downloads it unchanged from the sherpa-onnx project on GitHub, checks it against a pinned checksum, and runs it only on this computer.';
+
+  @override
+  String get modelLicenseAttribution => 'Attribution';
+
+  @override
+  String modelLicenseSource(String url) {
+    return 'Source and license: $url';
+  }
+
+  @override
+  String get modelLicenseAccept => 'Accept and download';
+
+  @override
+  String get modelLicenseView => 'License';
+
+  @override
   String get engineUnavailable => 'Unavailable';
 
   @override
   String get engineOnDeviceStreaming => 'On-device · streaming';
+
+  @override
+  String engineOnDeviceStreamingModel(String model) {
+    return 'On-device · streaming · $model';
+  }
 
   @override
   String get engineOnDeviceWhisper => 'On-device · Whisper';
@@ -299,6 +344,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get engineModelsMissing =>
       'Speech models are not installed yet. Download them in Settings → Voice & following.';
+
+  @override
+  String engineStreamingRecommended(String model) {
+    return 'Following with Whisper waits for pauses. Download “$model” in Settings → Voice & following to follow word by word.';
+  }
 
   @override
   String sttEngineFailed(String error) {
@@ -357,6 +407,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readyDownloadModels => 'Download speech models in Voice & following';
+
+  @override
+  String readyStreamingRecommended(String model) {
+    return 'Follows with Whisper, a phrase at a time. Download “$model” to follow word by word.';
+  }
 
   @override
   String readyHotkeys(String chord) {
@@ -1425,6 +1480,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readability => 'Readability';
 
   @override
+  String get scriptFont => 'Script font';
+
+  @override
+  String get scriptFontOverlay => 'Overlay script';
+
+  @override
+  String get scriptFontEditor => 'Editor script';
+
+  @override
+  String get scriptFontChange => 'Change…';
+
+  @override
+  String get scriptFontOverlayTitle => 'Overlay script font';
+
+  @override
+  String get scriptFontEditorTitle => 'Editor script font';
+
+  @override
+  String get scriptFontBundled => 'Included with Sotto';
+
+  @override
+  String get scriptFontSystem => 'On this computer';
+
+  @override
+  String get scriptFontSearch => 'Search fonts';
+
+  @override
+  String get scriptFontLoading => 'Looking for installed fonts…';
+
+  @override
+  String get scriptFontNone => 'No fonts match';
+
+  @override
+  String get scriptFontWeight => 'Weight';
+
+  @override
+  String get scriptFontSpacing => 'Letter spacing';
+
+  @override
+  String get scriptFontReset => 'Reset to default';
+
+  @override
+  String get scriptFontApply => 'Apply';
+
+  @override
+  String get scriptFontDefaultTag => 'Default';
+
+  @override
+  String get scriptFontSample => 'Thank you all for being here today; let’s look at how the year went.';
+
+  @override
+  String scriptFontMissing(String family) {
+    return '“$family” isn’t installed on this computer, so Sotto shows the default font instead.';
+  }
+
+  @override
   String get textSize => 'Text size';
 
   @override
@@ -1488,7 +1599,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scrolling => 'Scrolling';
 
   @override
-  String get scrollingSub => 'Glide eases between beats; Step jumps.';
+  String get scrollingSub => 'Glide follows your voice letter by letter, at your pace; Step moves a line at a time.';
 
   @override
   String get scrollGlide => 'Glide';
@@ -1501,6 +1612,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reduceMotionSub => 'Also follows your system setting';
+
+  @override
+  String get highlightEffect => 'Highlight effect';
+
+  @override
+  String get highlightEffectSub => 'How the words you’re saying light up on the current line';
+
+  @override
+  String get highlightOff => 'Off';
+
+  @override
+  String get highlightSimple => 'Simple';
+
+  @override
+  String get highlightGlow => 'Glow + sparkles';
+
+  @override
+  String get highlightGlowSub =>
+      'A cold glow sweeps letter by letter as you speak, with sparkles rising off it; the line keeps its color. With Reduce motion it rests on the word you said.';
+
+  @override
+  String get highlightSimpleSub => 'The letters you’re saying take the accent color as you speak.';
+
+  @override
+  String highlightUseFont(String font) {
+    return 'Use $font, the serif it was designed with';
+  }
 
   @override
   String get blurBehind => 'Blur behind the overlay';
@@ -1565,6 +1703,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get engineOnDeviceSub => 'sherpa-onnx on this computer · no audio leaves it';
 
   @override
+  String get followsWith => 'Follows with';
+
+  @override
+  String get followsWhyStreaming =>
+      'Word by word: a streaming model hears each word as you say it. Whisper still transcribes questions and dictation.';
+
+  @override
+  String followsWhyWhisperUntil(String model) {
+    return 'Whisper only hears whole phrases: the script waits for your pauses, then moves a phrase at once. Download “$model” to follow word by word.';
+  }
+
+  @override
+  String get followsWhyWhisperOnly =>
+      'No streaming model speaks this language yet: Whisper follows a phrase at a time.';
+
+  @override
+  String get followsWhyNone => 'Download a model below to follow your voice.';
+
+  @override
+  String get followsNoModel => 'No model yet';
+
+  @override
   String get following => 'Following';
 
   @override
@@ -1623,7 +1783,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onDeviceModelsFooter =>
-      'Downloaded once from the sherpa-onnx project, then used offline. Follow English live with a streaming model; Whisper transcribes questions and follows other languages.';
+      'Downloaded once from the sherpa-onnx project, checked against a pinned checksum, then used offline. A streaming model follows your voice word by word (English, Spanish, French, German); Whisper transcribes questions and dictation, and follows other languages a phrase at a time.';
 
   @override
   String get installed => 'Installed';
@@ -2506,6 +2666,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get formsWhyNoAnswer => 'no answer';
 
   @override
+  String get formsWhyOffscreen => 'never came on screen — fill it in by hand';
+
+  @override
   String get formsSessionTitle => 'Questionnaire on screen';
 
   @override
@@ -2762,6 +2925,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formsCouldNotFill => 'could not fill — please fill it yourself';
+
+  @override
+  String formsManualTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Couldn\'t fill $count answers — fill them in by hand',
+      one: 'Couldn\'t fill 1 answer — fill it in by hand',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get formsManualAllFilled => 'Every answer is in the form — review and submit when ready';
+
+  @override
+  String get formsCopyAll => 'Copy all';
+
+  @override
+  String get formsCopyAnswer => 'Copy answer';
+
+  @override
+  String get formsNoSuggestion => 'No suggested answer';
+
+  @override
+  String get formsFilledTooltip => 'Filled by Sotto';
+
+  @override
+  String get formsChatPlaceholder => 'Ask about this form — \"why this answer?\", \"answer 4 in English\"';
+
+  @override
+  String get formsChatBusy => 'Chat waits while Sotto types into the form';
 
   @override
   String get overlayTextColor => 'Overlay text color';
@@ -3163,4 +3358,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get readyHotkeysWaylandSub =>
       'Wayland doesn\'t let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay\'s buttons.';
+
+  @override
+  String get startupFailedTitle => 'Sotto couldn\'t open your data';
+
+  @override
+  String get startupFailedBody =>
+      'Another copy of Sotto may still be open, or a sync app such as OneDrive is holding one of its files. Close it, then try again.';
+
+  @override
+  String get quit => 'Quit';
+
+  @override
+  String get pasteOrganized => 'Organized into sections and beats';
+
+  @override
+  String get undo => 'Undo';
 }

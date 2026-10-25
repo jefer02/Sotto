@@ -14,11 +14,14 @@ import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
 import '../../l10n/l10n.dart';
 import '../agent/agent_view.dart';
+import '../forms/form_assist.dart';
 import 'questionnaire_controller.dart';
 
 /// The questionnaire panel in the overlay: "Answering 7/12…", the current
 /// question and answer, the list so far, and — when it's the presenter's
-/// turn — Enter to fill / go on / submit.
+/// turn — Enter to fill / go on / submit. Once it's over, the list is the
+/// answers to fill in by hand ([ManualAnswerRow]) for whatever Sotto
+/// couldn't. As tall as its content when its parent lets it be.
 class QuestionnaireView extends ConsumerWidget {
   const QuestionnaireView({super.key});
 
@@ -51,6 +54,7 @@ class QuestionnaireView extends ConsumerWidget {
     };
     final current = q.current != null && q.current! < q.items.length ? q.items[q.current!] : null;
     final waiting = q.phase == FormPhase.review || q.phase == FormPhase.nextPage || q.phase == FormPhase.confirmSubmit;
+    final answers = finished ? q.manualAnswers : null;
 
     return Container(
       // Amber frame while Sotto is filling: nothing happens silently.
@@ -60,6 +64,7 @@ class QuestionnaireView extends ConsumerWidget {
       ),
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -132,17 +137,21 @@ class QuestionnaireView extends ConsumerWidget {
               ],
             ),
           ],
+          if (finished && q.items.isNotEmpty) ...[const SizedBox(height: 8), const ManualAnswersBar()],
           const SizedBox(height: 10),
-          Expanded(
+          Flexible(
             child: ListView.builder(
+              shrinkWrap: true,
               padding: EdgeInsets.zero,
               itemCount: q.items.length,
-              itemBuilder: (context, i) => _ItemRow(
-                item: q.items[i],
-                current: i == q.current,
-                editable: q.phase == FormPhase.review && q.items[i].editable,
-                onEdit: (t) => c.editAnswer(i, t),
-              ),
+              itemBuilder: (context, i) => answers != null
+                  ? ManualAnswerRow(answer: answers[i])
+                  : _ItemRow(
+                      item: q.items[i],
+                      current: i == q.current,
+                      editable: q.phase == FormPhase.review && q.items[i].editable,
+                      onEdit: (t) => c.editAnswer(i, t),
+                    ),
             ),
           ),
           if (!finished)
@@ -287,7 +296,8 @@ class _ItemRowState extends State<_ItemRow> {
   }
 }
 
-/// A questionnaire started from the main window: just the panel.
+/// A questionnaire started from the main window: the panel, sized to what
+/// it shows, and the chat about the form under it.
 class QuestionnaireOverlayScreen extends ConsumerWidget {
   const QuestionnaireOverlayScreen({super.key});
 
@@ -301,7 +311,19 @@ class QuestionnaireOverlayScreen extends ConsumerWidget {
         onPanStart: (_) => unawaited(ref.read(windowServiceProvider).startDragging()),
         child: ClipRRect(
           borderRadius: Radii.rXl,
-          child: ColoredBox(color: o.textOnly ? o.chromeGround : o.ground, child: const QuestionnaireView()),
+          child: ColoredBox(
+            color: o.textOnly ? o.chromeGround : o.ground,
+            child: const PanelWindowFit(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Flexible(child: QuestionnaireView()),
+                  Padding(padding: EdgeInsets.fromLTRB(10, 8, 10, 10), child: FormChat()),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
