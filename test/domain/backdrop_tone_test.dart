@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:ui';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -241,16 +240,25 @@ void main() {
   });
 
   group('palette', () {
-    test('tone picks near-black or near-white glyphs, outline and shadow', () {
+    test('tone picks near-black or near-white glyphs with a contrasting outline and shadow', () {
       const s = AppSettings();
       final onLight = overlayPaletteFor(s, dark: true, backdrop: BackdropTone.light);
       final onDark = overlayPaletteFor(s, dark: true, backdrop: BackdropTone.dark);
+      // Dark text on a light slide: a light outline and a soft white glow.
       expect(onLight.ink, darkInk);
-      expect(onLight.outline, darkInk);
-      expect(onLight.shadowColor, const Color(0xFF000000));
+      expect(onLight.outline.withValues(alpha: 1), lightInk);
+      expect(onLight.shadowColor, OverlayPalette.glowUnderDark);
+      expect(onLight.shadowColor.r, 1);
+      // Light text on a dark slide: a dark outline and a soft black shadow.
       expect(onDark.ink, lightInk);
-      expect(onDark.outline, lightInk);
-      expect(onDark.shadowColor.r, 1);
+      expect(onDark.outline.withValues(alpha: 1), darkInk);
+      expect(onDark.shadowColor, OverlayPalette.shadowUnderLight);
+      // Thin and a little soft, so a uniform slide shows no hard ring.
+      for (final o in [onLight, onDark]) {
+        expect(o.outlineWidth, closeTo(s.outlineWidth * OverlayPalette.contrastOutlineScale, 1e-9));
+        expect(o.outlineWidth, lessThan(s.outlineWidth));
+        expect(o.outline.a, closeTo(OverlayPalette.contrastOutlineAlpha, 0.01));
+      }
       // Fixed modes ignore the backdrop.
       final fixed = overlayPaletteFor(
         const AppSettings(overlayTextColor: OverlayTextColor.dark),
