@@ -11,6 +11,7 @@ import '../../services/ai/llm_client.dart';
 import '../../services/agent/input_service.dart';
 import '../../services/screen/screen_service.dart';
 import '../../services/speech/model_manager.dart';
+import '../../services/speech/speech_session.dart' show FollowingWhy, planFollowing;
 import '../../core/platform/platform_features.dart';
 
 enum CheckLevel { ok, warn, missing }
@@ -79,14 +80,20 @@ final readinessProvider = FutureProvider<Readiness>((ref) async {
   if (settings.advanceMode == AdvanceMode.manual) {
     voice = ReadinessItem(l.readyHotkeysOnly, CheckLevel.ok, detail: l.readyAdvanceManual);
   } else {
-    final english = settings.language.toLowerCase().startsWith('en');
-    final canFollow =
-        (english && (ready(ModelCatalog.streamingEn) || ready(ModelCatalog.streamingEnLight))) ||
-        ready(ModelCatalog.whisperBase) ||
-        ready(ModelCatalog.whisperTurbo);
-    voice = canFollow
-        ? ReadinessItem(l.readyOnDevice(langs), CheckLevel.ok)
-        : ReadinessItem(l.readyOnDevice(langs), CheckLevel.missing, detail: l.readyDownloadModels);
+    final plan = planFollowing(settings.language, {
+      for (final m in ModelCatalog.all)
+        if (ready(m)) m.id,
+    });
+    voice = switch (plan.why) {
+      FollowingWhy.streaming || FollowingWhy.whisperOnly => ReadinessItem(l.readyOnDevice(langs), CheckLevel.ok),
+      // It follows, a phrase at a time: say how to follow word by word.
+      FollowingWhy.whisperUntilStreamingInstalled => ReadinessItem(
+        l.readyOnDevice(langs),
+        CheckLevel.warn,
+        detail: l.readyStreamingRecommended(plan.recommended!.name),
+      ),
+      FollowingWhy.none => ReadinessItem(l.readyOnDevice(langs), CheckLevel.missing, detail: l.readyDownloadModels),
+    };
   }
 
   final hk = ref.read(hotkeyServiceProvider);
