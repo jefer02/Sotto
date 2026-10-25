@@ -170,7 +170,7 @@ class SottoButton extends StatelessWidget {
         return PressScale(
           pressed: s.pressed,
           child: AnimatedContainer(
-            duration: Motion.quick,
+            duration: context.motion(Motion.quick),
             height: size.height,
             padding: EdgeInsets.only(left: icon != null ? 10 : 12, right: hasKey ? 6 : 12),
             decoration: BoxDecoration(
@@ -280,7 +280,7 @@ class SottoIconButton extends StatelessWidget {
             pressed: s.pressed,
             scale: 0.94,
             child: AnimatedContainer(
-              duration: Motion.quick,
+              duration: context.motion(Motion.quick),
               width: size,
               height: size,
               alignment: Alignment.center,
