@@ -114,6 +114,30 @@ void main() {
     expect(find.text('REHEARSAL'), findsNothing);
   });
 
+  testWidgets('going live resolves within 400 ms, so the session starts promptly', (tester) async {
+    expect(Motion.goLive.inMilliseconds, lessThanOrEqualTo(400));
+    final nav = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(_app(const Text('library'), nav: nav));
+    var resolved = false;
+    unawaited(
+      playGoLive(
+        nav.currentState!.overlay!,
+        rehearsal: false,
+        label: 'Live',
+        title: 'Q3',
+        lamp: const Color(0xFFF96050),
+        still: false,
+      ).then((_) => resolved = true),
+    );
+    // The entry builds, then its animation takes its first frame as time 0.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(resolved, isFalse);
+    await tester.pump(Motion.goLive);
+    await tester.pump();
+    expect(resolved, isTrue);
+  });
+
   testWidgets('the overlay comes into focus, then gets out of the way', (tester) async {
     await tester.pumpWidget(
       _app(const OverlayEntrance(enabled: true, sweep: Color(0xFF2F6BFF), child: Text('reading'))),
