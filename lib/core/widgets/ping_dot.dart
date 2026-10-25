@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../design/tokens.dart';
+
 /// A dot that sends out a fading ring every 1.8 s — "this is happening right
 /// now". Still when [active] is false or the system asks for less motion.
 /// Adapted from ObsidianUI's status ping (MIT, obsidianui.dev).
@@ -10,7 +12,7 @@ class PingDot extends StatefulWidget {
   final double size;
   final bool active;
 
-  static const period = Duration(milliseconds: 1800);
+  static const period = Motion.pingPeriod;
 
   /// The ring grows to this multiple of the dot, as in the original.
   static const reach = 2.4;
@@ -23,7 +25,7 @@ class _PingDotState extends State<PingDot> with SingleTickerProviderStateMixin {
   late final _c = AnimationController(vsync: this, duration: PingDot.period);
 
   // 0 → 75 % of the period: grow and fade; the rest is a pause.
-  static const _curve = Interval(0, 0.75, curve: Cubic(0, 0, 0.2, 1));
+  static const _curve = Interval(0, 0.75, curve: Motion.standard);
 
   @override
   void didChangeDependencies() {
