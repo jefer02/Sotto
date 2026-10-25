@@ -542,6 +542,30 @@ abstract class AppLocalizations {
   /// **'For older or low-power machines'**
   String get modelStreamingEnLightDesc;
 
+  /// No description provided for @modelStreamingEs.
+  ///
+  /// In en, this message translates to:
+  /// **'Spanish · streaming'**
+  String get modelStreamingEs;
+
+  /// No description provided for @modelStreamingFr.
+  ///
+  /// In en, this message translates to:
+  /// **'French · streaming'**
+  String get modelStreamingFr;
+
+  /// No description provided for @modelStreamingDe.
+  ///
+  /// In en, this message translates to:
+  /// **'German · streaming'**
+  String get modelStreamingDe;
+
+  /// No description provided for @modelStreamingKrokoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows your voice word by word · Kroko community model, CC BY-SA'**
+  String get modelStreamingKrokoDesc;
+
   /// No description provided for @modelWhisperBase.
   ///
   /// In en, this message translates to:
@@ -551,7 +575,7 @@ abstract class AppLocalizations {
   /// No description provided for @modelWhisperBaseDesc.
   ///
   /// In en, this message translates to:
-  /// **'Question transcripts in 99 languages; also follows non-English scripts'**
+  /// **'Question transcripts in 99 languages; also follows languages without a streaming model'**
   String get modelWhisperBaseDesc;
 
   /// No description provided for @modelWhisperTurbo.
@@ -584,6 +608,48 @@ abstract class AppLocalizations {
   /// **'No internet connection. Models download once, then work offline.'**
   String get modelOffline;
 
+  /// No description provided for @modelChecksumFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The download didn\'t match the published checksum, so it was discarded. Try again.'**
+  String get modelChecksumFailed;
+
+  /// No description provided for @modelLicenseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'License of “{model}”'**
+  String modelLicenseTitle(String model);
+
+  /// No description provided for @modelLicenseBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This model is shared under Creative Commons Attribution-ShareAlike (CC BY-SA); its publisher doesn’t say which version. Sotto downloads it unchanged from the sherpa-onnx project on GitHub, checks it against a pinned checksum, and runs it only on this computer.'**
+  String get modelLicenseBody;
+
+  /// No description provided for @modelLicenseAttribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Attribution'**
+  String get modelLicenseAttribution;
+
+  /// No description provided for @modelLicenseSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source and license: {url}'**
+  String modelLicenseSource(String url);
+
+  /// No description provided for @modelLicenseAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept and download'**
+  String get modelLicenseAccept;
+
+  /// No description provided for @modelLicenseView.
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get modelLicenseView;
+
   /// No description provided for @engineUnavailable.
   ///
   /// In en, this message translates to:
@@ -596,6 +662,12 @@ abstract class AppLocalizations {
   /// **'On-device · streaming'**
   String get engineOnDeviceStreaming;
 
+  /// No description provided for @engineOnDeviceStreamingModel.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device · streaming · {model}'**
+  String engineOnDeviceStreamingModel(String model);
+
   /// No description provided for @engineOnDeviceWhisper.
   ///
   /// In en, this message translates to:
@@ -607,6 +679,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Speech models are not installed yet. Download them in Settings → Voice & following.'**
   String get engineModelsMissing;
+
+  /// No description provided for @engineStreamingRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Following with Whisper waits for pauses. Download “{model}” in Settings → Voice & following to follow word by word.'**
+  String engineStreamingRecommended(String model);
 
   /// No description provided for @sttEngineFailed.
   ///
@@ -697,6 +775,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download speech models in Voice & following'**
   String get readyDownloadModels;
+
+  /// No description provided for @readyStreamingRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows with Whisper, a phrase at a time. Download “{model}” to follow word by word.'**
+  String readyStreamingRecommended(String model);
 
   /// No description provided for @readyHotkeys.
   ///
@@ -2522,6 +2606,114 @@ abstract class AppLocalizations {
   /// **'Readability'**
   String get readability;
 
+  /// No description provided for @scriptFont.
+  ///
+  /// In en, this message translates to:
+  /// **'Script font'**
+  String get scriptFont;
+
+  /// No description provided for @scriptFontOverlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay script'**
+  String get scriptFontOverlay;
+
+  /// No description provided for @scriptFontEditor.
+  ///
+  /// In en, this message translates to:
+  /// **'Editor script'**
+  String get scriptFontEditor;
+
+  /// No description provided for @scriptFontChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change…'**
+  String get scriptFontChange;
+
+  /// No description provided for @scriptFontOverlayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay script font'**
+  String get scriptFontOverlayTitle;
+
+  /// No description provided for @scriptFontEditorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Editor script font'**
+  String get scriptFontEditorTitle;
+
+  /// No description provided for @scriptFontBundled.
+  ///
+  /// In en, this message translates to:
+  /// **'Included with Sotto'**
+  String get scriptFontBundled;
+
+  /// No description provided for @scriptFontSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'On this computer'**
+  String get scriptFontSystem;
+
+  /// No description provided for @scriptFontSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search fonts'**
+  String get scriptFontSearch;
+
+  /// No description provided for @scriptFontLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking for installed fonts…'**
+  String get scriptFontLoading;
+
+  /// No description provided for @scriptFontNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No fonts match'**
+  String get scriptFontNone;
+
+  /// No description provided for @scriptFontWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get scriptFontWeight;
+
+  /// No description provided for @scriptFontSpacing.
+  ///
+  /// In en, this message translates to:
+  /// **'Letter spacing'**
+  String get scriptFontSpacing;
+
+  /// No description provided for @scriptFontReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to default'**
+  String get scriptFontReset;
+
+  /// No description provided for @scriptFontApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get scriptFontApply;
+
+  /// No description provided for @scriptFontDefaultTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get scriptFontDefaultTag;
+
+  /// No description provided for @scriptFontSample.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you all for being here today; let’s look at how the year went.'**
+  String get scriptFontSample;
+
+  /// No description provided for @scriptFontMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'“{family}” isn’t installed on this computer, so Sotto shows the default font instead.'**
+  String scriptFontMissing(String family);
+
   /// No description provided for @textSize.
   ///
   /// In en, this message translates to:
@@ -2651,7 +2843,7 @@ abstract class AppLocalizations {
   /// No description provided for @scrollingSub.
   ///
   /// In en, this message translates to:
-  /// **'Glide eases between beats; Step jumps.'**
+  /// **'Glide follows your voice letter by letter, at your pace; Step moves a line at a time.'**
   String get scrollingSub;
 
   /// No description provided for @scrollGlide.
@@ -2677,6 +2869,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Also follows your system setting'**
   String get reduceMotionSub;
+
+  /// No description provided for @highlightEffect.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight effect'**
+  String get highlightEffect;
+
+  /// No description provided for @highlightEffectSub.
+  ///
+  /// In en, this message translates to:
+  /// **'How the words you’re saying light up on the current line'**
+  String get highlightEffectSub;
+
+  /// No description provided for @highlightOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get highlightOff;
+
+  /// No description provided for @highlightSimple.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple'**
+  String get highlightSimple;
+
+  /// No description provided for @highlightGlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Glow + sparkles'**
+  String get highlightGlow;
+
+  /// No description provided for @highlightGlowSub.
+  ///
+  /// In en, this message translates to:
+  /// **'A cold glow sweeps letter by letter as you speak, with sparkles rising off it; the line keeps its color. With Reduce motion it rests on the word you said.'**
+  String get highlightGlowSub;
+
+  /// No description provided for @highlightSimpleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The letters you’re saying take the accent color as you speak.'**
+  String get highlightSimpleSub;
+
+  /// No description provided for @highlightUseFont.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {font}, the serif it was designed with'**
+  String highlightUseFont(String font);
 
   /// No description provided for @blurBehind.
   ///
@@ -2798,6 +3038,42 @@ abstract class AppLocalizations {
   /// **'sherpa-onnx on this computer · no audio leaves it'**
   String get engineOnDeviceSub;
 
+  /// No description provided for @followsWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows with'**
+  String get followsWith;
+
+  /// No description provided for @followsWhyStreaming.
+  ///
+  /// In en, this message translates to:
+  /// **'Word by word: a streaming model hears each word as you say it. Whisper still transcribes questions and dictation.'**
+  String get followsWhyStreaming;
+
+  /// No description provided for @followsWhyWhisperUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Whisper only hears whole phrases: the script waits for your pauses, then moves a phrase at once. Download “{model}” to follow word by word.'**
+  String followsWhyWhisperUntil(String model);
+
+  /// No description provided for @followsWhyWhisperOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'No streaming model speaks this language yet: Whisper follows a phrase at a time.'**
+  String get followsWhyWhisperOnly;
+
+  /// No description provided for @followsWhyNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Download a model below to follow your voice.'**
+  String get followsWhyNone;
+
+  /// No description provided for @followsNoModel.
+  ///
+  /// In en, this message translates to:
+  /// **'No model yet'**
+  String get followsNoModel;
+
   /// No description provided for @following.
   ///
   /// In en, this message translates to:
@@ -2915,7 +3191,7 @@ abstract class AppLocalizations {
   /// No description provided for @onDeviceModelsFooter.
   ///
   /// In en, this message translates to:
-  /// **'Downloaded once from the sherpa-onnx project, then used offline. Follow English live with a streaming model; Whisper transcribes questions and follows other languages.'**
+  /// **'Downloaded once from the sherpa-onnx project, checked against a pinned checksum, then used offline. A streaming model follows your voice word by word (English, Spanish, French, German); Whisper transcribes questions and dictation, and follows other languages a phrase at a time.'**
   String get onDeviceModelsFooter;
 
   /// No description provided for @installed.
@@ -5725,6 +6001,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Quit'**
   String get quit;
+
+  /// No description provided for @pasteOrganized.
+  ///
+  /// In en, this message translates to:
+  /// **'Organized into sections and beats'**
+  String get pasteOrganized;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
