@@ -8,7 +8,6 @@ import 'package:sotto/services/speech/recognizers.dart';
 
 /// Where the app keeps downloaded models on this machine.
 String modelsRoot() {
-  if (Platform.environment['SOTTO_MODELS_ROOT'] case final env?) return env;
   if (Platform.isWindows) return p.join(Platform.environment['APPDATA'] ?? '', 'Sotto', 'Sotto', 'models');
   if (Platform.isMacOS) {
     return p.join(Platform.environment['HOME'] ?? '', 'Library', 'Application Support', 'app.sotto.sotto', 'models');
@@ -16,10 +15,20 @@ String modelsRoot() {
   return p.join(Platform.environment['HOME'] ?? '', '.local', 'share', 'app.sotto.sotto', 'models');
 }
 
+/// Folders searched for models: SOTTO_MODELS_ROOT (several joined with the
+/// OS path separator) before the app's own.
+List<String> modelsRoots() => [
+  ...?Platform.environment['SOTTO_MODELS_ROOT']?.split(Platform.isWindows ? ';' : ':').where((r) => r.isNotEmpty),
+  modelsRoot(),
+];
+
 /// Folder of an installed model, or null.
 String? modelDir(String id) {
-  final dir = p.join(modelsRoot(), id);
-  return Directory(dir).existsSync() ? dir : null;
+  for (final root in modelsRoots()) {
+    final dir = p.join(root, id);
+    if (Directory(dir).existsSync()) return dir;
+  }
+  return null;
 }
 
 /// The test runner is not the app, so on Windows the native libraries
@@ -63,16 +72,26 @@ Float32List readWav(String path) {
 
 /// Feeds [audio] the way the microphone does: 100 ms chunks in real time
 /// ([speed] > 1 plays faster), then a second of silence.
+///
+/// Each chunk is due at its own time on one stopwatch. Chained 100 ms
+/// delays each run a little long (Windows timers tick every ~15.6 ms), and
+/// over a two-minute take the "real time" drifted ~5 s ahead of the audio.
 Future<void> playInto(LiveRecognizer r, Float32List audio, {double speed = 1}) async {
   const chunk = 1600; // 100 ms
-  final pause = Duration(microseconds: (100000 / speed).round());
+  final clock = Stopwatch()..start();
+  var n = 0;
+  Future<void> feed(Float32List samples) async {
+    r.accept(samples);
+    n++;
+    final due = Duration(microseconds: (n * 100000 / speed).round());
+    final wait = due - clock.elapsed;
+    if (wait > Duration.zero) await Future<void>.delayed(wait);
+  }
+
   for (var i = 0; i < audio.length; i += chunk) {
-    final end = i + chunk > audio.length ? audio.length : i + chunk;
-    r.accept(Float32List.sublistView(audio, i, end));
-    await Future<void>.delayed(pause);
+    await feed(Float32List.sublistView(audio, i, i + chunk > audio.length ? audio.length : i + chunk));
   }
   for (var i = 0; i < 10; i++) {
-    r.accept(Float32List(chunk));
-    await Future<void>.delayed(pause);
+    await feed(Float32List(chunk));
   }
 }
