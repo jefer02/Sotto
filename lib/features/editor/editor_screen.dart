@@ -200,7 +200,7 @@ class _Header extends ConsumerWidget {
                 ),
                 const SizedBox(width: 14),
                 AnimatedSwitcher(
-                  duration: Motion.snappy,
+                  duration: context.motion(Motion.snappy),
                   child: save == SaveState.saved
                       ? Tooltip(
                           key: const ValueKey('saved'),
@@ -577,7 +577,7 @@ class _SectionItem extends StatelessWidget {
       child: Interactive(
         onTap: onTap,
         builder: (context, s) => AnimatedContainer(
-          duration: Motion.quick,
+          duration: context.motion(Motion.quick),
           padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
           decoration: BoxDecoration(
             color: selected ? p.float : (s.hovered ? p.hoverWash : Colors.transparent),
