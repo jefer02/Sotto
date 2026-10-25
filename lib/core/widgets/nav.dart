@@ -61,7 +61,7 @@ class NavHighlight extends StatefulWidget {
   const NavHighlight({super.key, required this.child, this.collapsed = false});
 
   /// How long the light takes to reach a newly selected row.
-  static const slide = Duration(milliseconds: 180);
+  static const slide = Motion.navSlide;
 
   final Widget child;
 
@@ -247,7 +247,7 @@ class NavItem extends StatelessWidget {
         final trailingStyle = TypeScale.caption.copyWith(color: p.inkTertiary);
         final count = trailing == null ? null : int.tryParse(trailing!);
         final row = AnimatedContainer(
-          duration: Motion.quick,
+          duration: context.motion(Motion.quick),
           height: 32,
           padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 10),
           alignment: collapsed ? Alignment.center : null,
