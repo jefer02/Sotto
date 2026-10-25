@@ -141,6 +141,8 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
     // Auto-fill (or "Fill what's on screen now") outside a session.
     final autoFillOverlay = ref.watch(autoFillControllerProvider.select((a) => a.overlay));
     final locale = appLocale(settings.uiLanguage);
+    final reduceMotion =
+        settings.reduceMotion || WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
     // Controllers and services read strings without a BuildContext.
     L10n.current = lookupAppLocalizations(locale);
     Intl.defaultLocale = locale.languageCode;
@@ -171,13 +173,22 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         color: const Color(0x00000000),
-        // A backdrop change crossfades the text color over 200 ms.
-        themeAnimationDuration: const Duration(milliseconds: 200),
-        themeAnimationCurve: Curves.easeInOut,
+        // A backdrop change crossfades the text color; instant under reduce motion.
+        themeAnimationDuration: reduceMotion ? Duration.zero : Motion.backdropFade,
+        themeAnimationCurve: Motion.crossfade,
         theme: buildSottoTheme(
           overlayDark ? SottoPalette.stage : SottoPalette.houseLights,
           overlay: overlay,
         ).copyWith(scaffoldBackgroundColor: const Color(0x00000000), canvasColor: const Color(0x00000000)),
+        // "Reduce motion" reaches every effect in the overlay too, not only
+        // the ones that read the setting themselves.
+        builder: (context, child) {
+          final media = MediaQuery.of(context);
+          return MediaQuery(
+            data: media.copyWith(disableAnimations: media.disableAnimations || settings.reduceMotion),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         home: isLive
             ? const OverlayScreen()
             : autoFillOverlay
@@ -199,10 +210,7 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       darkTheme: buildSottoTheme(SottoPalette.stage),
       themeMode: themeMode,
       // Light ↔ dark crossfades (SottoPalette.lerp); instant under reduce motion.
-      themeAnimationDuration:
-          settings.reduceMotion || WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations
-          ? Duration.zero
-          : Motion.panel,
+      themeAnimationDuration: reduceMotion ? Duration.zero : Motion.panel,
       themeAnimationCurve: Motion.move,
       routerConfig: ref.watch(routerProvider),
       // "Reduce motion" (Settings › Appearance) calms the main window too,
