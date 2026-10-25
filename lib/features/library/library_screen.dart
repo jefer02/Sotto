@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
 import 'package:desktop_drop/desktop_drop.dart';
@@ -181,7 +180,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(height: 12),
                   Reveal(
                     enabled: _intro,
-                    delay: const Duration(milliseconds: 120),
+                    delay: Motion.introStep * 2,
                     duration: Motion.glide,
                     child: _UpNextCard(script: next),
                   ),
@@ -294,13 +293,13 @@ class _Greeting extends ConsumerWidget {
         RevealWords(
           greeting,
           enabled: intro,
-          delay: const Duration(milliseconds: 60),
+          delay: Motion.introStep,
           style: TypeScale.display.copyWith(color: p.inkPrimary),
         ),
         const SizedBox(height: 10),
         Reveal(
           enabled: intro,
-          delay: const Duration(milliseconds: 180),
+          delay: Motion.introStep * 3,
           child: Text.rich(
             TextSpan(
               children: [
@@ -324,6 +323,12 @@ class _Greeting extends ConsumerWidget {
 class _UpNextCard extends ConsumerWidget {
   const _UpNextCard({required this.script});
   final Script script;
+
+  /// The Go live / Rehearse column, and the space either side of the
+  /// divider before it.
+  static const _upNextActions = 212.0;
+  static const _upNextGap = Space.s6;
+  static const _upNextActionsGap = Space.s8;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -375,98 +380,106 @@ class _UpNextCard extends ConsumerWidget {
               ),
             ],
           ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(when(), style: TypeScale.mono.copyWith(color: p.primaryText)),
-                          if (minutesAway != null && minutesAway > 0 && minutesAway < 24 * 60) ...[
-                            const SizedBox(width: 10),
-                            StatusChip(
-                              minutesAway < 60
-                                  ? context.l10n.inMinutes(minutesAway)
-                                  : context.l10n.inHours((minutesAway / 60).round()),
-                              tone: ChipTone.cue,
-                            ),
+          // The divider spans the taller side as a positioned layer rather
+          // than through an intrinsic-height pass, so the section labels can
+          // measure the room they have.
+          child: Stack(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(when(), style: TypeScale.mono.copyWith(color: p.primaryText)),
+                            if (minutesAway != null && minutesAway > 0 && minutesAway < 24 * 60) ...[
+                              const SizedBox(width: 10),
+                              StatusChip(
+                                minutesAway < 60
+                                    ? context.l10n.inMinutes(minutesAway)
+                                    : context.l10n.inHours((minutesAway / 60).round()),
+                                tone: ChipTone.cue,
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Interactive(
-                        onTap: () => context.go('/script/${script.id}'),
-                        builder: (context, s) => Text(
-                          displayTitle(script.title),
-                          style: TypeScale.title1.copyWith(color: s.hovered ? p.cueText : p.inkPrimary),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        [
-                          context.l10n.sectionsCount(script.sections.length),
-                          context.l10n.atYourPace(formatMinutes(total), wpm),
-                          if (script.rehearsalCount > 0) context.l10n.rehearsedTimes(script.rehearsalCount),
-                          if (script.prepDocs.isNotEmpty) context.l10n.prepDocsCount(script.prepDocs.length),
-                        ].join(' · '),
-                        style: TypeScale.body.copyWith(color: p.inkSecondary),
-                      ),
-                      const SizedBox(height: 22),
-                      SectionBar(
-                        weights: [for (final s in script.sections) s.estimatedSeconds(wpm).toDouble().clamp(1, 1e9)],
-                        labels: [for (final s in script.sections) s.title],
-                        height: 4,
-                        // The next script's sections are lit: this is the one going on stage.
-                        trackColor: p.isDark ? p.cueText.withValues(alpha: 0.75) : p.primary.withValues(alpha: 0.55),
-                      ),
-                    ],
+                        const SizedBox(height: 10),
+                        Interactive(
+                          onTap: () => context.go('/script/${script.id}'),
+                          builder: (context, s) => Text(
+                            displayTitle(script.title),
+                            style: TypeScale.title1.copyWith(color: s.hovered ? p.cueText : p.inkPrimary),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          [
+                            context.l10n.sectionsCount(script.sections.length),
+                            context.l10n.atYourPace(formatMinutes(total), wpm),
+                            if (script.rehearsalCount > 0) context.l10n.rehearsedTimes(script.rehearsalCount),
+                            if (script.prepDocs.isNotEmpty) context.l10n.prepDocsCount(script.prepDocs.length),
+                          ].join(' · '),
+                          style: TypeScale.body.copyWith(color: p.inkSecondary),
+                        ),
+                        const SizedBox(height: 22),
+                        SectionBar(
+                          weights: [for (final s in script.sections) s.estimatedSeconds(wpm).toDouble().clamp(1, 1e9)],
+                          labels: [for (final s in script.sections) s.title],
+                          height: 4,
+                          // The next script's sections are lit: this is the one going on stage.
+                          trackColor: p.isDark ? p.cueText.withValues(alpha: 0.75) : p.primary.withValues(alpha: 0.55),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 24),
-                VerticalDivider(width: 1, thickness: 1, color: p.hairline),
-                const SizedBox(width: 32),
-                SizedBox(
-                  width: 212,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SottoButton.primary(
-                        label: context.l10n.goLive,
-                        icon: SottoIcons.play,
-                        size: ButtonSize.large,
-                        expand: true,
-                        shortcut: settings.shortcutFor(LiveAction.goLive),
-                        onPressed: () => unawaited(showPreflight(context, ref, script.id)),
-                      ),
-                      const SizedBox(height: 10),
-                      SottoButton(
-                        label: context.l10n.rehearse,
-                        icon: SottoIcons.rehearse,
-                        size: ButtonSize.large,
-                        expand: true,
-                        onPressed: () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        last == null
-                            ? context.l10n.notRehearsedYet
-                            : context.l10n.lastRehearsal(formatDuration(last.durationSeconds)) +
-                                  (last.plannedSeconds == null
-                                      ? ''
-                                      : ' · ${last.durationSeconds >= last.plannedSeconds! ? '+' : '−'}${formatDuration((last.durationSeconds - last.plannedSeconds!).abs())}'),
-                        textAlign: TextAlign.center,
-                        style: TypeScale.caption.copyWith(color: p.inkTertiary),
-                      ),
-                    ],
+                  const SizedBox(width: _upNextGap + 1 + _upNextActionsGap),
+                  SizedBox(
+                    width: _upNextActions,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SottoButton.primary(
+                          label: context.l10n.goLive,
+                          icon: SottoIcons.play,
+                          size: ButtonSize.large,
+                          expand: true,
+                          shortcut: settings.shortcutFor(LiveAction.goLive),
+                          onPressed: () => unawaited(showPreflight(context, ref, script.id)),
+                        ),
+                        const SizedBox(height: 10),
+                        SottoButton(
+                          label: context.l10n.rehearse,
+                          icon: SottoIcons.rehearse,
+                          size: ButtonSize.large,
+                          expand: true,
+                          onPressed: () => unawaited(showPreflight(context, ref, script.id, rehearsal: true)),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          last == null
+                              ? context.l10n.notRehearsedYet
+                              : context.l10n.lastRehearsal(formatDuration(last.durationSeconds)) +
+                                    (last.plannedSeconds == null
+                                        ? ''
+                                        : ' · ${last.durationSeconds >= last.plannedSeconds! ? '+' : '−'}${formatDuration((last.durationSeconds - last.plannedSeconds!).abs())}'),
+                          textAlign: TextAlign.center,
+                          style: TypeScale.caption.copyWith(color: p.inkTertiary),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+              Positioned(
+                top: 0,
+                bottom: 0,
+                right: _upNextActions + _upNextActionsGap,
+                child: VerticalDivider(width: 1, thickness: 1, color: p.hairline),
+              ),
+            ],
           ),
         ),
       ),
@@ -659,7 +672,7 @@ class ScriptCollectionView extends StatelessWidget {
 
   Widget _enter(int i, Script s, Widget child) => Reveal(
     enabled: _seen.add(s.id) || intro,
-    delay: intro ? Duration(milliseconds: 160 + 35 * math.min(i, 6)) : Motion.stagger(i),
+    delay: intro ? Motion.introStagger(i) : Motion.stagger(i),
     duration: intro ? Motion.glide : Motion.smooth,
     rise: intro ? 10 : 6,
     child: child,
@@ -783,17 +796,23 @@ class ScriptCard extends ConsumerWidget {
                         trackColor: collection == null ? null : tone.withValues(alpha: p.isDark ? 0.7 : 0.6),
                       ),
                     const SizedBox(height: 14),
+                    // A narrow card (the 960 px window) shortens the length
+                    // and section count; when it was edited stays whole.
                     Row(
                       children: [
-                        Text(
-                          organizing
-                              ? (progress == null
-                                    ? context.l10n.statusOrganizing
-                                    : context.l10n.refiningProgress(progress.done, progress.total))
-                              : '${formatMinutes(script.estimatedSeconds(wpm))} · ${context.l10n.sectionsCount(script.sections.length)}',
-                          style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
+                        Expanded(
+                          child: Text(
+                            organizing
+                                ? (progress == null
+                                      ? context.l10n.statusOrganizing
+                                      : context.l10n.refiningProgress(progress.done, progress.total))
+                                : '${formatMinutes(script.estimatedSeconds(wpm))} · ${context.l10n.sectionsCount(script.sections.length)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TypeScale.monoSmall.copyWith(color: p.inkTertiary),
+                          ),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 8),
                         Text(
                           organizing ? context.l10n.timeJustNow : relativeTime(script.updatedAt),
                           style: TypeScale.caption.copyWith(color: p.inkTertiary),
@@ -821,7 +840,7 @@ class RefineProgressBar extends StatelessWidget {
     final p = context.palette;
     return TweenAnimationBuilder<double>(
       tween: Tween(end: fraction.clamp(0.0, 1.0)),
-      duration: Motion.smooth,
+      duration: context.motion(Motion.smooth),
       builder: (context, t, _) => ClipRRect(
         borderRadius: BorderRadius.circular(3),
         child: SizedBox(
@@ -852,7 +871,7 @@ class _OrganizingBar extends StatefulWidget {
 }
 
 class _OrganizingBarState extends State<_OrganizingBar> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
+  late final _c = AnimationController(vsync: this, duration: Motion.organizingLoop);
 
   // Under reduce motion the segments hold still, half lit.
   @override
@@ -916,7 +935,7 @@ class ScriptRow extends ConsumerWidget {
       child: Interactive(
         onTap: () => context.go('/script/${script.id}'),
         builder: (context, s) => AnimatedContainer(
-          duration: Motion.quick,
+          duration: context.motion(Motion.quick),
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
