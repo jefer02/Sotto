@@ -396,10 +396,15 @@ abstract final class TextNormalizer {
   /// Similarity in 0..1 between two spoken tokens. Exact matches score 1;
   /// near-misses from the recognizer ("renegotiated" / "renegotiate") score
   /// by normalised edit distance on a light phonetic key.
-  static double similarity(String a, String b) {
+  ///
+  /// [spanish] adds Spanish spelling that sounds alike (b/v, ll/y, silent h,
+  /// qu/gu) and the contractions and conjunction forms recognizers swap:
+  /// "al"/"a", "del"/"de", "y"/"e", "o"/"u", and the decimal "punto"/"coma".
+  static double similarity(String a, String b, {bool spanish = false}) {
     if (a == b) return 1;
     if (a.isEmpty || b.isEmpty) return 0;
-    final ka = _phoneticKey(a), kb = _phoneticKey(b);
+    if (spanish && _sameEs(a, b)) return 0.85;
+    final ka = spanish ? _phoneticKeyEs(a) : _phoneticKey(a), kb = spanish ? _phoneticKeyEs(b) : _phoneticKey(b);
     if (ka == kb) return 0.9;
     final d = _levenshtein(ka, kb);
     final len = ka.length > kb.length ? ka.length : kb.length;
@@ -414,6 +419,28 @@ abstract final class TextNormalizer {
       .replaceAll(RegExp(r'z'), 's')
       .replaceAllMapped(RegExp(r'(.)\1+'), (m) => m[1]!)
       .replaceAll(RegExp(r'(?<=.)[aeiouy]+'), '');
+
+  static const _equivalentEs = [
+    {'al', 'a'},
+    {'del', 'de'},
+    {'y', 'e'},
+    {'o', 'u'},
+    // "4.8" is read "cuatro punto ocho" or "cuatro coma ocho".
+    {'punto', 'coma'},
+  ];
+
+  static bool _sameEs(String a, String b) => _equivalentEs.any((pair) => pair.contains(a) && pair.contains(b));
+
+  /// Spanish spellings of one sound collapse before the generic key: h is
+  /// silent, b/v and ll/y sound alike, qu/k and gu(e|i)/g, z/c(e|i)/s.
+  static String _phoneticKeyEs(String s) => _phoneticKey(
+    s
+        .replaceAll(RegExp(r'^h|(?<=[aeiou])h'), '')
+        .replaceAll('v', 'b')
+        .replaceAll('ll', 'y')
+        .replaceAll(RegExp(r'qu(?=[ei])'), 'k')
+        .replaceAll(RegExp(r'gu(?=[ei])'), 'g'),
+  );
 
   static int _levenshtein(String a, String b) {
     var prev = List<int>.generate(b.length + 1, (i) => i);
