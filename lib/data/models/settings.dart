@@ -37,6 +37,11 @@ enum OverlayPlacement {
 
 enum ScrollStyle { glide, step }
 
+/// How the words being said light up on the overlay's current line: not at
+/// all (said words just dim), a soft color sweep, or a cold glow that sweeps
+/// letter by letter with sparkles rising off it.
+enum HighlightEffect { off, simple, glow }
+
 enum AdvanceMode { voice, timed, manual }
 
 enum Sensitivity { low, medium, high }
@@ -90,6 +95,9 @@ class AppSettings {
     this.layout = OverlayLayout.auto,
     this.rememberPositionPerDisplay = true,
     this.scrollStyle = ScrollStyle.glide,
+    this.highlightEffect = HighlightEffect.off,
+    this.overlayFont = ScriptFonts.overlayDefault,
+    this.editorFont = ScriptFonts.editorDefault,
     this.reduceMotion = false,
     this.blurBehind = true,
     this.overlaySize = const (480.0, 120.0),
@@ -171,6 +179,11 @@ class AppSettings {
   final OverlayLayout layout;
   final bool rememberPositionPerDisplay;
   final ScrollStyle scrollStyle;
+  final HighlightEffect highlightEffect;
+
+  /// The script's font on the overlay and in the editor, chosen apart.
+  final ScriptFont overlayFont;
+  final ScriptFont editorFont;
   final bool reduceMotion;
   final bool blurBehind;
   final (double, double) overlaySize;
@@ -311,6 +324,9 @@ class AppSettings {
     OverlayLayout? layout,
     bool? rememberPositionPerDisplay,
     ScrollStyle? scrollStyle,
+    HighlightEffect? highlightEffect,
+    ScriptFont? overlayFont,
+    ScriptFont? editorFont,
     bool? reduceMotion,
     bool? blurBehind,
     (double, double)? overlaySize,
@@ -381,6 +397,9 @@ class AppSettings {
     layout: layout ?? this.layout,
     rememberPositionPerDisplay: rememberPositionPerDisplay ?? this.rememberPositionPerDisplay,
     scrollStyle: scrollStyle ?? this.scrollStyle,
+    highlightEffect: highlightEffect ?? this.highlightEffect,
+    overlayFont: overlayFont ?? this.overlayFont,
+    editorFont: editorFont ?? this.editorFont,
     reduceMotion: reduceMotion ?? this.reduceMotion,
     blurBehind: blurBehind ?? this.blurBehind,
     overlaySize: overlaySize ?? this.overlaySize,
@@ -452,6 +471,9 @@ class AppSettings {
     'layout': layout.name,
     'rememberPositionPerDisplay': rememberPositionPerDisplay,
     'scrollStyle': scrollStyle.name,
+    'highlightEffect': highlightEffect.name,
+    'overlayFont': overlayFont.toJson(),
+    'editorFont': editorFont.toJson(),
     'reduceMotion': reduceMotion,
     'blurBehind': blurBehind,
     'overlayGeometryVersion': overlayGeometryVersion,
@@ -542,6 +564,10 @@ class AppSettings {
       layout: e(OverlayLayout.values, j['layout'], d.layout),
       rememberPositionPerDisplay: j['rememberPositionPerDisplay'] as bool? ?? d.rememberPositionPerDisplay,
       scrollStyle: e(ScrollStyle.values, j['scrollStyle'], d.scrollStyle),
+      highlightEffect: e(HighlightEffect.values, j['highlightEffect'], d.highlightEffect),
+      // Saved before fonts could be chosen: the defaults, as they were.
+      overlayFont: ScriptFont.fromJson(j['overlayFont'], fallback: d.overlayFont),
+      editorFont: ScriptFont.fromJson(j['editorFont'], fallback: d.editorFont),
       reduceMotion: j['reduceMotion'] as bool? ?? d.reduceMotion,
       blurBehind: j['blurBehind'] as bool? ?? d.blurBehind,
       overlaySize: size == null ? d.overlaySize : ((size[0] as num).toDouble(), (size[1] as num).toDouble()),
