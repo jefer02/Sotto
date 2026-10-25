@@ -102,8 +102,14 @@ void main() {
       now = now.add(const Duration(seconds: 7));
       expect(e.onHeard('as i was saying about my dog'), FollowEvent.heldStill);
       expect(e.position.holding, isTrue);
-      expect(e.onHeard('strongest quarter since we began'), FollowEvent.relocked);
-      expect(e.position.beat, 2);
+      // A far relock waits for a second update that carries on from it.
+      expect(e.onHeard('strongest quarter since we began'), FollowEvent.none);
+      expect(e.position.beat, 1);
+      expect(e.onHeard('strongest quarter since we began reporting to'), FollowEvent.relocked);
+      // 9 of its 11 words: past "Move on when said" (80 %), so the next line
+      // is current — but the presenter is still on this one.
+      expect(e.position.beat, 3);
+      expect((e.position.saidBeat, e.position.saidWords), (2, 9));
     });
 
     test('advances once, not again on the same transcript tail', () {
@@ -119,11 +125,13 @@ void main() {
       expect(e.position.spokenWords, 1);
     });
 
-    test('does move back on a clear re-read', () {
+    test('does move back on a clear re-read, once it holds', () {
       final e = FollowEngine(flat, settings: const AppSettings());
       e.jumpTo(3);
       e.onHeard("let's start with the number everyone's been");
-      expect(e.position.beat, 0);
+      expect(e.position.beat, 3);
+      e.onHeard("let's start with the number everyone's been asking about");
+      expect(e.position.beat, 1);
     });
 
     test('does not scroll back on a short guess', () {
@@ -151,10 +159,12 @@ void main() {
       expect(e.position.beat, 2);
     });
 
-    test('follows a skip to another section', () {
+    test('follows a skip to another section on sustained evidence', () {
       final e = FollowEngine(flat, settings: const AppSettings());
       e.jumpTo(0);
       e.onHeard('two things drove that renewals we pulled');
+      expect(e.position.beat, 0);
+      e.onHeard('two things drove that renewals we pulled forward from');
       expect(e.position.beat, 4);
     });
   });
