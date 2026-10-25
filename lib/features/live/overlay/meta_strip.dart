@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/l10n.dart';
 
 import '../../../core/design/theme.dart';
+import '../../../core/design/tokens.dart';
 import '../../../core/design/typography.dart';
 import '../../../core/widgets/display.dart';
 import '../../../data/repositories.dart';
@@ -15,10 +16,14 @@ enum MetaDensity { ticker, compact, full }
 /// Section · voice · pace · time. Collapses long before the script text
 /// drops below 18 px.
 class MetaStrip extends ConsumerWidget {
-  const MetaStrip({super.key, this.density = MetaDensity.full, this.onDragStart, this.state});
+  const MetaStrip({super.key, this.density = MetaDensity.full, this.onDragStart, this.state, this.hint});
 
   final MetaDensity density;
   final VoidCallback? onDragStart;
+
+  /// The hovered control's name, shown in place of the section title: the
+  /// strip is chrome, so naming a button here never covers the script.
+  final String? hint;
 
   /// Overrides the live session — used by previews in Settings and the editor.
   final LiveState? state;
@@ -82,7 +87,12 @@ class MetaStrip extends ConsumerWidget {
                 const SizedBox(width: 10),
               ],
               Expanded(
-                child: Text(section?.title ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: label),
+                child: Text(
+                  hint ?? section?.title ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: hint == null ? label : label.copyWith(color: o.inkAt(0.95)),
+                ),
               ),
               if (density == MetaDensity.full) ...[
                 VoiceGlyph(state: s),
@@ -159,33 +169,46 @@ class VoiceGlyph extends StatelessWidget {
   const VoiceGlyph({super.key, required this.state});
   final LiveState state;
 
+  static const _barMax = 12.0;
+
   @override
   Widget build(BuildContext context) {
     final o = context.overlayPalette;
     final paused = state.phase == LivePhase.paused;
     final l = state.following && !state.manualMode ? state.voiceLevel : 0.0;
     final heights = paused ? [9.0, 9.0] : [4 + 4 * l, 5 + 7 * l, 4 + 5 * l];
+    final bar = DecoratedBox(
+      decoration: BoxDecoration(color: o.inkAt(0.6), borderRadius: BorderRadius.circular(1)),
+      child: const SizedBox(width: 2, height: _barMax),
+    );
     return Tooltip(
       message: paused
           ? context.l10n.paused
           : state.manualMode
           ? context.l10n.hotkeysOnly
           : context.l10n.followingYourVoice,
-      child: SizedBox(
-        height: 12,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            for (final h in heights)
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 90),
-                width: 2,
-                height: h.clamp(2.0, 12.0),
-                margin: EdgeInsets.only(right: paused ? 3 : 2),
-                decoration: BoxDecoration(color: o.inkAt(0.6), borderRadius: BorderRadius.circular(1)),
-              ),
-          ],
+      // The meter moves with every level the mic reports: each bar keeps
+      // its full size and is scaled when painted, on its own layer, so the
+      // strip is never laid out or repainted for it.
+      child: RepaintBoundary(
+        child: SizedBox(
+          height: _barMax,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              for (final h in heights)
+                Padding(
+                  padding: EdgeInsets.only(right: paused ? 3 : 2),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(end: h.clamp(2.0, _barMax) / _barMax),
+                    duration: context.motion(Motion.meter),
+                    builder: (context, scale, child) => Transform.scale(scaleX: 1, scaleY: scale, child: child),
+                    child: bar,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
