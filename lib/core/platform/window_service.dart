@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/animation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -433,6 +432,10 @@ class WindowService {
 
   Future<void> exitOverlay() async {
     if (!supported || !_overlay) return;
+    // An overlay still opening finishes first: its last steps (chrome,
+    // bounds, show) would otherwise land on the restored main window.
+    await _entered();
+    if (!_overlay) return;
     _overlay = false;
     _hidden = false;
     await setClickThrough(false);
@@ -514,11 +517,7 @@ class WindowService {
   /// Eases the overlay to [height] over [duration] (ease-out), growing away
   /// from the docked edge. A newer call cancels one still running. The
   /// caller clamps [height].
-  Future<void> animateHeight(
-    double height, {
-    bool fromBottom = false,
-    Duration duration = const Duration(milliseconds: 150),
-  }) async {
+  Future<void> animateHeight(double height, {bool fromBottom = false, Duration duration = Motion.overlayFit}) async {
     if (!_overlay) return;
     final id = ++_heightAnimation;
     await _entered();
@@ -529,7 +528,7 @@ class WindowService {
     final steps = duration.inMilliseconds ~/ frame.inMilliseconds;
     for (var i = 1; i <= (steps < 1 ? 1 : steps); i++) {
       if (id != _heightAnimation || !_overlay) return;
-      final h = b.height + (height - b.height) * Curves.easeOut.transform(steps < 1 ? 1 : i / steps);
+      final h = b.height + (height - b.height) * Motion.fade.transform(steps < 1 ? 1 : i / steps);
       final r = Rect.fromLTWH(b.left, fromBottom ? b.bottom - h : b.top, b.width, h);
       await _host.setBounds(r);
       _overlayFrame = r;
