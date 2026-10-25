@@ -77,8 +77,8 @@ class LaunchCurtain extends StatefulWidget {
 
   final Widget child;
 
-  static const full = Duration(milliseconds: 1250);
-  static const lightsUp = Duration(milliseconds: 700);
+  static const full = Motion.curtain;
+  static const lightsUp = Motion.lightsUp;
 
   /// Where in the full curtain the stage starts to open.
   static const opensAt = 0.5;
@@ -139,7 +139,7 @@ class _LaunchCurtainState extends State<LaunchCurtain> with SingleTickerProvider
       builder: (context, child) {
         final t = _done ? 1.0 : _c.value;
         final irisFrom = _first ? LaunchCurtain.opensAt : 0.0;
-        final open = _seg(t, irisFrom, 1, const Cubic(0.65, 0, 0.35, 1));
+        final open = _seg(t, irisFrom, 1, Motion.shiftMove);
         // The stage settles back as it's uncovered.
         final settle = _seg(t, irisFrom, 1, Motion.glideEnter);
         return Stack(
@@ -178,8 +178,8 @@ class _BrandMoment extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final appear = _seg(t, 0, 0.32, Motion.glideEnter);
-    final ignite = _seg(t, 0.1, 0.46, Curves.easeOutCubic);
-    final line = _seg(t, 0.16, 0.48, const Cubic(0.16, 1, 0.3, 1));
+    final ignite = _seg(t, 0.1, 0.46, Motion.arrive);
+    final line = _seg(t, 0.16, 0.48, Motion.arrive);
     final word = _seg(t, 0.2, 0.46, Motion.glideEnter);
     final leave = _seg(t, 0.5, 0.74, Motion.leaveExit);
 
@@ -282,7 +282,7 @@ class _BrandMoment extends StatelessWidget {
 class PageFadeThrough extends StatelessWidget {
   const PageFadeThrough({super.key, required this.animation, required this.secondaryAnimation, required this.child});
 
-  static const duration = Duration(milliseconds: 200);
+  static const duration = Motion.pageFade;
 
   /// How far the arriving page rises.
   static const rise = 6.0;
@@ -296,11 +296,11 @@ class PageFadeThrough extends StatelessWidget {
   /// while arriving or being uncovered ([still]: shown at once instead).
   static double opacity(Animation<double> animation, Animation<double> secondary, {bool still = false}) {
     if (animation.status == AnimationStatus.reverse) return 0;
-    final own = still ? 1.0 : Curves.easeOut.transform(animation.value);
+    final own = still ? 1.0 : Motion.fade.transform(animation.value);
     return switch (secondary.status) {
       AnimationStatus.dismissed => own,
       AnimationStatus.forward || AnimationStatus.completed => 0,
-      AnimationStatus.reverse => still ? 1.0 : own * Curves.easeOut.transform(1 - secondary.value),
+      AnimationStatus.reverse => still ? 1.0 : own * Motion.fade.transform(1 - secondary.value),
     };
   }
 
@@ -335,7 +335,7 @@ class PageFadeThrough extends StatelessWidget {
 class ContentFadeIn extends StatefulWidget {
   const ContentFadeIn({super.key, required this.child, this.rise = PageFadeThrough.rise * 0.5});
 
-  static const duration = Duration(milliseconds: 160);
+  static const duration = Motion.contentFade;
 
   final Widget child;
 
@@ -373,7 +373,7 @@ class _ContentFadeInState extends State<ContentFadeIn> with SingleTickerProvider
     builder: (context, child) {
       final t = _c.value;
       return FadeTransition(
-        opacity: AlwaysStoppedAnimation(Curves.easeOut.transform(t)),
+        opacity: AlwaysStoppedAnimation(Motion.fade.transform(t)),
         child: Transform.translate(offset: Offset(0, widget.rise * (1 - Motion.glideEnter.transform(t))), child: child),
       );
     },
@@ -423,7 +423,7 @@ class _GoLive extends StatefulWidget {
   final Color lamp;
   final VoidCallback onDone;
 
-  static const duration = Duration(milliseconds: 950);
+  static const duration = Motion.goLive;
 
   @override
   State<_GoLive> createState() => _GoLiveState();
@@ -442,8 +442,6 @@ class _GoLiveState extends State<_GoLive> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-  static const _dark = Color(0xFF040507);
-
   @override
   Widget build(BuildContext context) => AbsorbPointer(
     child: Material(
@@ -451,9 +449,10 @@ class _GoLiveState extends State<_GoLive> with SingleTickerProviderStateMixin {
       child: AnimatedBuilder(
         animation: _c,
         builder: (context, _) {
+          final p = context.palette;
           final t = _c.value;
-          final close = _seg(t, 0, 0.5, const Cubic(0.65, 0, 0.35, 1));
-          final ignite = _seg(t, 0.34, 0.62, const Cubic(0.16, 1, 0.3, 1));
+          final close = _seg(t, 0, 0.5, Motion.shiftMove);
+          final ignite = _seg(t, 0.34, 0.62, Motion.arrive);
           final label = _seg(t, 0.42, 0.78, Motion.glideEnter);
           final title = _seg(t, 0.52, 0.86, Motion.glideEnter);
           final lamp = widget.lamp;
@@ -461,7 +460,7 @@ class _GoLiveState extends State<_GoLive> with SingleTickerProviderStateMixin {
             fit: StackFit.expand,
             children: [
               CustomPaint(
-                painter: _IrisPainter(open: 1 - close, color: _dark),
+                painter: _IrisPainter(open: 1 - close, color: p.blackout),
               ),
               Center(
                 child: Column(
@@ -472,6 +471,7 @@ class _GoLiveState extends State<_GoLive> with SingleTickerProviderStateMixin {
                       child: CustomPaint(
                         painter: _TallyPainter(
                           color: lamp,
+                          core: p.lampCore,
                           ignite: ignite,
                           ring1: _seg(t, 0.38, 0.95),
                           ring2: _seg(t, 0.5, 1),
@@ -484,7 +484,7 @@ class _GoLiveState extends State<_GoLive> with SingleTickerProviderStateMixin {
                       child: Text(
                         widget.label.toUpperCase(),
                         style: TypeScale.mono.copyWith(
-                          color: Color.lerp(lamp, const Color(0xFFFFFFFF), 0.25),
+                          color: Color.lerp(lamp, p.lampCore, 0.25),
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                           letterSpacing: 4 + 10 * (1 - label),
@@ -503,7 +503,7 @@ class _GoLiveState extends State<_GoLive> with SingleTickerProviderStateMixin {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
-                            style: TypeScale.title3.copyWith(color: const Color(0xFFEEF1F6)),
+                            style: TypeScale.title3.copyWith(color: p.blackoutInk),
                           ),
                         ),
                       ),
@@ -521,8 +521,17 @@ class _GoLiveState extends State<_GoLive> with SingleTickerProviderStateMixin {
 
 /// The tally lamp: a bright core, a bloom, and two rings going out.
 class _TallyPainter extends CustomPainter {
-  _TallyPainter({required this.color, required this.ignite, required this.ring1, required this.ring2});
+  _TallyPainter({
+    required this.color,
+    required this.core,
+    required this.ignite,
+    required this.ring1,
+    required this.ring2,
+  });
   final Color color;
+
+  /// What the lamp's center burns toward.
+  final Color core;
   final double ignite, ring1, ring2;
 
   @override
@@ -538,7 +547,7 @@ class _TallyPainter extends CustomPainter {
     );
     for (final r in [ring1, ring2]) {
       if (r <= 0 || r >= 1) continue;
-      final e = Curves.easeOutCubic.transform(r);
+      final e = Motion.arrive.transform(r);
       canvas.drawCircle(
         c,
         7 + 50 * e,
@@ -549,12 +558,12 @@ class _TallyPainter extends CustomPainter {
       );
     }
     canvas.drawCircle(c, 7 * ignite, Paint()..color = color);
-    canvas.drawCircle(c, 3 * ignite, Paint()..color = Color.lerp(color, const Color(0xFFFFFFFF), 0.6)!);
+    canvas.drawCircle(c, 3 * ignite, Paint()..color = Color.lerp(color, core, 0.6)!);
   }
 
   @override
   bool shouldRepaint(_TallyPainter old) =>
-      old.ignite != ignite || old.ring1 != ring1 || old.ring2 != ring2 || old.color != color;
+      old.ignite != ignite || old.ring1 != ring1 || old.ring2 != ring2 || old.color != color || old.core != core;
 }
 
 // ─────────────────────────── Overlay entrance ───────────────────────────
@@ -576,7 +585,7 @@ class OverlayEntrance extends StatefulWidget {
 }
 
 class _OverlayEntranceState extends State<OverlayEntrance> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+  late final _c = AnimationController(vsync: this, duration: Motion.overlayEntrance);
 
   @override
   void initState() {
@@ -601,10 +610,10 @@ class _OverlayEntranceState extends State<OverlayEntrance> with SingleTickerProv
     builder: (context, child) {
       // One shape from start to end, so the overlay is built once.
       final t = _c.value;
-      final e = _seg(t, 0, 0.6, const Cubic(0.16, 1, 0.3, 1));
+      final e = _seg(t, 0, 0.6, Motion.arrive);
       final sigma = 10 * (1 - e);
       final out = FadeTransition(
-        opacity: AlwaysStoppedAnimation(_seg(t, 0, 0.35, Curves.easeOut)),
+        opacity: AlwaysStoppedAnimation(_seg(t, 0, 0.35, Motion.fade)),
         child: ImageFiltered(
           enabled: sigma > 0.05,
           imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma, tileMode: TileMode.decal),
@@ -617,7 +626,7 @@ class _OverlayEntranceState extends State<OverlayEntrance> with SingleTickerProv
       );
       final sweep = widget.sweep;
       if (sweep == null) return out;
-      final s = _seg(t, 0.25, 1, Curves.easeInOutCubic);
+      final s = _seg(t, 0.25, 1, Motion.shiftMove);
       return Stack(
         fit: StackFit.passthrough,
         children: [
@@ -685,9 +694,10 @@ Future<T?> showSottoDialog<T>({
   return navigator.push(
     _SottoDialogRoute<T>(
       context: context,
+      still: _still(context),
       builder: builder,
       barrierDismissible: barrierDismissible,
-      barrierColor: barrierColor ?? Theme.of(context).dialogTheme.barrierColor ?? Colors.black54,
+      barrierColor: barrierColor ?? Theme.of(context).dialogTheme.barrierColor ?? context.palette.scrim,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       themes: InheritedTheme.capture(from: context, to: navigator.context),
     ),
@@ -698,17 +708,22 @@ class _SottoDialogRoute<T> extends DialogRoute<T> {
   _SottoDialogRoute({
     required super.context,
     required super.builder,
+    required this.still,
     super.barrierDismissible,
     super.barrierColor,
     super.barrierLabel,
     super.themes,
   });
 
-  @override
-  Duration get transitionDuration => const Duration(milliseconds: 160);
+  /// Reduced motion when it opened: the dialog and its barrier come and go
+  /// at once.
+  final bool still;
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 120);
+  Duration get transitionDuration => still ? Duration.zero : Motion.dialogIn;
+
+  @override
+  Duration get reverseTransitionDuration => still ? Duration.zero : Motion.dialogOut;
 
   @override
   Widget buildTransitions(
@@ -719,12 +734,12 @@ class _SottoDialogRoute<T> extends DialogRoute<T> {
   ) {
     if (_still(context)) return child;
     return FadeTransition(
-      opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut, reverseCurve: Curves.easeIn),
+      opacity: CurvedAnimation(parent: animation, curve: Motion.fade, reverseCurve: Motion.fadeOut),
       child: ScaleTransition(
         scale: Tween<double>(
           begin: 0.97,
           end: 1,
-        ).animate(CurvedAnimation(parent: animation, curve: Motion.glideEnter, reverseCurve: Curves.easeIn)),
+        ).animate(CurvedAnimation(parent: animation, curve: Motion.glideEnter, reverseCurve: Motion.fadeOut)),
         child: child,
       ),
     );
