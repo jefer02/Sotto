@@ -81,7 +81,7 @@ class _LibraryShellState extends ConsumerState<LibraryShell> {
         body: Row(
           children: [
             AnimatedContainer(
-              duration: Motion.smooth,
+              duration: context.motion(Motion.smooth),
               curve: Motion.shiftMove,
               width: _collapsed ? Layout.sidebarCollapsed : Layout.sidebar,
               decoration: sidebarDecoration(p),
@@ -378,7 +378,7 @@ class _ReadinessCard extends ConsumerWidget {
     return Interactive(
       onTap: () => context.go('/settings/voice'),
       builder: (context, s) => AnimatedContainer(
-        duration: Motion.quick,
+        duration: context.motion(Motion.quick),
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
         decoration: BoxDecoration(
           color: s.hovered ? p.raised : p.ground,
@@ -466,10 +466,18 @@ class LibraryHeader extends StatelessWidget {
       showCaptionButtons: true,
       child: Padding(
         padding: const EdgeInsets.only(left: 24, right: 12),
+        // At the minimum window the actions keep their size and a long
+        // title (a collection's name) shortens.
         child: Row(
           children: [
-            Text(title, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
-            const Spacer(),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary),
+              ),
+            ),
             for (final a in actions) ...[const SizedBox(width: 8), a],
           ],
         ),
@@ -493,7 +501,7 @@ class ImportDropHint extends StatelessWidget {
     return CustomPaint(
       painter: _DashedBorder(color: active ? p.cueFill : p.control, radius: Radii.l),
       child: AnimatedContainer(
-        duration: Motion.quick,
+        duration: context.motion(Motion.quick),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
           color: active ? p.cueFill.withValues(alpha: 0.06) : Colors.transparent,
