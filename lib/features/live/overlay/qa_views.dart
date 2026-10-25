@@ -133,13 +133,15 @@ class _TallyDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final o = context.overlayPalette;
-    return SizedBox(
-      width: 16,
-      height: 16,
-      child: CustomPaint(
-        painter: _RingPainter(progress: silence, color: o.capture, track: o.capture.withValues(alpha: 0.18)),
-        child: Center(
-          child: PingDot(color: o.capture, active: ping && silence <= 0),
+    return RepaintBoundary(
+      child: SizedBox(
+        width: 16,
+        height: 16,
+        child: CustomPaint(
+          painter: _RingPainter(progress: silence, color: o.capture, track: o.capture.withValues(alpha: 0.18)),
+          child: Center(
+            child: PingDot(color: o.capture, active: ping && silence <= 0),
+          ),
         ),
       ),
     );
@@ -204,7 +206,7 @@ class _WordIn extends StatelessWidget {
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<double>(
     tween: Tween(begin: 0, end: 1),
-    duration: const Duration(milliseconds: 120),
+    duration: context.motion(Motion.wordIn),
     curve: Motion.glideEnter,
     builder: (context, t, child) => Opacity(
       opacity: t,
@@ -215,6 +217,8 @@ class _WordIn extends StatelessWidget {
 }
 
 /// Question level: a scrolling history of the room's level in tally red.
+/// It scrolls while speech recognition runs, so it only ever repaints its
+/// own layer: it never rebuilds, or repaints the view around it.
 class _Waveform extends StatefulWidget {
   const _Waveform({required this.level, required this.color});
   final double level;
@@ -225,7 +229,14 @@ class _Waveform extends StatefulWidget {
 }
 
 class _WaveformState extends State<_Waveform> with SingleTickerProviderStateMixin {
+  /// One sample every [_step]: the history scrolls at 25 columns a second.
+  static const _step = Duration(milliseconds: 40);
+  static final _jitter = math.Random();
+
   final _history = List<double>.filled(96, 0);
+
+  /// Bumped once per sample; the painter listens to it.
+  final _tick = ValueNotifier<int>(0);
   late final Ticker _ticker;
   Duration _last = Duration.zero;
 
@@ -233,29 +244,33 @@ class _WaveformState extends State<_Waveform> with SingleTickerProviderStateMixi
   void initState() {
     super.initState();
     _ticker = createTicker((elapsed) {
-      if (elapsed - _last < const Duration(milliseconds: 40)) return;
+      if (elapsed - _last < _step) return;
       _last = elapsed;
-      setState(() {
-        _history.removeAt(0);
-        // A little jitter keeps quiet passages from looking frozen.
-        _history.add((widget.level + math.Random().nextDouble() * 0.08 * widget.level).clamp(0, 1));
-      });
+      _history.removeAt(0);
+      // A little jitter keeps quiet passages from looking frozen.
+      _history.add((widget.level + _jitter.nextDouble() * 0.08 * widget.level).clamp(0, 1));
+      _tick.value++;
     })..start();
   }
 
   @override
   void dispose() {
     _ticker.dispose();
+    _tick.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) =>
-      CustomPaint(size: Size.infinite, painter: _WavePainter(List.of(_history), widget.color));
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: CustomPaint(
+      size: Size.infinite,
+      painter: _WavePainter(_history, widget.color, repaint: _tick),
+    ),
+  );
 }
 
 class _WavePainter extends CustomPainter {
-  _WavePainter(this.levels, this.color);
+  _WavePainter(this.levels, this.color, {super.repaint});
   final List<double> levels;
   final Color color;
 
@@ -277,7 +292,7 @@ class _WavePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_WavePainter old) => true;
+  bool shouldRepaint(_WavePainter old) => old.color != color;
 }
 
 // ─────────────────────────── Drafting ───────────────────────────
@@ -342,7 +357,20 @@ class _DraftingDots extends StatefulWidget {
 }
 
 class _DraftingDotsState extends State<_DraftingDots> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat();
+  late final _c = AnimationController(vsync: this, duration: Motion.draftingLoop);
+
+  // Under reduced motion the dots hold still, the first one lit.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (context.stillMotion) {
+      _c
+        ..stop()
+        ..value = 0.25;
+    } else if (!_c.isAnimating) {
+      _c.repeat();
+    }
+  }
 
   @override
   void dispose() {
@@ -350,24 +378,27 @@ class _DraftingDotsState extends State<_DraftingDots> with SingleTickerProviderS
     super.dispose();
   }
 
+  // The loop repaints its own layer, not the sources and question beside it.
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _c,
-    builder: (context, _) => Row(
-      children: [
-        for (var i = 0; i < 3; i++)
-          Container(
-            width: 4,
-            height: 4,
-            margin: const EdgeInsets.only(right: 3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: widget.color.withValues(
-                alpha: 0.3 + 0.7 * (0.5 + 0.5 * math.sin((_c.value - i / 3) * math.pi * 2)),
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) => Row(
+        children: [
+          for (var i = 0; i < 3; i++)
+            Container(
+              width: 4,
+              height: 4,
+              margin: const EdgeInsets.only(right: 3),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: widget.color.withValues(
+                  alpha: 0.3 + 0.7 * (0.5 + 0.5 * math.sin((_c.value - i / 3) * math.pi * 2)),
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -502,7 +533,7 @@ class AnswerView extends ConsumerWidget {
           ),
         ),
         AnimatedSwitcher(
-          duration: Motion.smooth,
+          duration: context.motion(Motion.smooth),
           child: (d?.complete ?? false) || error != null
               ? _AnswerActions(key: const ValueKey('actions'), state: state)
               : const SizedBox(key: ValueKey('none'), height: 0),
@@ -664,7 +695,9 @@ class _GhostOverlayButton extends StatelessWidget {
   }
 }
 
-/// Points stagger in 120 ms apart.
+/// Points stagger in [Motion.answerPointStagger] apart; at once under
+/// reduced motion. The delay is the head of one animation, so no timer is
+/// left pending when the answer goes.
 class _StaggerIn extends StatefulWidget {
   const _StaggerIn({required this.index, required this.child});
   final int index;
@@ -675,14 +708,21 @@ class _StaggerIn extends StatefulWidget {
 }
 
 class _StaggerInState extends State<_StaggerIn> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: Motion.smooth);
+  late final _delay = Motion.answerPointStagger * widget.index;
+  late final _c = AnimationController(vsync: this, duration: _delay + Motion.smooth);
+  late final Animation<double> _t = CurvedAnimation(
+    parent: _c,
+    curve: Interval(_delay.inMicroseconds / (_delay + Motion.smooth).inMicroseconds, 1, curve: Motion.glideEnter),
+  );
 
   @override
-  void initState() {
-    super.initState();
-    Future<void>.delayed(Motion.answerPointStagger * widget.index, () {
-      if (mounted) _c.forward();
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (context.stillMotion) {
+      _c.value = 1;
+    } else if (_c.isDismissed) {
+      _c.forward();
+    }
   }
 
   @override
@@ -693,9 +733,9 @@ class _StaggerInState extends State<_StaggerIn> with SingleTickerProviderStateMi
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _c,
+    animation: _t,
     builder: (context, child) {
-      final t = Motion.glideEnter.transform(_c.value);
+      final t = _t.value;
       return Opacity(
         opacity: t,
         child: Transform.translate(offset: Offset(0, 4 * (1 - t)), child: child),
