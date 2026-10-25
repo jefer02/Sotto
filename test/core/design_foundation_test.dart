@@ -80,6 +80,19 @@ void main() {
       expect(Motion.stagger(2), Motion.staggerStep * 2);
       expect(Motion.stagger(40), Motion.staggerStep * Motion.staggerCap);
     });
+
+    test('loops always have a length: reduced motion stops them, never zeroes them', () {
+      // A controller that repeat()s over zero time would spin every frame.
+      for (final d in [
+        Motion.pingPeriod,
+        Motion.draftingLoop,
+        Motion.organizingLoop,
+        Motion.beamLap,
+        Motion.stageLoop,
+      ]) {
+        expect(d, greaterThan(Duration.zero));
+      }
+    });
   });
 
   testWidgets('a primary button names its shortcut in a tooltip, not a chip', (tester) async {
