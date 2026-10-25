@@ -265,11 +265,23 @@ class AppLocalizationsEs extends AppLocalizations {
   String get modelStreamingEnLightDesc => 'Para equipos antiguos o de bajo consumo';
 
   @override
+  String get modelStreamingEs => 'Español · en tiempo real';
+
+  @override
+  String get modelStreamingFr => 'Francés · en tiempo real';
+
+  @override
+  String get modelStreamingDe => 'Alemán · en tiempo real';
+
+  @override
+  String get modelStreamingKrokoDesc => 'Sigue tu voz palabra por palabra · modelo comunitario Kroko, CC BY-SA';
+
+  @override
   String get modelWhisperBase => 'Whisper base';
 
   @override
   String get modelWhisperBaseDesc =>
-      'Transcribe preguntas en 99 idiomas; también sigue guiones en español y otros idiomas';
+      'Transcribe preguntas en 99 idiomas; también sigue los idiomas sin modelo en tiempo real';
 
   @override
   String get modelWhisperTurbo => 'Whisper large-v3 turbo';
@@ -290,10 +302,42 @@ class AppLocalizationsEs extends AppLocalizations {
       'Sin conexión a internet. Los modelos se descargan una vez y luego funcionan sin conexión.';
 
   @override
+  String get modelChecksumFailed =>
+      'La descarga no coincide con la suma de verificación publicada, así que se descartó. Vuelve a intentarlo.';
+
+  @override
+  String modelLicenseTitle(String model) {
+    return 'Licencia de «$model»';
+  }
+
+  @override
+  String get modelLicenseBody =>
+      'Este modelo se comparte bajo Creative Commons Atribución-CompartirIgual (CC BY-SA); quien lo publica no indica la versión. Sotto lo descarga sin cambios del proyecto sherpa-onnx en GitHub, lo comprueba con una suma de verificación fija y solo lo ejecuta en este equipo.';
+
+  @override
+  String get modelLicenseAttribution => 'Atribución';
+
+  @override
+  String modelLicenseSource(String url) {
+    return 'Origen y licencia: $url';
+  }
+
+  @override
+  String get modelLicenseAccept => 'Aceptar y descargar';
+
+  @override
+  String get modelLicenseView => 'Licencia';
+
+  @override
   String get engineUnavailable => 'No disponible';
 
   @override
   String get engineOnDeviceStreaming => 'En el equipo · en tiempo real';
+
+  @override
+  String engineOnDeviceStreamingModel(String model) {
+    return 'En el equipo · en tiempo real · $model';
+  }
 
   @override
   String get engineOnDeviceWhisper => 'En el equipo · Whisper';
@@ -301,6 +345,11 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get engineModelsMissing =>
       'Los modelos de voz aún no están instalados. Descárgalos en Ajustes → Voz y seguimiento.';
+
+  @override
+  String engineStreamingRecommended(String model) {
+    return 'Seguir con Whisper espera a las pausas. Descarga «$model» en Ajustes → Voz y seguimiento para seguir palabra por palabra.';
+  }
 
   @override
   String sttEngineFailed(String error) {
@@ -360,6 +409,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get readyDownloadModels => 'Descarga modelos de voz en Voz y seguimiento';
+
+  @override
+  String readyStreamingRecommended(String model) {
+    return 'Sigue con Whisper, frase a frase. Descarga «$model» para seguir palabra por palabra.';
+  }
 
   @override
   String readyHotkeys(String chord) {
@@ -1436,6 +1490,62 @@ class AppLocalizationsEs extends AppLocalizations {
   String get readability => 'Legibilidad';
 
   @override
+  String get scriptFont => 'Tipografía del guion';
+
+  @override
+  String get scriptFontOverlay => 'Guion en la superposición';
+
+  @override
+  String get scriptFontEditor => 'Guion en el editor';
+
+  @override
+  String get scriptFontChange => 'Cambiar…';
+
+  @override
+  String get scriptFontOverlayTitle => 'Tipografía del guion en la superposición';
+
+  @override
+  String get scriptFontEditorTitle => 'Tipografía del guion en el editor';
+
+  @override
+  String get scriptFontBundled => 'Incluidas en Sotto';
+
+  @override
+  String get scriptFontSystem => 'En este equipo';
+
+  @override
+  String get scriptFontSearch => 'Buscar tipografías';
+
+  @override
+  String get scriptFontLoading => 'Buscando tipografías instaladas…';
+
+  @override
+  String get scriptFontNone => 'Ninguna tipografía coincide';
+
+  @override
+  String get scriptFontWeight => 'Grosor';
+
+  @override
+  String get scriptFontSpacing => 'Espaciado entre letras';
+
+  @override
+  String get scriptFontReset => 'Restablecer la predeterminada';
+
+  @override
+  String get scriptFontApply => 'Aplicar';
+
+  @override
+  String get scriptFontDefaultTag => 'Predeterminada';
+
+  @override
+  String get scriptFontSample => 'Gracias a todos por estar aquí hoy; veamos cómo nos fue este año.';
+
+  @override
+  String scriptFontMissing(String family) {
+    return '«$family» no está instalada en este equipo, así que Sotto muestra la tipografía predeterminada.';
+  }
+
+  @override
   String get textSize => 'Tamaño del texto';
 
   @override
@@ -1499,7 +1609,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get scrolling => 'Desplazamiento';
 
   @override
-  String get scrollingSub => 'Suave se desliza entre frases; Por pasos salta.';
+  String get scrollingSub => 'Suave sigue tu voz letra a letra, a tu ritmo; Por pasos avanza una línea cada vez.';
 
   @override
   String get scrollGlide => 'Suave';
@@ -1512,6 +1622,33 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get reduceMotionSub => 'También sigue el ajuste del sistema';
+
+  @override
+  String get highlightEffect => 'Efecto de resaltado';
+
+  @override
+  String get highlightEffectSub => 'Cómo se iluminan en la línea actual las palabras que vas diciendo';
+
+  @override
+  String get highlightOff => 'No';
+
+  @override
+  String get highlightSimple => 'Simple';
+
+  @override
+  String get highlightGlow => 'Brillo y destellos';
+
+  @override
+  String get highlightGlowSub =>
+      'Un brillo frío recorre letra a letra lo que dices, con destellos que suben; la línea conserva su color. Con «Reducir movimiento» se queda quieto sobre la palabra dicha.';
+
+  @override
+  String get highlightSimpleSub => 'Las letras que vas diciendo toman el color de acento.';
+
+  @override
+  String highlightUseFont(String font) {
+    return 'Usar $font, la serif con la que se diseñó';
+  }
 
   @override
   String get blurBehind => 'Desenfocar detrás de la superposición';
@@ -1577,6 +1714,27 @@ class AppLocalizationsEs extends AppLocalizations {
   String get engineOnDeviceSub => 'sherpa-onnx en este equipo · el audio no sale de él';
 
   @override
+  String get followsWith => 'Sigue con';
+
+  @override
+  String get followsWhyStreaming =>
+      'Palabra por palabra: un modelo en tiempo real oye cada palabra mientras la dices. Whisper sigue transcribiendo preguntas y dictado.';
+
+  @override
+  String followsWhyWhisperUntil(String model) {
+    return 'Whisper solo oye frases enteras: el guion espera a tus pausas y luego avanza una frase de golpe. Descarga «$model» para seguir palabra por palabra.';
+  }
+
+  @override
+  String get followsWhyWhisperOnly => 'Aún no hay modelo en tiempo real para este idioma: Whisper sigue frase a frase.';
+
+  @override
+  String get followsWhyNone => 'Descarga un modelo abajo para que siga tu voz.';
+
+  @override
+  String get followsNoModel => 'Ningún modelo aún';
+
+  @override
   String get following => 'Seguimiento';
 
   @override
@@ -1635,7 +1793,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get onDeviceModelsFooter =>
-      'Se descargan una vez del proyecto sherpa-onnx y luego funcionan sin conexión. El inglés se sigue en vivo con un modelo en tiempo real; Whisper transcribe preguntas y sigue otros idiomas, incluido el español.';
+      'Se descargan una vez del proyecto sherpa-onnx, se comprueban con una suma de verificación fija y luego funcionan sin conexión. Un modelo en tiempo real sigue tu voz palabra por palabra (inglés, español, francés, alemán); Whisper transcribe preguntas y dictado, y sigue otros idiomas frase a frase.';
 
   @override
   String get installed => 'Instalado';
@@ -3229,4 +3387,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get quit => 'Salir';
+
+  @override
+  String get pasteOrganized => 'Organizado en secciones y frases';
+
+  @override
+  String get undo => 'Deshacer';
 }
