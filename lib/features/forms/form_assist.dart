@@ -639,6 +639,7 @@ class _PanelWindowFitState extends ConsumerState<PanelWindowFit> with WindowList
   Future<void> _fit(double content) async {
     _content = content;
     if (!mounted || !_window.isOverlay || _held) return;
+    final duration = context.motion(Motion.overlayFit);
     final area = await _window.displayArea();
     final target = AutoHeight.panel(content, screenHeight: area.height);
     if (_asked != null && (target - _asked!).abs() < 2) return;
@@ -649,7 +650,7 @@ class _PanelWindowFitState extends ConsumerState<PanelWindowFit> with WindowList
     final fromBottom = !OverlayGeometry.nearTop(b, area) || b.top + target > area.bottom;
     _fitting = true;
     try {
-      await _window.animateHeight(target, fromBottom: fromBottom);
+      await _window.animateHeight(target, fromBottom: fromBottom, duration: duration);
     } finally {
       _fitting = false;
     }
