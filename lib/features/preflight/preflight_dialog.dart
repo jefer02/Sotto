@@ -30,7 +30,7 @@ Future<void> showPreflight(BuildContext context, WidgetRef ref, String scriptId,
   ref.invalidate(readinessProvider);
   await showSottoDialog<void>(
     context: context,
-    barrierColor: const Color(0x99000000),
+    barrierColor: context.palette.scrimStrong,
     builder: (_) => PreflightDialog(script: script, rehearsal: rehearsal),
   );
 }
@@ -58,7 +58,8 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
     final overlay = Overlay.of(context, rootOverlay: true);
     final p = context.palette;
     final label = asRehearsal ? context.l10n.rehearsal : context.l10n.liveChip;
-    final still = MediaQuery.disableAnimationsOf(context);
+    // Under reduced motion (system or Settings) the session starts at once.
+    final still = MediaQuery.disableAnimationsOf(context) || ref.read(settingsProvider).reduceMotion;
     Navigator.of(context).pop();
     final lift = await playGoLive(
       overlay,
@@ -90,6 +91,7 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
               detail: readiness.mic.level == CheckLevel.ok ? l.pfMicReady(readiness.mic.label) : l.pfNoInput,
               level: readiness.mic.level,
               action: readiness.mic.level == CheckLevel.ok ? null : (l.pfChoose, '/settings/voice'),
+              blocking: true,
             ),
             _Check(
               icon: SottoIcons.wave,
@@ -99,6 +101,7 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
                   : (readiness.voice.detail ?? readiness.voice.label),
               level: readiness.voice.level,
               action: readiness.voice.level == CheckLevel.ok ? null : (l.pfSetUp, '/settings/voice'),
+              blocking: true,
             ),
             _Check(
               icon: SottoIcons.camera,
@@ -288,6 +291,7 @@ class _Check {
     required this.level,
     this.action,
     this.highlight = false,
+    this.blocking = false,
   });
 
   final SottoIcons icon;
@@ -298,6 +302,12 @@ class _Check {
   /// (label, settings route)
   final (String, String)? action;
   final bool highlight;
+
+  /// Without it Sotto can't follow the presenter (the microphone, voice
+  /// following): when it isn't ready, the row asks to be fixed first.
+  final bool blocking;
+
+  bool get needsFixing => blocking && level != CheckLevel.ok;
 }
 
 class _CheckRow extends StatelessWidget {
@@ -308,11 +318,18 @@ class _CheckRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final c = check;
+    // Something that keeps Sotto from following you: an amber wash, an
+    // amber icon and an amber mark — never mistaken for an optional check.
+    final fix = c.needsFixing;
     return Container(
       margin: const EdgeInsets.only(bottom: 2),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        color: c.highlight ? p.cueFill.withValues(alpha: 0.08) : Colors.transparent,
+        color: fix
+            ? p.cautionWash
+            : c.highlight
+            ? p.cueFill.withValues(alpha: 0.08)
+            : Colors.transparent,
         borderRadius: Radii.rM,
       ),
       child: Row(
@@ -323,10 +340,10 @@ class _CheckRow extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: Radii.rControl,
-              border: Border.all(color: p.control),
+              border: Border.all(color: fix ? p.cautionEdge : p.control),
               color: p.panel,
             ),
-            child: SottoIcon(c.icon, size: 14, color: p.inkSecondary),
+            child: SottoIcon(c.icon, size: 14, color: fix ? p.caution : p.inkSecondary),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -354,7 +371,7 @@ class _CheckRow extends StatelessWidget {
           switch (c.level) {
             CheckLevel.ok => SottoIcon(SottoIcons.check, size: 14, color: p.confirmed),
             CheckLevel.warn => SottoIcon(SottoIcons.alert, size: 14, color: p.caution),
-            CheckLevel.missing => SottoIcon(SottoIcons.alert, size: 14, color: p.inkTertiary),
+            CheckLevel.missing => SottoIcon(SottoIcons.alert, size: 14, color: fix ? p.caution : p.inkTertiary),
           },
         ],
       ),
