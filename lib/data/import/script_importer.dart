@@ -61,8 +61,11 @@ abstract final class ScriptImporter {
     sourceName: L10n.current.pastedText,
   );
 
-  static Future<String?> _parseOffThread(String ext, Uint8List bytes) =>
-      Isolate.run(() => ext == 'docx' ? _docxText(bytes) : _decodeText(bytes));
+  static Future<String?> _parseOffThread(String ext, Uint8List bytes) => Isolate.run(() => parseText(ext, bytes));
+
+  /// A .docx, .md or .txt file's text; null when a .docx has no body. Pure,
+  /// for background isolates.
+  static String? parseText(String ext, Uint8List bytes) => ext == 'docx' ? _docxText(bytes) : _decodeText(bytes);
 
   static String _decodeText(Uint8List bytes) {
     try {
