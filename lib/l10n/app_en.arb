@@ -1938,5 +1938,238 @@
   "startupFailedBody": "Another copy of Sotto may still be open, or a sync app such as OneDrive is holding one of its files. Close it, then try again.",
   "quit": "Quit",
   "pasteOrganized": "Organized into sections and beats",
-  "undo": "Undo"
+  "undo": "Undo",
+  "newScriptSubtitle": "How do you want to start?",
+  "newScriptWordsNote": "Writing and importing never change your wording. Generating writes new text from your material — read it through before you go live.",
+  "pathWriteTitle": "Write from scratch",
+  "pathWriteBody": "A blank script. Type it, or paste it, in the editor.",
+  "pathImportTitle": "Import text",
+  "pathImportBody": "A file or pasted text, kept word for word. Sotto only organizes it into sections and beats.",
+  "pathGenerateTitle": "Generate with AI",
+  "pathGenerateBody": "From a presentation, PDF or document. DeepSeek writes a new script for you to review and edit.",
+  "badgeKeepsWords": "Keeps your words",
+  "badgeWritesNew": "Writes new text",
+  "importDropHint": "Drop a .docx, .pdf, .md or .txt file here, or",
+  "importChooseFile": "Choose a file",
+  "importPasteLabel": "Or paste your text",
+  "importPastePlaceholder": "Paste the script here — it is kept exactly as written",
+  "importPasteAction": "Import text",
+  "genMaterial": "Material",
+  "genMaterialHint": "Drop presentations, PDFs, documents or pictures here, or",
+  "genChooseFiles": "Choose files",
+  "genReading": "Reading…",
+  "genSlides": "{count, plural, =1{1 slide} other{{count} slides}}",
+  "@genSlides": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genPages": "{count, plural, =1{1 page} other{{count} pages}}",
+  "@genPages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genParts": "{count, plural, =1{1 part} other{{count} parts}}",
+  "@genParts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genPicture": "Picture",
+  "genHiddenSkipped": "{count, plural, =1{1 hidden slide skipped} other{{count} hidden slides skipped}}",
+  "@genHiddenSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genNoNotes": "no speaker notes",
+  "genNotesFound": "{count, plural, =1{notes on 1 slide} other{notes on {count} slides}}",
+  "@genNotesFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genWords": "{count, plural, =1{1 word} other{{count} words}}",
+  "@genWords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genOcrUsed": "{count, plural, =1{OCR on 1 scanned page} other{OCR on {count} scanned pages}}",
+  "@genOcrUsed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genOcrPicture": "text read with OCR",
+  "genRemove": "Remove",
+  "genDuration": "Duration",
+  "genMinutes": "min",
+  "genBudget": "≈ {words} words at your measured pace ({wpm} wpm)",
+  "@genBudget": {
+    "placeholders": {
+      "words": {
+        "type": "int"
+      },
+      "wpm": {
+        "type": "int"
+      }
+    }
+  },
+  "genBudgetDefault": "≈ {words} words at {wpm} wpm — rehearse once and it uses your own pace",
+  "@genBudgetDefault": {
+    "placeholders": {
+      "words": {
+        "type": "int"
+      },
+      "wpm": {
+        "type": "int"
+      }
+    }
+  },
+  "genAudience": "Audience",
+  "genAudiencePlaceholder": "Who is listening? e.g. the board, new customers",
+  "genTone": "Tone",
+  "genTonePlaceholder": "e.g. confident and warm",
+  "genChipExecutives": "Executives",
+  "genChipTeam": "Technical team",
+  "genChipCustomers": "Customers",
+  "genChipStudents": "Students",
+  "genChipGeneral": "General public",
+  "genChipConfident": "Confident",
+  "genChipConversational": "Conversational",
+  "genChipFormal": "Formal",
+  "genChipInspiring": "Inspiring",
+  "genChipConcise": "Concise",
+  "genLanguage": "Language",
+  "genLanguageSpeech": "{language} — speech language",
+  "@genLanguageSpeech": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "genUseNotes": "Use speaker notes",
+  "genUseNotesSub": "Notes often hold what you meant to say",
+  "genSectionPerSlide": "One section per slide",
+  "genSectionPerSlideSub": "Off: related slides share a section",
+  "genQuestions": "Also prepare likely questions",
+  "genQuestionsSub": "With answers from your material, in the Q&A prep tab",
+  "genPrivacy": "The text read from these files is sent to DeepSeek to write the script. Nothing is sent until you press Generate, and nothing else leaves this computer.",
+  "genNeedsKey": "Generating needs a DeepSeek API key",
+  "genNeedsKeySub": "Add yours to generate scripts. Writing from scratch and importing text work without one.",
+  "genOpenIntegrations": "Settings › Integrations",
+  "genGenerate": "Generate script",
+  "genCancel": "Cancel — nothing is saved",
+  "genTryAgain": "Try again",
+  "genFailed": "Couldn’t generate the script",
+  "genStageReading": "Material read",
+  "genStageUnderstanding": "Understanding the slides ({done}/{total})",
+  "@genStageUnderstanding": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "genStageUnderstandingDone": "Understanding the slides",
+  "genStageWriting": "Writing the script",
+  "genStageChecking": "Checking length, structure and slide cues",
+  "genStageQuestions": "Preparing likely questions",
+  "genPreviewWaiting": "The script appears here as it is written.",
+  "genDraftReady": "Draft ready — read it through before you go live.",
+  "genChecks": "{count, plural, =1{1 spot is marked for you to check.} other{{count} spots are marked for you to check.}}",
+  "@genChecks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genCheckMarker": "CHECK",
+  "materialUnsupported": "Sotto can’t read {ext} files. Add a presentation (.pptx, .odp), a PDF, a document (.docx, .md, .txt) or a picture (.png, .jpg).",
+  "@materialUnsupported": {
+    "placeholders": {
+      "ext": {
+        "type": "String"
+      }
+    }
+  },
+  "materialExportFirst": "Sotto can’t read {ext} files. Export it as PowerPoint (.pptx) or PDF and add that instead.",
+  "@materialExportFirst": {
+    "placeholders": {
+      "ext": {
+        "type": "String"
+      }
+    }
+  },
+  "materialLegacy": "This is an old Office format or a password-protected file. Save it as .pptx or .docx without a password, or export it as PDF.",
+  "materialTooLarge": "This file is too large to read safely (up to 100 MB).",
+  "materialTooManyPages": "This file has {count} slides or pages; Sotto reads up to {max}. Split it, or export the part you need.",
+  "@materialTooManyPages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "materialCorrupted": "This file is damaged or isn’t what its name says. Open it and save it again, or export it as PDF.",
+  "materialEmpty": "No text found in this file — not even with OCR.",
+  "markersLive": "Show markers to check",
+  "markersLiveSub": "Spots a generated script marked [CHECK: …], in the cue color. Never followed by voice; off, the live view leaves them out",
+  "markersCount": "{count, plural, =1{1 spot to check} other{{count} spots to check}}",
+  "@markersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "markerPrevious": "Previous marker",
+  "markerNext": "Next marker",
+  "markerRemove": "Remove marker",
+  "markerHint": "The marker is selected: type the missing fact over it, or remove it.",
+  "pfMarkers": "Spots to check",
+  "pfMarkersShown": "{count, plural, =1{1 marker is still in the script. It shows in the cue color and is never followed.} other{{count} markers are still in the script. They show in the cue color and are never followed.}}",
+  "@pfMarkersShown": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pfMarkersHidden": "{count, plural, =1{1 marker is still in the script. It is hidden while live.} other{{count} markers are still in the script. They are hidden while live.}}",
+  "@pfMarkersHidden": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pfOpenFirstMarker": "Open the first",
+  "genFailedNothingSaved": "Nothing was saved. Fix the problem and try again, or go back.",
+  "genFailedInvalidReply": "DeepSeek’s reply couldn’t be turned into a script twice in a row.",
+  "genFailedNoText": "No text was found in the material."
 }
