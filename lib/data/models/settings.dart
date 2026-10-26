@@ -94,6 +94,7 @@ class AppSettings {
     this.placement = OverlayPlacement.topCenter,
     this.layout = OverlayLayout.auto,
     this.rememberPositionPerDisplay = true,
+    this.showMarkersLive = true,
     this.scrollStyle = ScrollStyle.glide,
     this.highlightEffect = HighlightEffect.off,
     this.overlayFont = ScriptFonts.overlayDefault,
@@ -178,6 +179,11 @@ class AppSettings {
   final OverlayPlacement placement;
   final OverlayLayout layout;
   final bool rememberPositionPerDisplay;
+
+  /// Markers a generated script leaves to check ("[CHECK: …]") show in the
+  /// overlay set apart in the cue color; off, the live view leaves them out.
+  /// Voice following never uses them either way.
+  final bool showMarkersLive;
   final ScrollStyle scrollStyle;
   final HighlightEffect highlightEffect;
 
@@ -323,6 +329,7 @@ class AppSettings {
     OverlayPlacement? placement,
     OverlayLayout? layout,
     bool? rememberPositionPerDisplay,
+    bool? showMarkersLive,
     ScrollStyle? scrollStyle,
     HighlightEffect? highlightEffect,
     ScriptFont? overlayFont,
@@ -396,6 +403,7 @@ class AppSettings {
     placement: placement ?? this.placement,
     layout: layout ?? this.layout,
     rememberPositionPerDisplay: rememberPositionPerDisplay ?? this.rememberPositionPerDisplay,
+    showMarkersLive: showMarkersLive ?? this.showMarkersLive,
     scrollStyle: scrollStyle ?? this.scrollStyle,
     highlightEffect: highlightEffect ?? this.highlightEffect,
     overlayFont: overlayFont ?? this.overlayFont,
@@ -470,6 +478,7 @@ class AppSettings {
     'placement': placement.name,
     'layout': layout.name,
     'rememberPositionPerDisplay': rememberPositionPerDisplay,
+    'showMarkersLive': showMarkersLive,
     'scrollStyle': scrollStyle.name,
     'highlightEffect': highlightEffect.name,
     'overlayFont': overlayFont.toJson(),
@@ -563,6 +572,7 @@ class AppSettings {
       placement: e(OverlayPlacement.values, j['placement'], d.placement),
       layout: e(OverlayLayout.values, j['layout'], d.layout),
       rememberPositionPerDisplay: j['rememberPositionPerDisplay'] as bool? ?? d.rememberPositionPerDisplay,
+      showMarkersLive: j['showMarkersLive'] as bool? ?? d.showMarkersLive,
       scrollStyle: e(ScrollStyle.values, j['scrollStyle'], d.scrollStyle),
       highlightEffect: e(HighlightEffect.values, j['highlightEffect'], d.highlightEffect),
       // Saved before fonts could be chosen: the defaults, as they were.
