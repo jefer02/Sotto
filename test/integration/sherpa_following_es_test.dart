@@ -23,12 +23,16 @@ const _fixtures = 'test/fixtures/speech_es';
 Future<List<(int, int)>> _follow(SpeechModel model) async {
   final files = await ModelManager.findFiles(modelDir(model.id)!);
   final streaming = model.role == ModelRole.streaming;
-  final engine = streaming
-      ? await SherpaEngine.start(
-          streaming: files,
-          streams: OffsetStreams.countFor(ModelCatalog.streamingEs.chunkSeconds),
-        )
-      : await SherpaEngine.start(whisper: files, language: 'es');
+  final engine = await timedStart(
+    model.id,
+    () => streaming
+        ? SherpaEngine.start(
+            startTimeout: engineStartTimeout,
+            streaming: files,
+            streams: OffsetStreams.countFor(ModelCatalog.streamingEs.chunkSeconds),
+          )
+        : SherpaEngine.start(startTimeout: engineStartTimeout, whisper: files, language: 'es'),
+  );
   final LiveRecognizer seg = streaming
       ? engine
       : SegmentedRecognizer(engine, language: 'es-ES', refresh: SegmentedRecognizer.followingRefresh);
@@ -63,15 +67,21 @@ Future<List<(int, int)>> _follow(SpeechModel model) async {
   )..jumpTo(0);
 
   final trace = <(int, int)>[];
-  final clock = Stopwatch()..start();
+  final pb = Playback();
   // As a live session listens: committed words apart from the partial.
+  // Where the presenter is, is judged at the audio the recognizer had
+  // processed (its clock; for Whisper, the audio fed) — not the wall clock,
+  // which a busy machine stretches. How fast the recognizer keeps up is
+  // checked on its own, below.
   final sub = seg.updates.listen((u) {
+    pb.heard(u.clock);
     follow.onUpdate(u);
-    trace.add((presenterOn(clock.elapsedMilliseconds / 1000), follow.position.saidBeat));
+    trace.add((presenterOn(u.clock ?? pb.fedSeconds), follow.position.saidBeat));
   });
-  await playInto(seg, readWav('$_fixtures/natural.wav'));
-  await Future<void>.delayed(const Duration(seconds: 3));
+  await playInto(seg, readWav('$_fixtures/natural.wav'), playback: pb);
+  final drained = await drain(pb);
   await sub.cancel();
+  drained.expectKeptUp(pb, share: streaming ? 0.25 : 0.5);
   if (!streaming) await seg.dispose();
   await engine.dispose();
   // ignore: avoid_print
@@ -99,7 +109,8 @@ void main() {
       expect(trace.last.$2, greaterThanOrEqualTo(14));
     },
     skip: skip(ModelCatalog.streamingEs) ?? false,
-    timeout: const Timeout(Duration(minutes: 3)),
+    // A backstop: loading, 95 s of audio, and the wait for the recognizer.
+    timeout: const Timeout(Duration(minutes: 8)),
   );
 
   test(
@@ -120,7 +131,8 @@ void main() {
       expect(trace.last.$2, greaterThanOrEqualTo(13));
     },
     skip: skip(ModelCatalog.whisperBase) ?? false,
-    timeout: const Timeout(Duration(minutes: 3)),
+    // A backstop: loading, 95 s of audio, and the wait for the recognizer.
+    timeout: const Timeout(Duration(minutes: 8)),
   );
 
   // Turbo is slower than real time on many CPUs; before one-at-a-time
@@ -136,6 +148,7 @@ void main() {
       expect(trace.last.$2, greaterThanOrEqualTo(12));
     },
     skip: skip(ModelCatalog.whisperTurbo) ?? false,
-    timeout: const Timeout(Duration(minutes: 3)),
+    // A backstop: loading, 95 s of audio, and the wait for the recognizer.
+    timeout: const Timeout(Duration(minutes: 8)),
   );
 }
