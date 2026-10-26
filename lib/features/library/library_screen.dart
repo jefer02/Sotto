@@ -30,6 +30,7 @@ import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
 import '../preflight/preflight_dialog.dart';
 import 'library_actions.dart';
+import 'new_script_dialog.dart';
 import 'organize_jobs.dart';
 import 'library_shell.dart';
 import '../../core/widgets/stage_transitions.dart';
@@ -105,7 +106,7 @@ List<Widget> _headerActions(BuildContext context, WidgetRef ref, {String? collec
     label: context.l10n.newScript,
     icon: SottoIcons.plus,
     shortcutText: '${PlatformKeys.primary}N',
-    onPressed: () => unawaited(createScriptAndOpen(ref, collectionId: collectionId)),
+    onPressed: () => unawaited(showNewScriptDialog(ref, context: context, collectionId: collectionId)),
   ),
 ];
 
@@ -573,7 +574,9 @@ class _ScriptListScreenState extends ConsumerState<ScriptListScreen> {
                                   SottoButton.primary(
                                     label: context.l10n.newScript,
                                     icon: SottoIcons.plus,
-                                    onPressed: () => unawaited(createScriptAndOpen(ref, collectionId: f.collectionId)),
+                                    onPressed: () => unawaited(
+                                      showNewScriptDialog(ref, context: context, collectionId: f.collectionId),
+                                    ),
                                   ),
                                 ],
                               ),
