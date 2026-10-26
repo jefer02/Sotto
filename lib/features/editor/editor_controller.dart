@@ -8,6 +8,7 @@ import '../../l10n/l10n.dart';
 import '../../data/import/script_importer.dart';
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
+import '../../domain/structuring/check_markers.dart';
 import '../../domain/structuring/organize_plan.dart';
 import '../../domain/structuring/paste_placement.dart';
 import '../../domain/structuring/script_structurer.dart';
@@ -154,6 +155,18 @@ class EditorController extends Notifier<EditorState> implements ScriptWorkingCop
     if (s == null) return;
     final si = s.sections.indexWhere((sec) => sec.beats.any((b) => b.id == id));
     state = state.copyWith(focusedBeat: id, section: si < 0 ? state.section : si);
+  }
+
+  /// Markers left to check ("[CHECK: …]"), in reading order.
+  List<MarkerRef> get markers => script == null ? const [] : CheckMarkers.inScript(script!);
+
+  /// Takes [marker] out of its beat — resolved without a replacement.
+  void removeMarker(MarkerRef marker) {
+    final beat = script?.allBeats.where((b) => b.id == marker.beatId).firstOrNull;
+    if (beat == null || marker.end > beat.text.length || beat.text.substring(marker.start, marker.end) != marker.text) {
+      return;
+    }
+    setBeatText(marker.beatId, CheckMarkers.removeAt(beat.text, marker.start, marker.end));
   }
 
   void dismissHint(String beatId) => state = state.copyWith(dismissedHints: {...state.dismissedHints, beatId});
