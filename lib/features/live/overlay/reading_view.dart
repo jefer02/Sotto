@@ -12,6 +12,7 @@ import '../../../core/design/tokens.dart';
 import '../../../core/design/typography.dart';
 import '../../../core/widgets/display.dart';
 import '../../../data/models/settings.dart';
+import '../../../domain/structuring/check_markers.dart';
 import '../../../domain/following/script_aligner.dart';
 import '../../../domain/following/text_normalizer.dart';
 import '../../../domain/overlay/auto_height.dart';
@@ -116,9 +117,13 @@ class ReadingStyle {
 // ─────────────────────────── Words & glue ───────────────────────────
 
 class ScriptWord {
-  const ScriptWord(this.text, this.bold, this.glueNext);
+  const ScriptWord(this.text, this.bold, this.glueNext, {this.marker = false});
   final String text;
   final bool bold;
+
+  /// Part of a marker to check ("[CHECK: …]"): a note, never said — drawn
+  /// in the cue color and never dimmed as spoken.
+  final bool marker;
 
   /// Join to the next word with a non-breaking space.
   final bool glueNext;
@@ -138,6 +143,7 @@ final _preposition = RegExp(r'^(on|in|at|of|to|by|up|en|de|a|del|al)$', caseSens
 List<ScriptWord> splitWords(String text) {
   final raw = text.split(RegExp(r'\s+')).where((w) => w.replaceAll('**', '').isNotEmpty).toList();
   final out = <ScriptWord>[];
+  final mask = CheckMarkers.wordMask(text);
   var bold = false;
   final clean = <(String, bool)>[];
   for (final w in raw) {
@@ -164,7 +170,7 @@ List<ScriptWord> splitWords(String text) {
             (_preposition.hasMatch(t) && RegExp(r'^[A-Z]?\d').hasMatch(next)) ||
             next == '—' ||
             next == '–');
-    out.add(ScriptWord(t, b, glue));
+    out.add(ScriptWord(t, b, glue, marker: i < mask.length && mask[i]));
   }
   // Must match TextNormalizer.displayWords exactly.
   assert(out.length == TextNormalizer.displayWords(text).length);
@@ -791,7 +797,9 @@ class _BeatLineState extends State<_BeatLine> with SingleTickerProviderStateMixi
                 TextSpan(
                   text: _wordText(i),
                   style: () {
-                    final color = !isCurrent || !dims
+                    final color = _words[i].marker
+                        ? o.cue.withValues(alpha: o.cue.a * _level)
+                        : !isCurrent || !dims
                         ? null
                         : i < _dimFrom
                         ? done
@@ -1055,7 +1063,11 @@ class _RailView extends StatelessWidget {
                           TextSpan(
                             text: words[i].text + (i == words.length - 1 ? '' : (words[i].glueNext ? ' ' : ' ')),
                             style: TextStyle(
-                              color: i < spoken ? o.inkAt(o.readDone) : o.ink,
+                              color: words[i].marker
+                                  ? o.cue
+                                  : i < spoken
+                                  ? o.inkAt(o.readDone)
+                                  : o.ink,
                               fontWeight: words[i].bold ? FontWeight.w700 : null,
                             ),
                           ),
