@@ -723,6 +723,16 @@ abstract final class Layout {
   static const double titleBar = 52;
   static const Size windowMin = Size(960, 600);
 
+  /// Lists and forms wider than this read as two far-apart halves — a
+  /// label at one edge, its switch or numbers at the other — so they center
+  /// at this width instead.
+  static const double readableMax = 880;
+
+  /// The side padding that centers content at most [max] wide in [width],
+  /// never less than [min].
+  static double centeredInset(double width, {double max = readableMax, double min = contentMargin}) =>
+      width - 2 * min > max ? (width - max) / 2 : min;
+
   /// Settings rows are at least this tall, subtitle or not.
   static const double rowMin = 52;
 
