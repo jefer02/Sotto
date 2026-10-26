@@ -483,6 +483,7 @@ class SherpaEngine implements LiveRecognizer, Transcriber {
     ModelFiles? whisper,
     String language = '',
     int streams = OffsetStreams.defaultCount,
+    Duration startTimeout = const Duration(seconds: 30),
   }) async {
     final engine = SherpaEngine._();
     final port = ReceivePort();
@@ -515,7 +516,9 @@ class SherpaEngine implements LiveRecognizer, Transcriber {
           }
       }
     });
-    await ready.future.timeout(const Duration(seconds: 30));
+    // A worker that never says it is ready (a model that won't load) fails
+    // here rather than hanging the session.
+    await ready.future.timeout(startTimeout);
     return engine;
   }
 
