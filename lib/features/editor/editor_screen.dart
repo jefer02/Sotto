@@ -38,10 +38,13 @@ import '../../core/widgets/stage_transitions.dart';
 enum EditorTab { write, prep, rehearsals }
 
 class EditorScreen extends ConsumerStatefulWidget {
-  const EditorScreen({super.key, required this.scriptId, this.tab = EditorTab.write});
+  const EditorScreen({super.key, required this.scriptId, this.tab = EditorTab.write, this.openMarker});
 
   final String scriptId;
   final EditorTab tab;
+
+  /// Opens the Write tab on this marker to check.
+  final int? openMarker;
 
   @override
   ConsumerState<EditorScreen> createState() => _EditorScreenState();
@@ -111,7 +114,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                           Expanded(
                             child: Column(
                               children: [
-                                Expanded(child: WriteTab(scriptId: widget.scriptId)),
+                                Expanded(
+                                  child: WriteTab(scriptId: widget.scriptId, openMarker: widget.openMarker),
+                                ),
                                 _Footer(scriptId: widget.scriptId),
                               ],
                             ),
