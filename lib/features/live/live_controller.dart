@@ -14,6 +14,7 @@ import '../../data/models/session_record.dart';
 import '../../data/models/settings.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
+import '../../domain/structuring/check_markers.dart';
 import '../../domain/following/follow_engine.dart';
 import '../../domain/following/heard_update.dart';
 import '../../domain/following/script_aligner.dart';
@@ -108,9 +109,12 @@ class LiveController extends Notifier<LiveState> {
     await _hotkeys.registerAll(_settings, {LiveAction.goLive: (onDown: openPreflight, onUp: null), ...extra});
   }
 
-  Future<void> start(Script script, {int startSection = 0, bool rehearsal = false}) async {
+  Future<void> start(Script original, {int startSection = 0, bool rehearsal = false}) async {
     if (state.isLive || _ending != null) return;
     final gen = ++_generation;
+    // Markers to check are never followed (the aligner skips them); with
+    // them hidden, the live view doesn't show them at all.
+    final script = _settings.showMarkersLive ? original : CheckMarkers.stripScript(original);
     final flat = FlatScript.from(script, language: _settings.language);
     if (flat.length == 0) return;
     final startBeat = startSection < flat.sectionFirstBeat.length ? flat.sectionFirstBeat[startSection] : 0;
