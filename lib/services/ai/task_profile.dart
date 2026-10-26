@@ -30,6 +30,15 @@ class DeepSeekTaskProfile {
   static const answers = DeepSeekTaskProfile._('answers');
   static const questionnaire = DeepSeekTaskProfile._('questionnaire', ReasoningEffort.low);
   static const agent = DeepSeekTaskProfile._('agent', ReasoningEffort.low);
+
+  /// Generating a script, the map and questions steps: reading slides into
+  /// purpose, ideas and facts is extraction — fast, many in parallel.
+  static const digest = DeepSeekTaskProfile._('digest');
+
+  /// Generating a script, the writing step: one request the whole draft's
+  /// quality rests on — structure, grounding, the word budget and cues all
+  /// at once — and the presenter is watching it stream, not waiting live.
+  static const generate = DeepSeekTaskProfile._('generate', ReasoningEffort.high);
   static const _chat = DeepSeekTaskProfile._('chat');
   static const _chatDeep = DeepSeekTaskProfile._('chat', ReasoningEffort.high);
 
