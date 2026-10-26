@@ -69,8 +69,7 @@ Future<Map<String, Object?>> _record(LiveRecognizer r, _Take take) async {
   final updates = <Map<String, Object?>>[];
   final clock = Stopwatch()..start();
   final sub = r.updates.listen((u) => updates.add({'t': clock.elapsedMilliseconds / 1000, ...u.toJson()}));
-  await playInto(r, take.audio);
-  await Future<void>.delayed(const Duration(seconds: 3));
+  await drain(await playInto(r, take.audio));
   await sub.cancel();
   return {
     'spans': [
@@ -137,7 +136,7 @@ void main() {
         null => SegmentedRecognizer.followingRefresh,
       };
       final files = await ModelManager.findFiles(modelDir(ModelCatalog.whisperBase.id)!);
-      final engine = await SherpaEngine.start(whisper: files, language: 'es');
+      final engine = await SherpaEngine.start(startTimeout: engineStartTimeout, whisper: files, language: 'es');
       final takes = <String, Object?>{};
       for (final take in _takes()) {
         final seg = SegmentedRecognizer(engine, language: 'es-MX', refresh: refresh);
@@ -161,6 +160,7 @@ void main() {
       for (final take in _takes()) {
         // A fresh engine per take: its clock starts with the take.
         final engine = await SherpaEngine.start(
+          startTimeout: engineStartTimeout,
           streaming: files,
           streams: OffsetStreams.countFor(ModelCatalog.streamingEs.chunkSeconds),
         );
