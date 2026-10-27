@@ -27,7 +27,7 @@ class StageGlow extends StatefulWidget {
   /// Where the ghost light hangs.
   final Alignment alignment;
 
-  static const period = Duration(seconds: 60);
+  static const period = Motion.stageLoop;
 
   /// Everything drifts over tens of seconds, so ~15 repaints a second look
   /// as smooth as 60 and leave the frame budget to the UI.

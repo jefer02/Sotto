@@ -230,6 +230,8 @@ extension MainFlutterWindow {
       result(nil)
     case "captureRegion":
       captureRegion(args, result: result)
+    case "ocrImage":
+      recognizeImage(args, result: result)
     case "capture":
       captureScreen(
         cursor: (args["target"] as? String) == "cursor",
@@ -403,6 +405,32 @@ extension MainFlutterWindow {
       let image = CGDisplayCreateImage(displayID, rect: local)
       sharingType = previous
       finish(image)
+    }
+  }
+
+  /// The text on pixels Dart sends (a scanned PDF page, a picture), read
+  /// with Vision off the main thread. BGRA, top-down, 4 bytes a pixel.
+  private func recognizeImage(_ args: [String: Any], result: @escaping FlutterResult) {
+    guard let pixels = args["pixels"] as? FlutterStandardTypedData,
+      let width = args["width"] as? Int, let height = args["height"] as? Int,
+      width > 0, height > 0, pixels.data.count >= width * height * 4
+    else {
+      result(FlutterError(code: "bad_args", message: "Expected width × height BGRA pixels", details: nil))
+      return
+    }
+    DispatchQueue.global(qos: .userInitiated).async {
+      var text: String?
+      if let provider = CGDataProvider(data: pixels.data as CFData),
+        let image = CGImage(
+          width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: width * 4,
+          space: CGColorSpace(name: CGColorSpace.sRGB)!,
+          bitmapInfo: CGBitmapInfo(
+            rawValue: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue),
+          provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)
+      {
+        text = MainFlutterWindow.recognizeText(image, width: width, height: height)
+      }
+      DispatchQueue.main.async { result(text) }
     }
   }
 

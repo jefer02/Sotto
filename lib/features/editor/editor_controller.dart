@@ -1,11 +1,17 @@
 import 'dart:async';
+import 'dart:isolate';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 
+import '../../data/import/script_importer.dart';
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
+import '../../domain/structuring/check_markers.dart';
+import '../../domain/structuring/organize_plan.dart';
+import '../../domain/structuring/paste_placement.dart';
+import '../../domain/structuring/script_structurer.dart';
 import '../library/organize_jobs.dart';
 
 enum SaveState { saved, saving, dirty }
@@ -17,6 +23,7 @@ class EditorState {
     this.focusedBeat,
     this.save = SaveState.saved,
     this.dismissedHints = const {},
+    this.pastesOrganized = 0,
   });
 
   final Script? script;
@@ -27,18 +34,24 @@ class EditorState {
   /// Long-beat suggestions the presenter chose to ignore.
   final Set<String> dismissedHints;
 
+  /// Counts pastes organized in place, so the Write tab can offer to undo
+  /// each one.
+  final int pastesOrganized;
+
   EditorState copyWith({
     Script? script,
     int? section,
     String? focusedBeat,
     SaveState? save,
     Set<String>? dismissedHints,
+    int? pastesOrganized,
   }) => EditorState(
     script: script ?? this.script,
     section: section ?? this.section,
     focusedBeat: focusedBeat ?? this.focusedBeat,
     save: save ?? this.save,
     dismissedHints: dismissedHints ?? this.dismissedHints,
+    pastesOrganized: pastesOrganized ?? this.pastesOrganized,
   );
 }
 
@@ -58,6 +71,15 @@ class EditorController extends Notifier<EditorState> implements ScriptWorkingCop
   /// replaces the part it is in.
   String? _caretBeat;
 
+  /// A paste waiting to be organized, and the script as it was before the
+  /// last organized paste (one step of undo; gone at the next edit).
+  Timer? _pasteTimer;
+  Script? _beforeOrganize;
+
+  /// A paste is organized this long after it lands: one paste arriving in
+  /// several changes (an input method, a slow clipboard) organizes once.
+  static const pasteDebounce = Duration(milliseconds: 250);
+
   @override
   EditorState build() {
     // Captured now: providers can't be read from onDispose.
@@ -66,6 +88,7 @@ class EditorController extends Notifier<EditorState> implements ScriptWorkingCop
     ref.onDispose(() {
       copies.unregister(scriptId, this);
       _saveTimer?.cancel();
+      _pasteTimer?.cancel();
       _flush(disposing: true);
     });
     // Pick up changes made elsewhere (e.g. organizing finished) only while
@@ -80,9 +103,12 @@ class EditorController extends Notifier<EditorState> implements ScriptWorkingCop
 
   Script? get script => state.script;
 
-  void update(Script Function(Script s) change) {
+  /// [keepUndo]: a change that isn't the presenter's own edit (refinement
+  /// landing) leaves the last organized paste undoable.
+  void update(Script Function(Script s) change, {bool keepUndo = false}) {
     final s = state.script;
     if (s == null) return;
+    if (!keepUndo) _beforeOrganize = null;
     final next = change(s).copyWith(updatedAt: DateTime.now());
     _pending = next;
     state = state.copyWith(script: next, save: SaveState.dirty);
@@ -108,7 +134,7 @@ class EditorController extends Notifier<EditorState> implements ScriptWorkingCop
     final next = patch(s, _caretBeat);
     if (identical(next, s)) return;
     final selected = s.sections.elementAtOrNull(state.section)?.id;
-    update((_) => next);
+    update((_) => next, keepUndo: true);
     final i = next.sections.indexWhere((x) => x.id == selected);
     state = state.copyWith(section: i >= 0 ? i : state.section.clamp(0, next.sections.length - 1));
   }
@@ -129,6 +155,18 @@ class EditorController extends Notifier<EditorState> implements ScriptWorkingCop
     if (s == null) return;
     final si = s.sections.indexWhere((sec) => sec.beats.any((b) => b.id == id));
     state = state.copyWith(focusedBeat: id, section: si < 0 ? state.section : si);
+  }
+
+  /// Markers left to check ("[CHECK: …]"), in reading order.
+  List<MarkerRef> get markers => script == null ? const [] : CheckMarkers.inScript(script!);
+
+  /// Takes [marker] out of its beat — resolved without a replacement.
+  void removeMarker(MarkerRef marker) {
+    final beat = script?.allBeats.where((b) => b.id == marker.beatId).firstOrNull;
+    if (beat == null || marker.end > beat.text.length || beat.text.substring(marker.start, marker.end) != marker.text) {
+      return;
+    }
+    setBeatText(marker.beatId, CheckMarkers.removeAt(beat.text, marker.start, marker.end));
   }
 
   void dismissHint(String beatId) => state = state.copyWith(dismissedHints: {...state.dismissedHints, beatId});
@@ -182,6 +220,13 @@ class EditorController extends Notifier<EditorState> implements ScriptWorkingCop
     final loc = _locate(beatId);
     if (loc == null) return;
     final (si, bi) = loc;
+    // Several sentences arriving at once are a paste of script text: it is
+    // organized right away, like an import. Typing never triggers it.
+    final paste = PastedText.detect(state.script!.sections[si].beats[bi].text, text);
+    if (paste != null) {
+      _pasteTimer?.cancel();
+      _pasteTimer = Timer(pasteDebounce, () => unawaited(_organizePaste(beatId, paste.pasted)));
+    }
     // A typed leading "[SLIDE 7] " becomes a cue chip.
     final (cue, rest) = Cue.parseLeading(text);
     updateSection(si, (sec) {
@@ -190,6 +235,62 @@ class EditorController extends Notifier<EditorState> implements ScriptWorkingCop
       beats[bi] = cue != null ? old.copyWith(text: rest, cue: cue) : old.copyWith(text: text);
       return sec.copyWith(beats: beats);
     });
+  }
+
+  /// Organizes [pasted], now in beat [beatId]: the rule-based pass at once
+  /// (on a background isolate), then DeepSeek refinement in the background
+  /// as for an import — without a key, the rule-based pass alone. The
+  /// wording never changes. Undo puts the pasted text back as it was.
+  Future<void> _organizePaste(String beatId, String pasted) async {
+    // Only the text and the labels go to the isolate, not this controller.
+    final labels = StructurerLabels.current();
+    final prep = await Isolate.run(() => OrganizePrep.build(pasted, labels));
+    if (!ref.mounted) return;
+    // Typing meanwhile moved or removed the pasted text: leave it be.
+    final loc = _locate(beatId);
+    if (loc == null) return;
+    final (si, bi) = loc;
+    final before = state.script!;
+    final text = before.sections[si].beats[bi].text;
+    final at = text.indexOf(pasted);
+    if (at < 0 || prep.sections.isEmpty) return;
+    final paste = PastedText(before: text.substring(0, at), pasted: pasted, after: text.substring(at + pasted.length));
+    final whole = PastePlacement.isOnly(before, si, bi, paste);
+    final sections = PastePlacement.place(before, si, bi, paste, prep.sections);
+    final llm = await ref.read(organizerLlmProvider)();
+    if (!ref.mounted || !identical(state.script, before)) {
+      llm?.close();
+      return;
+    }
+    _pasteTimer?.cancel();
+    final untitled = before.title == L10n.current.untitledScript;
+    update(
+      (s) => s.copyWith(
+        title: whole && untitled ? ScriptImporter.fromPaste(pasted).title : null,
+        sections: sections,
+        status: llm == null ? ScriptStatus.structured : ScriptStatus.organizing,
+        hintWords: ScriptStructurer.hintWordsFor(sections),
+      ),
+      keepUndo: true,
+    );
+    _beforeOrganize = before;
+    final first = sections.indexWhere((s) => identical(s, prep.sections.first));
+    state = state.copyWith(pastesOrganized: state.pastesOrganized + 1, section: first < 0 ? null : first);
+    if (llm != null) unawaited(ref.read(organizeJobsProvider.notifier).start(scriptId, prep, llm));
+  }
+
+  /// The last organized paste can still be undone.
+  bool get canUndoOrganize => _beforeOrganize != null;
+
+  /// Puts the script back as it was with the paste in it, unorganized, and
+  /// stops refining it.
+  void undoOrganize() {
+    final before = _beforeOrganize;
+    if (before == null) return;
+    ref.read(organizeJobsProvider.notifier).cancel(scriptId);
+    update((_) => before);
+    final i = state.section.clamp(0, before.sections.length - 1);
+    state = state.copyWith(section: i);
   }
 
   /// Enter splits a beat at the cursor; returns the new beat's id.

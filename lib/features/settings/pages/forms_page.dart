@@ -94,7 +94,7 @@ class _FormsSettingsPageState extends ConsumerState<FormsSettingsPage> {
       return SettingsPageScaffold(
         title: context.l10n.setForms,
         description: context.l10n.formsDescription,
-        left: [
+        sections: [
           EmptyState(
             icon: SottoIcons.form,
             title: context.l10n.formsUnavailableTitle,
@@ -112,7 +112,7 @@ class _FormsSettingsPageState extends ConsumerState<FormsSettingsPage> {
     return SettingsPageScaffold(
       title: l.setForms,
       description: l.formsDescription,
-      left: [
+      sections: [
         SettingsGroup(
           title: l.formsAutofillGroup,
           children: [
@@ -244,8 +244,6 @@ class _FormsSettingsPageState extends ConsumerState<FormsSettingsPage> {
             ),
           ],
         ),
-      ],
-      right: [
         SurfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

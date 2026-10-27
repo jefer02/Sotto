@@ -26,11 +26,21 @@ import '../../../core/platform/platform_features.dart';
 /// Every button fires on pointer-down, not on click, so pressing one never
 /// needs the overlay to take focus from the slides — except End session,
 /// which needs a one-second hold.
+///
+/// The overlay gives the panel its own band, so it never covers the script;
+/// a hovered button names itself through [onHint] (the overlay shows that in
+/// its meta strip) instead of a tooltip floating over the words.
 class OverlayControls extends ConsumerWidget {
-  const OverlayControls({super.key, required this.state, required this.onEnd});
+  const OverlayControls({super.key, required this.state, required this.onEnd, this.onHint, this.wrap = false});
 
   final LiveState state;
   final VoidCallback onEnd;
+
+  /// The hovered button's label, or null when the pointer leaves it.
+  final ValueChanged<String?>? onHint;
+
+  /// Lay the buttons out in rows that fit the width (the rail's side column).
+  final bool wrap;
 
   /// Text color cycle: Auto → Always light → Always dark (Custom → Auto).
   static OverlayTextColor nextTextColor(OverlayTextColor c) => switch (c) {
@@ -69,75 +79,83 @@ class OverlayControls extends ConsumerWidget {
       color: o.textOnly ? null : o.inkAt(0.12),
     );
 
-    final row = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _PanelButton(
-          icon: SottoIcons.textSizeMinus,
-          label: l.actionTextSmaller,
-          onDown: size > 0 ? () => c.textSize(-1) : null,
-        ),
-        _PanelButton(
-          icon: SottoIcons.textSizePlus,
-          label: l.actionTextBigger,
-          onDown: size < ReadingSize.values.length - 1 ? () => c.textSize(1) : null,
-        ),
-        divider(),
-        _PanelButton(icon: SottoIcons.up, label: l.actionPrevBeat, onDown: c.previousBeat),
-        _PanelButton(
-          icon: paused ? SottoIcons.play : SottoIcons.pause,
-          label: paused ? l.resume : l.pause,
-          onDown: c.togglePause,
-        ),
-        _PanelButton(icon: SottoIcons.down, label: l.actionNextBeat, onDown: c.nextBeat),
-        // Same as prefix + Q: down starts (or, in toggle mode, finishes) the
-        // capture; up finishes it in hold mode.
-        _PanelButton(
-          icon: SottoIcons.ask,
-          label: l.actionAsk,
-          selected: state.phase == LivePhase.listening,
-          onDown: c.askDown,
-          onUp: c.askUp,
-        ),
-        divider(),
-        _PanelButton(
-          icon: SottoIcons.layers,
-          label: l.hoverOverlayStyle(styleName),
-          onDown: () => settingsNotifier.update(
-            (s) => s.copyWith(
-              overlayStyle: s.overlayStyle == OverlayStyle.textOnly ? OverlayStyle.panel : OverlayStyle.textOnly,
-            ),
+    final buttons = [
+      _PanelButton(
+        hint: onHint,
+        icon: SottoIcons.textSizeMinus,
+        label: l.actionTextSmaller,
+        onDown: size > 0 ? () => c.textSize(-1) : null,
+      ),
+      _PanelButton(
+        hint: onHint,
+        icon: SottoIcons.textSizePlus,
+        label: l.actionTextBigger,
+        onDown: size < ReadingSize.values.length - 1 ? () => c.textSize(1) : null,
+      ),
+      divider(),
+      _PanelButton(hint: onHint, icon: SottoIcons.up, label: l.actionPrevBeat, onDown: c.previousBeat),
+      _PanelButton(
+        hint: onHint,
+        icon: paused ? SottoIcons.play : SottoIcons.pause,
+        label: paused ? l.resume : l.pause,
+        onDown: c.togglePause,
+      ),
+      _PanelButton(hint: onHint, icon: SottoIcons.down, label: l.actionNextBeat, onDown: c.nextBeat),
+      // Same as prefix + Q: down starts (or, in toggle mode, finishes) the
+      // capture; up finishes it in hold mode.
+      _PanelButton(
+        hint: onHint,
+        icon: SottoIcons.ask,
+        label: l.actionAsk,
+        selected: state.phase == LivePhase.listening,
+        onDown: c.askDown,
+        onUp: c.askUp,
+      ),
+      divider(),
+      _PanelButton(
+        hint: onHint,
+        icon: SottoIcons.layers,
+        label: l.hoverOverlayStyle(styleName),
+        onDown: () => settingsNotifier.update(
+          (s) => s.copyWith(
+            overlayStyle: s.overlayStyle == OverlayStyle.textOnly ? OverlayStyle.panel : OverlayStyle.textOnly,
           ),
         ),
+      ),
+      _PanelButton(
+        hint: onHint,
+        icon: switch (settings.overlayTextColor) {
+          OverlayTextColor.light => SottoIcons.sun,
+          OverlayTextColor.dark => SottoIcons.moon,
+          _ => SottoIcons.auto,
+        },
+        label: l.hoverTextColor(colorName),
+        onDown: () => settingsNotifier.update((s) => s.copyWith(overlayTextColor: nextTextColor(s.overlayTextColor))),
+      ),
+      divider(),
+      if (ref.watch(platformFeaturesProvider).formFilling)
         _PanelButton(
-          icon: switch (settings.overlayTextColor) {
-            OverlayTextColor.light => SottoIcons.sun,
-            OverlayTextColor.dark => SottoIcons.moon,
-            _ => SottoIcons.auto,
-          },
-          label: l.hoverTextColor(colorName),
-          onDown: () => settingsNotifier.update((s) => s.copyWith(overlayTextColor: nextTextColor(s.overlayTextColor))),
+          hint: onHint,
+          icon: SottoIcons.form,
+          label: autoFillOn ? l.hoverAutoFillOn : l.hoverAutoFillOff,
+          dot: autoFillOn ? o.confirmed : o.inkAt(0.4),
+          onDown: () => ref.read(autoFillControllerProvider.notifier).setEnabled(!autoFillOn),
         ),
-        divider(),
-        if (ref.watch(platformFeaturesProvider).formFilling)
-          _PanelButton(
-            icon: SottoIcons.form,
-            label: autoFillOn ? l.hoverAutoFillOn : l.hoverAutoFillOff,
-            dot: autoFillOn ? o.confirmed : o.inkAt(0.4),
-            onDown: () => ref.read(autoFillControllerProvider.notifier).setEnabled(!autoFillOn),
-          ),
-        if (settings.showChat || chatOpen)
-          _PanelButton(
-            icon: SottoIcons.chat,
-            label: chatOpen ? l.hoverCloseChat : l.hoverOpenChat,
-            selected: chatOpen,
-            onDown: ref.read(chatControllerProvider.notifier).toggleOverlay,
-          ),
-        _PanelButton(icon: SottoIcons.display, label: l.actionMoveDisplay, onDown: () => c.moveDisplay()),
-        divider(),
-        _PanelButton(icon: SottoIcons.close, label: l.hoverEndSessionHold, onDown: onEnd, hold: true),
-      ],
-    );
+      if (settings.showChat || chatOpen)
+        _PanelButton(
+          hint: onHint,
+          icon: SottoIcons.chat,
+          label: chatOpen ? l.hoverCloseChat : l.hoverOpenChat,
+          selected: chatOpen,
+          onDown: ref.read(chatControllerProvider.notifier).toggleOverlay,
+        ),
+      _PanelButton(hint: onHint, icon: SottoIcons.display, label: l.actionMoveDisplay, onDown: () => c.moveDisplay()),
+      divider(),
+      _PanelButton(hint: onHint, icon: SottoIcons.close, label: l.hoverEndSessionHold, onDown: onEnd, hold: true),
+    ];
+    final Widget row = wrap
+        ? Wrap(alignment: WrapAlignment.center, runSpacing: 2, children: buttons)
+        : Row(mainAxisSize: MainAxisSize.min, children: buttons);
 
     // Text only: the icons carry their own outline and shadow, no card.
     if (o.textOnly) return Padding(padding: const EdgeInsets.all(3), child: row);
@@ -158,6 +176,7 @@ class _PanelButton extends StatefulWidget {
   const _PanelButton({
     required this.icon,
     required this.label,
+    this.hint,
     this.onDown,
     this.onUp,
     this.selected = false,
@@ -167,6 +186,9 @@ class _PanelButton extends StatefulWidget {
 
   final SottoIcons icon;
   final String label;
+
+  /// Told the label while the pointer is over the button, null after.
+  final ValueChanged<String?>? hint;
 
   /// Fires on pointer-down — or, with [hold], once the pointer has stayed
   /// down on the button for [_PanelButtonState.holdTime].
@@ -299,9 +321,13 @@ class _PanelButtonState extends State<_PanelButton> with SingleTickerProviderSta
         label: widget.label,
         child: MouseRegion(
           cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-          onEnter: (_) => setState(() => _hovered = true),
+          onEnter: (_) {
+            setState(() => _hovered = true);
+            widget.hint?.call(widget.label);
+          },
           onExit: (_) {
             setState(() => _hovered = false);
+            widget.hint?.call(null);
             _release();
           },
           child: Listener(
@@ -313,7 +339,7 @@ class _PanelButtonState extends State<_PanelButton> with SingleTickerProviderSta
             onPointerUp: (_) => _release(),
             onPointerCancel: (_) => _release(),
             child: AnimatedContainer(
-              duration: Motion.quick,
+              duration: context.motion(Motion.quick),
               width: _size,
               height: _size,
               alignment: Alignment.center,
@@ -341,7 +367,7 @@ class _OutlinedIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final o = context.overlayPalette;
     final glyph = SvgPicture.string(icon.svg(color), width: size, height: size);
-    final scaled = AnimatedScale(scale: pressed ? 0.9 : 1, duration: Motion.quick, child: glyph);
+    final scaled = AnimatedScale(scale: pressed ? 0.9 : 1, duration: context.motion(Motion.quick), child: glyph);
     if (!o.textOnly) return SizedBox.square(dimension: size, child: scaled);
 
     // viewBox 16 at 16 px: one stroke unit is one pixel.
@@ -363,7 +389,7 @@ class _OutlinedIcon extends StatelessWidget {
           );
     return AnimatedScale(
       scale: pressed ? 0.9 : 1,
-      duration: Motion.quick,
+      duration: context.motion(Motion.quick),
       child: SizedBox.square(
         dimension: size,
         child: Stack(

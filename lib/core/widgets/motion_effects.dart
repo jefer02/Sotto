@@ -109,7 +109,7 @@ class RevealWords extends StatelessWidget {
     super.key,
     required this.style,
     this.delay = Duration.zero,
-    this.stagger = const Duration(milliseconds: 60),
+    this.stagger = Motion.introStep,
     this.enabled = true,
   });
 
@@ -238,7 +238,7 @@ class BorderBeam extends StatefulWidget {
     required this.child,
     required this.color,
     this.borderRadius = Radii.rL,
-    this.period = const Duration(seconds: 4),
+    this.period = Motion.beamLap,
     this.length = 0.18,
     this.laps = 2,
   });
@@ -418,7 +418,7 @@ class PressScale extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AnimatedScale(
     scale: pressed ? scale : 1,
-    duration: _still(context) ? Duration.zero : const Duration(milliseconds: 100),
+    duration: _still(context) ? Duration.zero : Motion.press,
     curve: Motion.standard,
     child: child,
   );
@@ -436,7 +436,7 @@ class FadeSwitch extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedSwitcher(
     duration: _still(context) ? Duration.zero : Motion.snappy,
     reverseDuration: Duration.zero,
-    switchInCurve: Curves.easeOut,
+    switchInCurve: Motion.fade,
     // Only the incoming child is laid out, so the old one is never shown
     // alongside it.
     layoutBuilder: (current, previous) => current ?? const SizedBox.shrink(),

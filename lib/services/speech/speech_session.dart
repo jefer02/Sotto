@@ -10,13 +10,79 @@ import 'recognizers.dart';
 /// Which engines a session ended up with — shown in pre-flight and in
 /// Settings → Voice & following ("Ready · On-device").
 class EngineReport {
-  const EngineReport({required this.following, required this.questions, required this.canFollow, this.warning});
+  const EngineReport({
+    required this.following,
+    required this.questions,
+    required this.canFollow,
+    this.warning,
+    this.plan,
+  });
 
   /// Human labels, in the interface language.
   final String following;
   final String questions;
   final bool canFollow;
   final String? warning;
+
+  /// Which model follows, and why.
+  final FollowingPlan? plan;
+}
+
+/// Why following uses the model it does.
+enum FollowingWhy {
+  /// A streaming model for the language: each word as it is said.
+  streaming,
+
+  /// The language has a streaming model, but it isn't installed: Whisper
+  /// follows meanwhile, a phrase at a time.
+  whisperUntilStreamingInstalled,
+
+  /// No streaming model speaks the language: Whisper, a phrase at a time.
+  whisperOnly,
+
+  /// No model at all: following needs a download.
+  none,
+}
+
+/// Which model follows the voice in [language]. Streaming models hear each
+/// word as it is said; Whisper only transcribes whole utterances (voice
+/// activity cuts the audio, the open one is re-read about once a second), so
+/// it waits for pauses and then moves a phrase at once. Whisper stays the
+/// engine for question capture and dictation, where a full transcript
+/// matters more than latency.
+class FollowingPlan {
+  const FollowingPlan({required this.why, this.model, this.recommended});
+
+  final FollowingWhy why;
+
+  /// The model that follows (null: none installed).
+  final SpeechModel? model;
+
+  /// The streaming model to download for word-by-word following, when it
+  /// isn't installed yet.
+  final SpeechModel? recommended;
+
+  bool get streaming => why == FollowingWhy.streaming;
+}
+
+/// [installed]: ids of the models on this computer.
+FollowingPlan planFollowing(String language, Set<String> installed) {
+  final candidates = ModelCatalog.streamingFor(language);
+  final streaming = candidates.where((m) => installed.contains(m.id)).firstOrNull;
+  if (streaming != null) return FollowingPlan(why: FollowingWhy.streaming, model: streaming);
+  // Following re-transcribes the open utterance about once a second, so it
+  // takes the fastest Whisper installed.
+  final whisper = [
+    ModelCatalog.whisperBase,
+    ModelCatalog.whisperTurbo,
+  ].where((m) => installed.contains(m.id)).firstOrNull;
+  final recommended = candidates.firstOrNull;
+  if (whisper == null) return FollowingPlan(why: FollowingWhy.none, recommended: recommended);
+  return FollowingPlan(
+    why: recommended == null ? FollowingWhy.whisperOnly : FollowingWhy.whisperUntilStreamingInstalled,
+    model: whisper,
+    recommended: recommended,
+  );
 }
 
 class QuestionProgress {
@@ -71,6 +137,9 @@ class SpeechSession {
   final _silenceReached = StreamController<void>.broadcast();
 
   Stream<String> get heard => _follower?.heard ?? const Stream.empty();
+
+  /// What following listens to: committed words apart from the partial.
+  Stream<HeardUpdate> get updates => _follower?.updates ?? const Stream.empty();
   Stream<double> get level => _mic.level;
   Stream<QuestionProgress> get questionProgress => _progress.stream;
 
@@ -92,26 +161,26 @@ class SpeechSession {
     var canFollow = false;
     String? warning;
 
-    final english = settings.language.toLowerCase().startsWith('en');
     final prompt = hints.isEmpty ? null : hints.join(', ');
+    final files = <String, ModelFiles>{for (final m in ModelCatalog.all) m.id: ?await models.locate(m)};
+    final plan = planFollowing(settings.language, files.keys.toSet());
 
     {
-      final streaming = english
-          ? (await models.locate(ModelCatalog.streamingEn) ?? await models.locate(ModelCatalog.streamingEnLight))
-          : null;
-      final base = await models.locate(ModelCatalog.whisperBase);
+      final streaming = plan.streaming ? files[plan.model!.id] : null;
+      final base = files[ModelCatalog.whisperBase.id];
       // The most accurate Whisper transcribes questions.
-      final whisper = await models.locate(ModelCatalog.whisperTurbo) ?? base;
+      final whisper = files[ModelCatalog.whisperTurbo.id] ?? base;
       if (streaming != null || whisper != null) {
         final engine = await SherpaEngine.start(
           streaming: streaming,
           whisper: whisper,
           language: isoLanguage(settings.language),
+          streams: plan.streaming ? OffsetStreams.countFor(plan.model!.chunkSeconds) : 1,
         );
         disposables.add(engine.dispose);
         if (engine.canFollow) {
           follower = engine;
-          following = l.engineOnDeviceStreaming;
+          following = l.engineOnDeviceStreamingModel(plan.model!.name);
         } else {
           // Following re-transcribes the open utterance about once a second,
           // so it needs the fastest Whisper. Turbo takes seconds per pass on a
@@ -123,10 +192,17 @@ class SpeechSession {
             fast = baseEngine;
           }
           liveTranscriber = fast;
-          final seg = SegmentedRecognizer(fast, language: settings.language, prompt: prompt);
+          final seg = SegmentedRecognizer(
+            fast,
+            language: settings.language,
+            prompt: prompt,
+            refresh: SegmentedRecognizer.followingRefresh,
+          );
           disposables.add(seg.dispose);
           follower = seg;
           following = l.engineOnDeviceWhisper;
+          // Following works, but a phrase at a time: say how to do better.
+          if (plan.recommended case final r?) warning = l.engineStreamingRecommended(r.name);
         }
         if (engine.canTranscribe) {
           transcriber = engine;
@@ -151,7 +227,7 @@ class SpeechSession {
       follower,
       transcriber,
       liveTranscriber ?? transcriber,
-      EngineReport(following: following, questions: questions, canFollow: canFollow, warning: warning),
+      EngineReport(following: following, questions: questions, canFollow: canFollow, warning: warning, plan: plan),
       disposables,
     );
     session._micSub = mic.samples.listen(session._onMic);

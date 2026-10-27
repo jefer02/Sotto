@@ -102,9 +102,51 @@ class LlmDelta {
   final String reasoning;
 }
 
+/// Tokens one request used, as DeepSeek reports them.
+class LlmUsage {
+  const LlmUsage({this.prompt = 0, this.completion = 0, this.reasoning = 0, this.cacheHit = 0});
+
+  final int prompt;
+
+  /// Includes [reasoning] (thinking) tokens.
+  final int completion;
+  final int reasoning;
+
+  /// Prompt tokens served from DeepSeek's prefix cache.
+  final int cacheHit;
+
+  LlmUsage operator +(LlmUsage o) => LlmUsage(
+    prompt: prompt + o.prompt,
+    completion: completion + o.completion,
+    reasoning: reasoning + o.reasoning,
+    cacheHit: cacheHit + o.cacheHit,
+  );
+
+  static LlmUsage? fromJson(Object? j) {
+    if (j is! Map) return null;
+    int n(Object? v) => v is num ? v.toInt() : 0;
+    final details = j['completion_tokens_details'];
+    return LlmUsage(
+      prompt: n(j['prompt_tokens']),
+      completion: n(j['completion_tokens']),
+      reasoning: details is Map ? n(details['reasoning_tokens']) : 0,
+      cacheHit: n(j['prompt_cache_hit_tokens']),
+    );
+  }
+
+  @override
+  String toString() =>
+      'in $prompt (cache hit $cacheHit) / out $completion${reasoning > 0 ? ' (thinking $reasoning)' : ''} tokens';
+}
+
 /// Minimal streaming text interface over raw HTTP + server-sent events.
 /// Every request names a [DeepSeekTaskProfile], which decides thinking.
 abstract class LlmClient {
+  /// Called with each streamed request's token counts, when set: the
+  /// request then asks DeepSeek to report them (`stream_options`). For
+  /// debug logs; nothing else asks for usage.
+  void Function(LlmUsage usage)? onUsage;
+
   /// [images] are JPEG data URLs, attached to the user message (DeepSeek
   /// accepts images in user messages only). [json] asks for a JSON object
   /// (`response_format`); the prompt must say "JSON" too.
@@ -315,6 +357,7 @@ class DeepSeekClient extends LlmClient {
         'max_tokens': maxTokens,
         ...profile.requestFields,
         if (json) 'response_format': {'type': 'json_object'},
+        if (onUsage != null) 'stream_options': {'include_usage': true},
         'messages': messages,
       });
 
@@ -328,6 +371,8 @@ class DeepSeekClient extends LlmClient {
       if (j['error'] != null) {
         throw LlmException((j['error'] as Map)['message'] as String? ?? L10n.current.llmGenericError(_provider));
       }
+      // With include_usage, the last chunk carries the counts and no choice.
+      if (LlmUsage.fromJson(j['usage']) case final usage?) onUsage?.call(usage);
       final choices = j['choices'] as List?;
       if (choices == null || choices.isEmpty) continue;
       final choice = choices.first as Map;

@@ -265,11 +265,23 @@ class AppLocalizationsEs extends AppLocalizations {
   String get modelStreamingEnLightDesc => 'Para equipos antiguos o de bajo consumo';
 
   @override
+  String get modelStreamingEs => 'Español · en tiempo real';
+
+  @override
+  String get modelStreamingFr => 'Francés · en tiempo real';
+
+  @override
+  String get modelStreamingDe => 'Alemán · en tiempo real';
+
+  @override
+  String get modelStreamingKrokoDesc => 'Sigue tu voz palabra por palabra · modelo comunitario Kroko, CC BY-SA';
+
+  @override
   String get modelWhisperBase => 'Whisper base';
 
   @override
   String get modelWhisperBaseDesc =>
-      'Transcribe preguntas en 99 idiomas; también sigue guiones en español y otros idiomas';
+      'Transcribe preguntas en 99 idiomas; también sigue los idiomas sin modelo en tiempo real';
 
   @override
   String get modelWhisperTurbo => 'Whisper large-v3 turbo';
@@ -290,10 +302,42 @@ class AppLocalizationsEs extends AppLocalizations {
       'Sin conexión a internet. Los modelos se descargan una vez y luego funcionan sin conexión.';
 
   @override
+  String get modelChecksumFailed =>
+      'La descarga no coincide con la suma de verificación publicada, así que se descartó. Vuelve a intentarlo.';
+
+  @override
+  String modelLicenseTitle(String model) {
+    return 'Licencia de «$model»';
+  }
+
+  @override
+  String get modelLicenseBody =>
+      'Este modelo se comparte bajo Creative Commons Atribución-CompartirIgual (CC BY-SA); quien lo publica no indica la versión. Sotto lo descarga sin cambios del proyecto sherpa-onnx en GitHub, lo comprueba con una suma de verificación fija y solo lo ejecuta en este equipo.';
+
+  @override
+  String get modelLicenseAttribution => 'Atribución';
+
+  @override
+  String modelLicenseSource(String url) {
+    return 'Origen y licencia: $url';
+  }
+
+  @override
+  String get modelLicenseAccept => 'Aceptar y descargar';
+
+  @override
+  String get modelLicenseView => 'Licencia';
+
+  @override
   String get engineUnavailable => 'No disponible';
 
   @override
   String get engineOnDeviceStreaming => 'En el equipo · en tiempo real';
+
+  @override
+  String engineOnDeviceStreamingModel(String model) {
+    return 'En el equipo · en tiempo real · $model';
+  }
 
   @override
   String get engineOnDeviceWhisper => 'En el equipo · Whisper';
@@ -301,6 +345,11 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get engineModelsMissing =>
       'Los modelos de voz aún no están instalados. Descárgalos en Ajustes → Voz y seguimiento.';
+
+  @override
+  String engineStreamingRecommended(String model) {
+    return 'Seguir con Whisper espera a las pausas. Descarga «$model» en Ajustes → Voz y seguimiento para seguir palabra por palabra.';
+  }
 
   @override
   String sttEngineFailed(String error) {
@@ -360,6 +409,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get readyDownloadModels => 'Descarga modelos de voz en Voz y seguimiento';
+
+  @override
+  String readyStreamingRecommended(String model) {
+    return 'Sigue con Whisper, frase a frase. Descarga «$model» para seguir palabra por palabra.';
+  }
 
   @override
   String readyHotkeys(String chord) {
@@ -1436,6 +1490,62 @@ class AppLocalizationsEs extends AppLocalizations {
   String get readability => 'Legibilidad';
 
   @override
+  String get scriptFont => 'Tipografía del guion';
+
+  @override
+  String get scriptFontOverlay => 'Guion en la superposición';
+
+  @override
+  String get scriptFontEditor => 'Guion en el editor';
+
+  @override
+  String get scriptFontChange => 'Cambiar…';
+
+  @override
+  String get scriptFontOverlayTitle => 'Tipografía del guion en la superposición';
+
+  @override
+  String get scriptFontEditorTitle => 'Tipografía del guion en el editor';
+
+  @override
+  String get scriptFontBundled => 'Incluidas en Sotto';
+
+  @override
+  String get scriptFontSystem => 'En este equipo';
+
+  @override
+  String get scriptFontSearch => 'Buscar tipografías';
+
+  @override
+  String get scriptFontLoading => 'Buscando tipografías instaladas…';
+
+  @override
+  String get scriptFontNone => 'Ninguna tipografía coincide';
+
+  @override
+  String get scriptFontWeight => 'Grosor';
+
+  @override
+  String get scriptFontSpacing => 'Espaciado entre letras';
+
+  @override
+  String get scriptFontReset => 'Restablecer la predeterminada';
+
+  @override
+  String get scriptFontApply => 'Aplicar';
+
+  @override
+  String get scriptFontDefaultTag => 'Predeterminada';
+
+  @override
+  String get scriptFontSample => 'Gracias a todos por estar aquí hoy; veamos cómo nos fue este año.';
+
+  @override
+  String scriptFontMissing(String family) {
+    return '«$family» no está instalada en este equipo, así que Sotto muestra la tipografía predeterminada.';
+  }
+
+  @override
   String get textSize => 'Tamaño del texto';
 
   @override
@@ -1499,7 +1609,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get scrolling => 'Desplazamiento';
 
   @override
-  String get scrollingSub => 'Suave se desliza entre frases; Por pasos salta.';
+  String get scrollingSub => 'Suave sigue tu voz letra a letra, a tu ritmo; Por pasos avanza una línea cada vez.';
 
   @override
   String get scrollGlide => 'Suave';
@@ -1512,6 +1622,33 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get reduceMotionSub => 'También sigue el ajuste del sistema';
+
+  @override
+  String get highlightEffect => 'Efecto de resaltado';
+
+  @override
+  String get highlightEffectSub => 'Cómo se iluminan en la línea actual las palabras que vas diciendo';
+
+  @override
+  String get highlightOff => 'No';
+
+  @override
+  String get highlightSimple => 'Simple';
+
+  @override
+  String get highlightGlow => 'Brillo y destellos';
+
+  @override
+  String get highlightGlowSub =>
+      'Un brillo frío recorre letra a letra lo que dices, con destellos que suben; la línea conserva su color. Con «Reducir movimiento» se queda quieto sobre la palabra dicha.';
+
+  @override
+  String get highlightSimpleSub => 'Las letras que vas diciendo toman el color de acento.';
+
+  @override
+  String highlightUseFont(String font) {
+    return 'Usar $font, la serif con la que se diseñó';
+  }
 
   @override
   String get blurBehind => 'Desenfocar detrás de la superposición';
@@ -1577,6 +1714,27 @@ class AppLocalizationsEs extends AppLocalizations {
   String get engineOnDeviceSub => 'sherpa-onnx en este equipo · el audio no sale de él';
 
   @override
+  String get followsWith => 'Sigue con';
+
+  @override
+  String get followsWhyStreaming =>
+      'Palabra por palabra: un modelo en tiempo real oye cada palabra mientras la dices. Whisper sigue transcribiendo preguntas y dictado.';
+
+  @override
+  String followsWhyWhisperUntil(String model) {
+    return 'Whisper solo oye frases enteras: el guion espera a tus pausas y luego avanza una frase de golpe. Descarga «$model» para seguir palabra por palabra.';
+  }
+
+  @override
+  String get followsWhyWhisperOnly => 'Aún no hay modelo en tiempo real para este idioma: Whisper sigue frase a frase.';
+
+  @override
+  String get followsWhyNone => 'Descarga un modelo abajo para que siga tu voz.';
+
+  @override
+  String get followsNoModel => 'Ningún modelo aún';
+
+  @override
   String get following => 'Seguimiento';
 
   @override
@@ -1635,7 +1793,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get onDeviceModelsFooter =>
-      'Se descargan una vez del proyecto sherpa-onnx y luego funcionan sin conexión. El inglés se sigue en vivo con un modelo en tiempo real; Whisper transcribe preguntas y sigue otros idiomas, incluido el español.';
+      'Se descargan una vez del proyecto sherpa-onnx, se comprueban con una suma de verificación fija y luego funcionan sin conexión. Un modelo en tiempo real sigue tu voz palabra por palabra (inglés, español, francés, alemán); Whisper transcribe preguntas y dictado, y sigue otros idiomas frase a frase.';
 
   @override
   String get installed => 'Instalado';
@@ -3229,4 +3387,391 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get quit => 'Salir';
+
+  @override
+  String get pasteOrganized => 'Organizado en secciones y frases';
+
+  @override
+  String get undo => 'Deshacer';
+
+  @override
+  String get newScriptSubtitle => '¿Cómo quieres empezar?';
+
+  @override
+  String get newScriptWordsNote =>
+      'Escribir e importar nunca cambian tus palabras. Generar escribe un texto nuevo a partir de tu material: revísalo antes de salir en vivo.';
+
+  @override
+  String get pathWriteTitle => 'Escribir desde cero';
+
+  @override
+  String get pathWriteBody => 'Un guion en blanco. Escríbelo o pégalo en el editor.';
+
+  @override
+  String get pathImportTitle => 'Importar texto';
+
+  @override
+  String get pathImportBody =>
+      'Un archivo o texto pegado, palabra por palabra. Sotto solo lo organiza en secciones y frases.';
+
+  @override
+  String get pathGenerateTitle => 'Generar con IA';
+
+  @override
+  String get pathGenerateBody =>
+      'A partir de una presentación, un PDF o un documento. DeepSeek escribe un guion nuevo para que lo revises y edites.';
+
+  @override
+  String get badgeKeepsWords => 'Conserva tus palabras';
+
+  @override
+  String get badgeWritesNew => 'Escribe texto nuevo';
+
+  @override
+  String get importDropHint => 'Suelta aquí un archivo .docx, .pdf, .md o .txt, o';
+
+  @override
+  String get importChooseFile => 'Elige un archivo';
+
+  @override
+  String get importPasteLabel => 'O pega tu texto';
+
+  @override
+  String get importPastePlaceholder => 'Pega aquí el guion: se conserva tal como está escrito';
+
+  @override
+  String get importPasteAction => 'Importar texto';
+
+  @override
+  String get genMaterial => 'Material';
+
+  @override
+  String get genMaterialHint => 'Suelta aquí presentaciones, PDF, documentos o imágenes, o';
+
+  @override
+  String get genChooseFiles => 'Elige archivos';
+
+  @override
+  String get genReading => 'Leyendo…';
+
+  @override
+  String genSlides(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count diapositivas',
+      one: '1 diapositiva',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String genPages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count páginas', one: '1 página');
+    return '$_temp0';
+  }
+
+  @override
+  String genParts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count partes', one: '1 parte');
+    return '$_temp0';
+  }
+
+  @override
+  String get genPicture => 'Imagen';
+
+  @override
+  String genHiddenSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count diapositivas ocultas omitidas',
+      one: '1 diapositiva oculta omitida',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get genNoNotes => 'sin notas del orador';
+
+  @override
+  String genNotesFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'notas en $count diapositivas',
+      one: 'notas en 1 diapositiva',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String genWords(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count palabras', one: '1 palabra');
+    return '$_temp0';
+  }
+
+  @override
+  String genOcrUsed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'OCR en $count páginas escaneadas',
+      one: 'OCR en 1 página escaneada',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get genOcrPicture => 'texto leído con OCR';
+
+  @override
+  String get genRemove => 'Quitar';
+
+  @override
+  String get genDuration => 'Duración';
+
+  @override
+  String get genMinutes => 'min';
+
+  @override
+  String genBudget(int words, int wpm) {
+    return '≈ $words palabras a tu ritmo medido ($wpm ppm)';
+  }
+
+  @override
+  String genBudgetDefault(int words, int wpm) {
+    return '≈ $words palabras a $wpm ppm; ensaya una vez y usará tu propio ritmo';
+  }
+
+  @override
+  String get genAudience => 'Público';
+
+  @override
+  String get genAudiencePlaceholder => '¿Quién escucha? p. ej., el consejo, clientes nuevos';
+
+  @override
+  String get genTone => 'Tono';
+
+  @override
+  String get genTonePlaceholder => 'p. ej., seguro y cercano';
+
+  @override
+  String get genChipExecutives => 'Directivos';
+
+  @override
+  String get genChipTeam => 'Equipo técnico';
+
+  @override
+  String get genChipCustomers => 'Clientes';
+
+  @override
+  String get genChipStudents => 'Estudiantes';
+
+  @override
+  String get genChipGeneral => 'Público general';
+
+  @override
+  String get genChipConfident => 'Seguro';
+
+  @override
+  String get genChipConversational => 'Conversacional';
+
+  @override
+  String get genChipFormal => 'Formal';
+
+  @override
+  String get genChipInspiring => 'Inspirador';
+
+  @override
+  String get genChipConcise => 'Conciso';
+
+  @override
+  String get genLanguage => 'Idioma';
+
+  @override
+  String genLanguageSpeech(String language) {
+    return '$language: idioma de voz';
+  }
+
+  @override
+  String get genUseNotes => 'Usar las notas del orador';
+
+  @override
+  String get genUseNotesSub => 'Las notas suelen recoger lo que querías decir';
+
+  @override
+  String get genSectionPerSlide => 'Una sección por diapositiva';
+
+  @override
+  String get genSectionPerSlideSub => 'Desactivado: las diapositivas relacionadas comparten sección';
+
+  @override
+  String get genQuestions => 'Preparar también preguntas probables';
+
+  @override
+  String get genQuestionsSub => 'Con respuestas de tu material, en la pestaña de preparación de preguntas';
+
+  @override
+  String get genPrivacy =>
+      'El texto leído de estos archivos se envía a DeepSeek para escribir el guion. No se envía nada hasta que pulses Generar, y nada más sale de este equipo.';
+
+  @override
+  String get genNeedsKey => 'Para generar hace falta una clave de API de DeepSeek';
+
+  @override
+  String get genNeedsKeySub =>
+      'Añade la tuya para generar guiones. Escribir desde cero e importar texto funcionan sin ella.';
+
+  @override
+  String get genOpenIntegrations => 'Ajustes › Integraciones';
+
+  @override
+  String get genGenerate => 'Generar guion';
+
+  @override
+  String get genCancel => 'Cancelar: no se guarda nada';
+
+  @override
+  String get genTryAgain => 'Reintentar';
+
+  @override
+  String get genFailed => 'No se pudo generar el guion';
+
+  @override
+  String get genStageReading => 'Material leído';
+
+  @override
+  String genStageUnderstanding(int done, int total) {
+    return 'Entendiendo las diapositivas ($done/$total)';
+  }
+
+  @override
+  String get genStageUnderstandingDone => 'Entendiendo las diapositivas';
+
+  @override
+  String get genStageWriting => 'Escribiendo el guion';
+
+  @override
+  String get genStageChecking => 'Revisando la duración, la estructura y las diapositivas';
+
+  @override
+  String get genStageQuestions => 'Preparando preguntas probables';
+
+  @override
+  String get genPreviewWaiting => 'El guion aparece aquí a medida que se escribe.';
+
+  @override
+  String get genDraftReady => 'Borrador listo: revísalo antes de salir en vivo.';
+
+  @override
+  String genChecks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Hay $count puntos marcados para que los revises.',
+      one: 'Hay 1 punto marcado para que lo revises.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get genCheckMarker => 'REVISAR';
+
+  @override
+  String materialUnsupported(String ext) {
+    return 'Sotto no puede leer archivos $ext. Añade una presentación (.pptx, .odp), un PDF, un documento (.docx, .md, .txt) o una imagen (.png, .jpg).';
+  }
+
+  @override
+  String materialExportFirst(String ext) {
+    return 'Sotto no puede leer archivos $ext. Expórtalo como PowerPoint (.pptx) o PDF y añade ese archivo.';
+  }
+
+  @override
+  String get materialLegacy =>
+      'Es un formato antiguo de Office o un archivo protegido con contraseña. Guárdalo como .pptx o .docx sin contraseña, o expórtalo como PDF.';
+
+  @override
+  String get materialTooLarge => 'Este archivo es demasiado grande para leerlo con seguridad (hasta 100 MB).';
+
+  @override
+  String materialTooManyPages(int count, int max) {
+    return 'Este archivo tiene $count diapositivas o páginas; Sotto lee hasta $max. Divídelo o exporta la parte que necesites.';
+  }
+
+  @override
+  String get materialCorrupted =>
+      'Este archivo está dañado o no es lo que dice su nombre. Ábrelo y guárdalo de nuevo, o expórtalo como PDF.';
+
+  @override
+  String get materialEmpty => 'No se encontró texto en este archivo, ni siquiera con OCR.';
+
+  @override
+  String get markersLive => 'Mostrar las marcas por revisar';
+
+  @override
+  String get markersLiveSub =>
+      'Lo que un guion generado marcó con [REVISAR: …], en el color de las indicaciones. La voz nunca las sigue; desactivado, no aparecen en vivo';
+
+  @override
+  String markersCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count puntos por revisar',
+      one: '1 punto por revisar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get markerPrevious => 'Marca anterior';
+
+  @override
+  String get markerNext => 'Marca siguiente';
+
+  @override
+  String get markerRemove => 'Quitar marca';
+
+  @override
+  String get markerHint => 'La marca está seleccionada: escribe encima el dato que falta, o quítala.';
+
+  @override
+  String get pfMarkers => 'Puntos por revisar';
+
+  @override
+  String pfMarkersShown(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Quedan $count marcas en el guion. Se ven en el color de las indicaciones y nunca se siguen.',
+      one: 'Queda 1 marca en el guion. Se ve en el color de las indicaciones y nunca se sigue.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String pfMarkersHidden(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Quedan $count marcas en el guion. No se muestran en vivo.',
+      one: 'Queda 1 marca en el guion. No se muestra en vivo.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get pfOpenFirstMarker => 'Abrir la primera';
+
+  @override
+  String get genFailedNothingSaved =>
+      'No se ha guardado nada. Corrige el problema y vuelve a intentarlo, o vuelve atrás.';
+
+  @override
+  String get genFailedInvalidReply => 'La respuesta de DeepSeek no pudo convertirse en un guion dos veces seguidas.';
+
+  @override
+  String get genFailedNoText => 'No se encontró texto en el material.';
 }

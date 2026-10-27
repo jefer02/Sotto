@@ -22,6 +22,9 @@ abstract final class Primitives {
   static const graphite900 = Color(0xFF111317);
   static const graphite950 = Color(0xFF0B0C0F);
 
+  /// Below the stage: the house with its lights down.
+  static const blackout = Color(0xFF040507);
+
   // Electric · h 262° — "marks where you are". White on 500 holds 4.5:1.
   static const electric300 = Color(0xFF6EA8FF);
   static const electric400 = Color(0xFF4C8DFF);
@@ -135,6 +138,24 @@ class SottoPalette {
 
   /// Electric wash behind selected rows — color without shouting.
   Color get primaryWash => primary.withValues(alpha: isDark ? 0.16 : 0.10);
+
+  /// The house with its lights down (going live) — darker than the stage
+  /// in either theme — and the ink and lamp shown on it.
+  Color get blackout => Primitives.blackout;
+  Color get blackoutInk => SottoPalette.stage.inkPrimary;
+
+  /// The white-hot core of a lamp as it ignites.
+  Color get lampCore => onCue;
+
+  /// Behind dialogs; [scrimStrong] behind the one that leads on stage.
+  Color get scrim => const Color(0x8A000000);
+  Color get scrimStrong => const Color(0x99000000);
+
+  /// Amber wash behind something that needs fixing before going live, and
+  /// the edge of its icon. Amber, not tally: red only ever means the mic is
+  /// capturing the room.
+  Color get cautionWash => caution.withValues(alpha: isDark ? 0.10 : 0.08);
+  Color get cautionEdge => caution.withValues(alpha: isDark ? 0.55 : 0.50);
 
   /// The ghost light: a pool of light falling on the stage from above.
   Color get stageGlow => primary.withValues(alpha: isDark ? 0.18 : 0.10);
@@ -308,6 +329,17 @@ class OverlayPalette {
     shadowStrength: shadowStrength,
     shadowColor: shadowColor,
   );
+
+  /// Light or dark text (Auto, Always light / dark) is outlined in the
+  /// opposite color, kept thin and a little soft — this share of the
+  /// "Outline width" setting, at this opacity — so a uniform slide never
+  /// shows a hard ring.
+  static const contrastOutlineScale = 0.6;
+  static const contrastOutlineAlpha = 0.85;
+
+  /// The soft shadow under light text, and the soft glow under dark text.
+  static const shadowUnderLight = Color(0xFF000000);
+  static const glowUnderDark = Color(0xB3FFFFFF);
 
   final Color ground;
   final Color ink;
@@ -505,8 +537,10 @@ abstract final class Radii {
 /// Motion tokens and curves from "Space, grid, depth, motion".
 ///
 /// Micro-interactions (hover, press, focus, toggles) take 120–200 ms;
-/// panels and pages 250–400 ms. [glide] and [settle] are kept for the
-/// signature moments only (curtain, greeting).
+/// panels 250–400 ms. [glide] and [settle] are kept for the signature
+/// moments only (curtain, greeting). Widgets take every duration and curve
+/// from here, and resolve it with `context.motion(…)` so that reduced
+/// motion (system or Settings › Appearance) makes it instant.
 abstract final class Motion {
   static const instant = Duration.zero;
   static const quick = Duration(milliseconds: 120);
@@ -524,8 +558,21 @@ abstract final class Motion {
   /// Panels, the sidebar pill, Settings pages.
   static const panel = Duration(milliseconds: 280);
 
-  /// Route changes.
+  /// Route changes that move between levels.
   static const page = Duration(milliseconds: 320);
+
+  /// Sibling routes: the arriving page fades through, quickly.
+  static const pageFade = Duration(milliseconds: 200);
+
+  /// Content arriving in place (a Settings page, the sidebar resizing).
+  static const contentFade = snappy;
+
+  /// Dialogs settle in, and leave faster than they came.
+  static const dialogIn = snappy;
+  static const dialogOut = quick;
+
+  /// The nav highlight sliding from one row to the next.
+  static const navSlide = Duration(milliseconds: 180);
 
   /// One step of a list's first-time stagger, capped at [staggerCap] items.
   static const staggerStep = Duration(milliseconds: 30);
@@ -533,6 +580,15 @@ abstract final class Motion {
 
   /// The delay of item [i] in a staggered list.
   static Duration stagger(int i) => staggerStep * (i < staggerCap ? i : staggerCap);
+
+  /// The home's first look: one beat between the greeting's parts, and
+  /// the cards rising in after them.
+  static const introStep = Duration(milliseconds: 60);
+  static const introLead = Duration(milliseconds: 160);
+  static const introCardStep = Duration(milliseconds: 35);
+
+  /// The delay of card [i] in the home's first look.
+  static Duration introStagger(int i) => introLead + introCardStep * (i < staggerCap ? i : staggerCap);
 
   static const glideEnter = Cubic(0.22, 1, 0.36, 1);
   static const shiftMove = Cubic(0.65, 0, 0.35, 1);
@@ -547,14 +603,114 @@ abstract final class Motion {
   /// Things moving from one place to another (pills, panels).
   static const move = Cubic(0.4, 0, 0.2, 1);
 
+  /// A confident arrival for light and lamps: very fast out, long landing.
+  static const arrive = Cubic(0.16, 1, 0.3, 1);
+
+  /// Opacity alone: fades in and out.
+  static const fade = Curves.easeOut;
+  static const fadeOut = Curves.easeIn;
+
+  /// One color becoming another (the overlay following the slide).
+  static const crossfade = Curves.easeInOut;
+
   // Micro-interaction timings (Motion boards).
   static const wordDim = Duration(milliseconds: 180);
   static const cuePulse = Duration(milliseconds: 300);
-  static const reducedMotionFade = Duration(milliseconds: 120);
   static const hoverIntent = Duration(milliseconds: 150);
   static const hoverHide = Duration(milliseconds: 800);
   static const holdToSend = Duration(milliseconds: 500);
   static const answerPointStagger = Duration(milliseconds: 120);
+
+  /// A press giving under the pointer.
+  static const press = Duration(milliseconds: 100);
+
+  /// The voice bars following the level — a meter, so barely eased.
+  static const meter = Duration(milliseconds: 90);
+
+  /// A recognized word of the question coming into focus.
+  static const wordIn = quick;
+
+  /// After Dismiss, a line of cue re-anchors the eye on the script.
+  static const cueSweep = cuePulse;
+
+  /// The overlay's text color crossfading when the backdrop changes.
+  static const backdropFade = Duration(milliseconds: 200);
+
+  /// The overlay window easing to the height its lines need.
+  static const overlayFit = Duration(milliseconds: 150);
+
+  // Signature moments — each is skipped entirely under reduced motion.
+  static const curtain = Duration(milliseconds: 1250);
+  static const lightsUp = Duration(milliseconds: 700);
+
+  /// House lights down before the overlay: short, so the session starts
+  /// within this of pressing Go live.
+  static const goLive = Duration(milliseconds: 400);
+  static const overlayEntrance = Duration(milliseconds: 900);
+
+  // Loops — each one stops under reduced motion.
+  static const pingPeriod = Duration(milliseconds: 1800);
+  static const draftingLoop = Duration(milliseconds: 900);
+  static const organizingLoop = Duration(milliseconds: 1400);
+  static const beamLap = Duration(seconds: 4);
+
+  /// The stage's ambient light: one slow, seamless loop.
+  static const stageLoop = Duration(seconds: 60);
+}
+
+/// The karaoke highlight on the overlay's current line (Appearance →
+/// Highlight effect). Lengths are in ems — shares of the line's font size —
+/// or in characters, so the look holds at any text size and in any font.
+abstract final class Karaoke {
+  /// Around light text: a cold cyan-white bloom with a near-white core,
+  /// added over the glyphs (the line stays white; its edges light up).
+  static const glowOnLightInk = Color(0xFF8FCBFF);
+  static const coreOnLightInk = Color(0xFFE6F5FF);
+
+  /// Around dark text (Auto over a light slide): electric blue, so the halo
+  /// reads as light without lifting the glyphs' own dark.
+  static const glowOnDarkInk = Primitives.electric500;
+  static const coreOnDarkInk = Primitives.electric300;
+
+  /// Halo spread (Gaussian sigma) and how strong it is; dark text gets a
+  /// fainter halo so it never washes the letters out.
+  static const haloBlur = 0.22;
+  static const coreBlur = 0.05;
+  static const haloAlpha = 0.9;
+  static const coreAlpha = 1.0;
+
+  /// The glyphs are thickened by these strokes before blurring.
+  static const haloStroke = 0.12;
+  static const coreStroke = 0.04;
+  static const darkInkStrength = 0.6;
+
+  /// The glow covers the letter being said and trails off over this many
+  /// characters behind it; it ends this many characters past the head.
+  static const trailChars = 1.8;
+
+  /// Past the head the light rolls off over this many ems (about a letter).
+  static const headFeather = 0.45;
+
+  /// Sparkles: a fixed pool, spawned per character swept.
+  static const particleCap = 60;
+  static const particlesPerChar = 0.6;
+  static const particleLifeMin = Duration(milliseconds: 600);
+  static const particleLifeMax = Duration(milliseconds: 1400);
+  static const particleSizeMin = 0.16;
+  static const particleSizeMax = 0.34;
+
+  /// Rise speed (ems a second) and twinkle rate (Hz).
+  static const particleRiseMin = 0.25;
+  static const particleRiseMax = 0.8;
+  static const twinkleMin = 3.0;
+  static const twinkleMax = 7.0;
+
+  /// After the voice stops, the glow holds, then fades out.
+  static const idleHold = Duration(milliseconds: 500);
+  static const idleFade = Duration(milliseconds: 900);
+
+  /// "Simple": the letters being said take the cue color.
+  static const simpleTrailChars = 3.0;
 }
 
 /// Main-window layout constants.
@@ -566,6 +722,16 @@ abstract final class Layout {
   static const double contentMargin = 40;
   static const double titleBar = 52;
   static const Size windowMin = Size(960, 600);
+
+  /// Lists and forms wider than this read as two far-apart halves — a
+  /// label at one edge, its switch or numbers at the other — so they center
+  /// at this width instead.
+  static const double readableMax = 880;
+
+  /// The side padding that centers content at most [max] wide in [width],
+  /// never less than [min].
+  static double centeredInset(double width, {double max = readableMax, double min = contentMargin}) =>
+      width - 2 * min > max ? (width - max) / 2 : min;
 
   /// Settings rows are at least this tall, subtitle or not.
   static const double rowMin = 52;
@@ -579,4 +745,12 @@ abstract final class Layout {
   static const double overlayCueColumn = 15;
   static const double overlayTextInset = 34;
   static const double overlayAnchor = 0.30;
+
+  /// The hover controls' own band (30 px buttons, their padding and a
+  /// little air): the reading area ends above it, so the controls never
+  /// cover a word of the script.
+  static const double overlayControlsBand = 40;
+
+  /// The rail's side column, which holds the controls in that layout.
+  static const double overlayRailSide = 300;
 }

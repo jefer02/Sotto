@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:archive/archive_io.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -15,17 +16,44 @@ enum ModelRole { streaming, transcription }
 /// On-device speech models (sherpa-onnx). Fetched once, before the first
 /// live session; everything after that works offline.
 class SpeechModel {
-  const SpeechModel({required this.id, required this.role, required this.sizeMb, required this.languages});
+  const SpeechModel({
+    required this.id,
+    required this.role,
+    required this.bytes,
+    required this.sha256,
+    required this.languages,
+    this.attribution,
+    this.chunkSeconds = 0.32,
+  });
 
   final String id;
   final ModelRole role;
-  final int sizeMb;
+
+  /// The archive's exact size and SHA-256 (hex) as published on the
+  /// sherpa-onnx `asr-models` release. A download that doesn't match both is
+  /// discarded before anything is extracted.
+  final int bytes;
+  final String sha256;
+
+  /// The model's own license notice, for models that need one shown
+  /// (CC BY-SA asks for attribution). Null: the Apache-2.0 sherpa models.
+  final String? attribution;
+
+  int get sizeMb => (bytes / (1024 * 1024)).round();
+
+  /// A streaming model decodes audio in chunks this long (its encoder's
+  /// fixed input, `decode_chunk_len` in the ONNX metadata): how often one
+  /// decoder can emit words.
+  final double chunkSeconds;
 
   String get name {
     final l = L10n.current;
     return switch (id) {
       'sherpa-onnx-streaming-zipformer-en-2023-06-26' => l.modelStreamingEn,
       'sherpa-onnx-streaming-zipformer-en-20M-2023-02-17' => l.modelStreamingEnLight,
+      'sherpa-onnx-streaming-zipformer-es-kroko-2025-08-06' => l.modelStreamingEs,
+      'sherpa-onnx-streaming-zipformer-fr-kroko-2025-08-06' => l.modelStreamingFr,
+      'sherpa-onnx-streaming-zipformer-de-kroko-2025-08-06' => l.modelStreamingDe,
       'sherpa-onnx-whisper-base' => l.modelWhisperBase,
       _ => l.modelWhisperTurbo,
     };
@@ -36,6 +64,9 @@ class SpeechModel {
     return switch (id) {
       'sherpa-onnx-streaming-zipformer-en-2023-06-26' => l.modelStreamingEnDesc,
       'sherpa-onnx-streaming-zipformer-en-20M-2023-02-17' => l.modelStreamingEnLightDesc,
+      'sherpa-onnx-streaming-zipformer-es-kroko-2025-08-06' ||
+      'sherpa-onnx-streaming-zipformer-fr-kroko-2025-08-06' ||
+      'sherpa-onnx-streaming-zipformer-de-kroko-2025-08-06' => l.modelStreamingKrokoDesc,
       'sherpa-onnx-whisper-base' => l.modelWhisperBaseDesc,
       _ => l.modelWhisperTurboDesc,
     };
@@ -54,31 +85,75 @@ abstract final class ModelCatalog {
   static const streamingEn = SpeechModel(
     id: 'sherpa-onnx-streaming-zipformer-en-2023-06-26',
     role: ModelRole.streaming,
-    sizeMb: 296,
+    bytes: 310414022,
+    sha256: '639e25b578e9e997131402199419c13a941f8e4e198e2da1ce57dbf5cf401282',
     languages: ['en'],
   );
   static const streamingEnLight = SpeechModel(
     id: 'sherpa-onnx-streaming-zipformer-en-20M-2023-02-17',
     role: ModelRole.streaming,
-    sizeMb: 122,
+    bytes: 127887156,
+    sha256: '9c559283e8498d3fe95913c79ca1cb454bb26281ac2b102b41306c7d752765d9',
     languages: ['en'],
+  );
+
+  /// Banafo's Kroko community models, converted by sherpa-onnx. They decode
+  /// in ~1.3 s chunks: words come 0.5–1.3 s after they're said, a few at a
+  /// time, against Whisper's whole phrases after each pause. Measured on the
+  /// same 15-beat talk (TTS, see docs/ARCHITECTURE.md): 0–2 % word errors.
+  static const _kroko = 'Kroko ASR community model by Banafo (huggingface.co/Banafo/Kroko-ASR), CC BY-SA.';
+  static const streamingEs = SpeechModel(
+    id: 'sherpa-onnx-streaming-zipformer-es-kroko-2025-08-06',
+    role: ModelRole.streaming,
+    chunkSeconds: 1.28,
+    bytes: 124394665,
+    sha256: '31b2230a95d23290b308b393da930015a4b2105cb3abb9367aed35f7fcf29cf1',
+    languages: ['es'],
+    attribution: _kroko,
+  );
+  static const streamingFr = SpeechModel(
+    id: 'sherpa-onnx-streaming-zipformer-fr-kroko-2025-08-06',
+    role: ModelRole.streaming,
+    chunkSeconds: 1.28,
+    bytes: 57220361,
+    sha256: 'e6ffd3dc43725cd6c8137b05c739f15607d0df946b9b90eb141e10059efca024',
+    languages: ['fr'],
+    attribution: _kroko,
+  );
+  static const streamingDe = SpeechModel(
+    id: 'sherpa-onnx-streaming-zipformer-de-kroko-2025-08-06',
+    role: ModelRole.streaming,
+    chunkSeconds: 1.28,
+    bytes: 57565698,
+    sha256: '9e27b783c20e67b0d0f13a258c1861fce199917c969d9176a438bee38df64962',
+    languages: ['de'],
+    attribution: _kroko,
   );
   static const whisperBase = SpeechModel(
     id: 'sherpa-onnx-whisper-base',
     role: ModelRole.transcription,
-    sizeMb: 198,
+    bytes: 207557382,
+    sha256: '911b2083efd7c0dca2ac3b358b75222660dc09fb716d64fbfc417ba6c99ff3de',
     languages: ['*'],
   );
   static const whisperTurbo = SpeechModel(
     id: 'sherpa-onnx-whisper-turbo',
     role: ModelRole.transcription,
-    sizeMb: 538,
+    bytes: 563790207,
+    sha256: 'b11acbbcd660b44a8e0df33724feb5aaa709cf65668f2823d59f656312544f22',
     languages: ['*'],
   );
 
-  static const all = [streamingEn, streamingEnLight, whisperBase, whisperTurbo];
+  static const all = [streamingEn, streamingEnLight, streamingEs, streamingFr, streamingDe, whisperBase, whisperTurbo];
 
   static SpeechModel byId(String id) => all.firstWhere((m) => m.id == id);
+
+  /// Streaming models that can follow [language], best first. Empty: the
+  /// language has none, and following falls back to segmented Whisper.
+  static List<SpeechModel> streamingFor(String language) => [
+    for (final m in all)
+      if (m.role == ModelRole.streaming && m.supports(language)) m,
+  ];
 }
 
 /// Paths to the ONNX files inside an extracted model folder.
@@ -154,22 +229,31 @@ class ModelManager {
     return ModelFiles(dir: dirPath, tokens: tokens, encoder: enc, decoder: dec, joiner: pick('joiner'));
   }
 
-  Stream<ModelStatus> download(SpeechModel model) async* {
+  /// Whether the archive [received] bytes long with SHA-256 [digest] is the
+  /// one [model] pins.
+  static bool verified(SpeechModel model, int received, Digest digest) =>
+      received == model.bytes && digest.toString() == model.sha256;
+
+  Stream<ModelStatus> download(SpeechModel model, {http.Client? client}) async* {
     final dir = await root();
     final archive = File(p.join(dir.path, '${model.id}.tar.bz2.part'));
-    final client = http.Client();
+    final http_ = client ?? http.Client();
     try {
-      final res = await client.send(http.Request('GET', Uri.parse(model.url)));
+      final res = await http_.send(http.Request('GET', Uri.parse(model.url)));
       if (res.statusCode != 200) {
         yield ModelFailed(L10n.current.modelDownloadFailed(res.statusCode));
         return;
       }
-      final total = res.contentLength ?? model.sizeMb * 1024 * 1024;
+      final total = res.contentLength ?? model.bytes;
       final sink = archive.openWrite();
+      // Hashed as it streams in: no second pass over hundreds of MB.
+      final digests = _DigestSink();
+      final hasher = sha256.startChunkedConversion(digests);
       var received = 0;
       var lastYield = DateTime.now();
       await for (final chunk in res.stream) {
         sink.add(chunk);
+        hasher.add(chunk);
         received += chunk.length;
         if (DateTime.now().difference(lastYield).inMilliseconds > 150) {
           lastYield = DateTime.now();
@@ -177,6 +261,12 @@ class ModelManager {
         }
       }
       await sink.close();
+      hasher.close();
+      // A truncated, corrupted or swapped archive is never extracted.
+      if (!verified(model, received, digests.value)) {
+        yield ModelFailed(L10n.current.modelChecksumFailed);
+        return;
+      }
 
       yield const ModelDownloading(1, extracting: true);
       final archivePath = archive.path;
@@ -195,7 +285,7 @@ class ModelManager {
     } catch (e) {
       yield ModelFailed('$e');
     } finally {
-      client.close();
+      if (client == null) http_.close();
       if (await archive.exists()) await archive.delete();
     }
   }
@@ -204,6 +294,17 @@ class ModelManager {
     final dir = Directory(p.join((await root()).path, model.id));
     if (await dir.exists()) await dir.delete(recursive: true);
   }
+}
+
+/// Collects the one digest a chunked SHA-256 conversion produces.
+class _DigestSink implements Sink<Digest> {
+  late Digest value;
+
+  @override
+  void add(Digest data) => value = data;
+
+  @override
+  void close() {}
 }
 
 final modelManagerProvider = Provider<ModelManager>((ref) => ModelManager());

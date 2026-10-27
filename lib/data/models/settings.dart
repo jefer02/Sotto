@@ -37,6 +37,11 @@ enum OverlayPlacement {
 
 enum ScrollStyle { glide, step }
 
+/// How the words being said light up on the overlay's current line: not at
+/// all (said words just dim), a soft color sweep, or a cold glow that sweeps
+/// letter by letter with sparkles rising off it.
+enum HighlightEffect { off, simple, glow }
+
 enum AdvanceMode { voice, timed, manual }
 
 enum Sensitivity { low, medium, high }
@@ -89,7 +94,11 @@ class AppSettings {
     this.placement = OverlayPlacement.topCenter,
     this.layout = OverlayLayout.auto,
     this.rememberPositionPerDisplay = true,
+    this.showMarkersLive = true,
     this.scrollStyle = ScrollStyle.glide,
+    this.highlightEffect = HighlightEffect.off,
+    this.overlayFont = ScriptFonts.overlayDefault,
+    this.editorFont = ScriptFonts.editorDefault,
     this.reduceMotion = false,
     this.blurBehind = true,
     this.overlaySize = const (480.0, 120.0),
@@ -170,7 +179,17 @@ class AppSettings {
   final OverlayPlacement placement;
   final OverlayLayout layout;
   final bool rememberPositionPerDisplay;
+
+  /// Markers a generated script leaves to check ("[CHECK: …]") show in the
+  /// overlay set apart in the cue color; off, the live view leaves them out.
+  /// Voice following never uses them either way.
+  final bool showMarkersLive;
   final ScrollStyle scrollStyle;
+  final HighlightEffect highlightEffect;
+
+  /// The script's font on the overlay and in the editor, chosen apart.
+  final ScriptFont overlayFont;
+  final ScriptFont editorFont;
   final bool reduceMotion;
   final bool blurBehind;
   final (double, double) overlaySize;
@@ -310,7 +329,11 @@ class AppSettings {
     OverlayPlacement? placement,
     OverlayLayout? layout,
     bool? rememberPositionPerDisplay,
+    bool? showMarkersLive,
     ScrollStyle? scrollStyle,
+    HighlightEffect? highlightEffect,
+    ScriptFont? overlayFont,
+    ScriptFont? editorFont,
     bool? reduceMotion,
     bool? blurBehind,
     (double, double)? overlaySize,
@@ -380,7 +403,11 @@ class AppSettings {
     placement: placement ?? this.placement,
     layout: layout ?? this.layout,
     rememberPositionPerDisplay: rememberPositionPerDisplay ?? this.rememberPositionPerDisplay,
+    showMarkersLive: showMarkersLive ?? this.showMarkersLive,
     scrollStyle: scrollStyle ?? this.scrollStyle,
+    highlightEffect: highlightEffect ?? this.highlightEffect,
+    overlayFont: overlayFont ?? this.overlayFont,
+    editorFont: editorFont ?? this.editorFont,
     reduceMotion: reduceMotion ?? this.reduceMotion,
     blurBehind: blurBehind ?? this.blurBehind,
     overlaySize: overlaySize ?? this.overlaySize,
@@ -451,7 +478,11 @@ class AppSettings {
     'placement': placement.name,
     'layout': layout.name,
     'rememberPositionPerDisplay': rememberPositionPerDisplay,
+    'showMarkersLive': showMarkersLive,
     'scrollStyle': scrollStyle.name,
+    'highlightEffect': highlightEffect.name,
+    'overlayFont': overlayFont.toJson(),
+    'editorFont': editorFont.toJson(),
     'reduceMotion': reduceMotion,
     'blurBehind': blurBehind,
     'overlayGeometryVersion': overlayGeometryVersion,
@@ -541,7 +572,12 @@ class AppSettings {
       placement: e(OverlayPlacement.values, j['placement'], d.placement),
       layout: e(OverlayLayout.values, j['layout'], d.layout),
       rememberPositionPerDisplay: j['rememberPositionPerDisplay'] as bool? ?? d.rememberPositionPerDisplay,
+      showMarkersLive: j['showMarkersLive'] as bool? ?? d.showMarkersLive,
       scrollStyle: e(ScrollStyle.values, j['scrollStyle'], d.scrollStyle),
+      highlightEffect: e(HighlightEffect.values, j['highlightEffect'], d.highlightEffect),
+      // Saved before fonts could be chosen: the defaults, as they were.
+      overlayFont: ScriptFont.fromJson(j['overlayFont'], fallback: d.overlayFont),
+      editorFont: ScriptFont.fromJson(j['editorFont'], fallback: d.editorFont),
       reduceMotion: j['reduceMotion'] as bool? ?? d.reduceMotion,
       blurBehind: j['blurBehind'] as bool? ?? d.blurBehind,
       overlaySize: size == null ? d.overlaySize : ((size[0] as num).toDouble(), (size[1] as num).toDouble()),

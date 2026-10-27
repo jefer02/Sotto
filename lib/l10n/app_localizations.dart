@@ -542,6 +542,30 @@ abstract class AppLocalizations {
   /// **'For older or low-power machines'**
   String get modelStreamingEnLightDesc;
 
+  /// No description provided for @modelStreamingEs.
+  ///
+  /// In en, this message translates to:
+  /// **'Spanish · streaming'**
+  String get modelStreamingEs;
+
+  /// No description provided for @modelStreamingFr.
+  ///
+  /// In en, this message translates to:
+  /// **'French · streaming'**
+  String get modelStreamingFr;
+
+  /// No description provided for @modelStreamingDe.
+  ///
+  /// In en, this message translates to:
+  /// **'German · streaming'**
+  String get modelStreamingDe;
+
+  /// No description provided for @modelStreamingKrokoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows your voice word by word · Kroko community model, CC BY-SA'**
+  String get modelStreamingKrokoDesc;
+
   /// No description provided for @modelWhisperBase.
   ///
   /// In en, this message translates to:
@@ -551,7 +575,7 @@ abstract class AppLocalizations {
   /// No description provided for @modelWhisperBaseDesc.
   ///
   /// In en, this message translates to:
-  /// **'Question transcripts in 99 languages; also follows non-English scripts'**
+  /// **'Question transcripts in 99 languages; also follows languages without a streaming model'**
   String get modelWhisperBaseDesc;
 
   /// No description provided for @modelWhisperTurbo.
@@ -584,6 +608,48 @@ abstract class AppLocalizations {
   /// **'No internet connection. Models download once, then work offline.'**
   String get modelOffline;
 
+  /// No description provided for @modelChecksumFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The download didn\'t match the published checksum, so it was discarded. Try again.'**
+  String get modelChecksumFailed;
+
+  /// No description provided for @modelLicenseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'License of “{model}”'**
+  String modelLicenseTitle(String model);
+
+  /// No description provided for @modelLicenseBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This model is shared under Creative Commons Attribution-ShareAlike (CC BY-SA); its publisher doesn’t say which version. Sotto downloads it unchanged from the sherpa-onnx project on GitHub, checks it against a pinned checksum, and runs it only on this computer.'**
+  String get modelLicenseBody;
+
+  /// No description provided for @modelLicenseAttribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Attribution'**
+  String get modelLicenseAttribution;
+
+  /// No description provided for @modelLicenseSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source and license: {url}'**
+  String modelLicenseSource(String url);
+
+  /// No description provided for @modelLicenseAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept and download'**
+  String get modelLicenseAccept;
+
+  /// No description provided for @modelLicenseView.
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get modelLicenseView;
+
   /// No description provided for @engineUnavailable.
   ///
   /// In en, this message translates to:
@@ -596,6 +662,12 @@ abstract class AppLocalizations {
   /// **'On-device · streaming'**
   String get engineOnDeviceStreaming;
 
+  /// No description provided for @engineOnDeviceStreamingModel.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device · streaming · {model}'**
+  String engineOnDeviceStreamingModel(String model);
+
   /// No description provided for @engineOnDeviceWhisper.
   ///
   /// In en, this message translates to:
@@ -607,6 +679,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Speech models are not installed yet. Download them in Settings → Voice & following.'**
   String get engineModelsMissing;
+
+  /// No description provided for @engineStreamingRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Following with Whisper waits for pauses. Download “{model}” in Settings → Voice & following to follow word by word.'**
+  String engineStreamingRecommended(String model);
 
   /// No description provided for @sttEngineFailed.
   ///
@@ -697,6 +775,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download speech models in Voice & following'**
   String get readyDownloadModels;
+
+  /// No description provided for @readyStreamingRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows with Whisper, a phrase at a time. Download “{model}” to follow word by word.'**
+  String readyStreamingRecommended(String model);
 
   /// No description provided for @readyHotkeys.
   ///
@@ -2522,6 +2606,114 @@ abstract class AppLocalizations {
   /// **'Readability'**
   String get readability;
 
+  /// No description provided for @scriptFont.
+  ///
+  /// In en, this message translates to:
+  /// **'Script font'**
+  String get scriptFont;
+
+  /// No description provided for @scriptFontOverlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay script'**
+  String get scriptFontOverlay;
+
+  /// No description provided for @scriptFontEditor.
+  ///
+  /// In en, this message translates to:
+  /// **'Editor script'**
+  String get scriptFontEditor;
+
+  /// No description provided for @scriptFontChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change…'**
+  String get scriptFontChange;
+
+  /// No description provided for @scriptFontOverlayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlay script font'**
+  String get scriptFontOverlayTitle;
+
+  /// No description provided for @scriptFontEditorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Editor script font'**
+  String get scriptFontEditorTitle;
+
+  /// No description provided for @scriptFontBundled.
+  ///
+  /// In en, this message translates to:
+  /// **'Included with Sotto'**
+  String get scriptFontBundled;
+
+  /// No description provided for @scriptFontSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'On this computer'**
+  String get scriptFontSystem;
+
+  /// No description provided for @scriptFontSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search fonts'**
+  String get scriptFontSearch;
+
+  /// No description provided for @scriptFontLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking for installed fonts…'**
+  String get scriptFontLoading;
+
+  /// No description provided for @scriptFontNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No fonts match'**
+  String get scriptFontNone;
+
+  /// No description provided for @scriptFontWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get scriptFontWeight;
+
+  /// No description provided for @scriptFontSpacing.
+  ///
+  /// In en, this message translates to:
+  /// **'Letter spacing'**
+  String get scriptFontSpacing;
+
+  /// No description provided for @scriptFontReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to default'**
+  String get scriptFontReset;
+
+  /// No description provided for @scriptFontApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get scriptFontApply;
+
+  /// No description provided for @scriptFontDefaultTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get scriptFontDefaultTag;
+
+  /// No description provided for @scriptFontSample.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you all for being here today; let’s look at how the year went.'**
+  String get scriptFontSample;
+
+  /// No description provided for @scriptFontMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'“{family}” isn’t installed on this computer, so Sotto shows the default font instead.'**
+  String scriptFontMissing(String family);
+
   /// No description provided for @textSize.
   ///
   /// In en, this message translates to:
@@ -2651,7 +2843,7 @@ abstract class AppLocalizations {
   /// No description provided for @scrollingSub.
   ///
   /// In en, this message translates to:
-  /// **'Glide eases between beats; Step jumps.'**
+  /// **'Glide follows your voice letter by letter, at your pace; Step moves a line at a time.'**
   String get scrollingSub;
 
   /// No description provided for @scrollGlide.
@@ -2677,6 +2869,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Also follows your system setting'**
   String get reduceMotionSub;
+
+  /// No description provided for @highlightEffect.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight effect'**
+  String get highlightEffect;
+
+  /// No description provided for @highlightEffectSub.
+  ///
+  /// In en, this message translates to:
+  /// **'How the words you’re saying light up on the current line'**
+  String get highlightEffectSub;
+
+  /// No description provided for @highlightOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get highlightOff;
+
+  /// No description provided for @highlightSimple.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple'**
+  String get highlightSimple;
+
+  /// No description provided for @highlightGlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Glow + sparkles'**
+  String get highlightGlow;
+
+  /// No description provided for @highlightGlowSub.
+  ///
+  /// In en, this message translates to:
+  /// **'A cold glow sweeps letter by letter as you speak, with sparkles rising off it; the line keeps its color. With Reduce motion it rests on the word you said.'**
+  String get highlightGlowSub;
+
+  /// No description provided for @highlightSimpleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The letters you’re saying take the accent color as you speak.'**
+  String get highlightSimpleSub;
+
+  /// No description provided for @highlightUseFont.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {font}, the serif it was designed with'**
+  String highlightUseFont(String font);
 
   /// No description provided for @blurBehind.
   ///
@@ -2798,6 +3038,42 @@ abstract class AppLocalizations {
   /// **'sherpa-onnx on this computer · no audio leaves it'**
   String get engineOnDeviceSub;
 
+  /// No description provided for @followsWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows with'**
+  String get followsWith;
+
+  /// No description provided for @followsWhyStreaming.
+  ///
+  /// In en, this message translates to:
+  /// **'Word by word: a streaming model hears each word as you say it. Whisper still transcribes questions and dictation.'**
+  String get followsWhyStreaming;
+
+  /// No description provided for @followsWhyWhisperUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Whisper only hears whole phrases: the script waits for your pauses, then moves a phrase at once. Download “{model}” to follow word by word.'**
+  String followsWhyWhisperUntil(String model);
+
+  /// No description provided for @followsWhyWhisperOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'No streaming model speaks this language yet: Whisper follows a phrase at a time.'**
+  String get followsWhyWhisperOnly;
+
+  /// No description provided for @followsWhyNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Download a model below to follow your voice.'**
+  String get followsWhyNone;
+
+  /// No description provided for @followsNoModel.
+  ///
+  /// In en, this message translates to:
+  /// **'No model yet'**
+  String get followsNoModel;
+
   /// No description provided for @following.
   ///
   /// In en, this message translates to:
@@ -2915,7 +3191,7 @@ abstract class AppLocalizations {
   /// No description provided for @onDeviceModelsFooter.
   ///
   /// In en, this message translates to:
-  /// **'Downloaded once from the sherpa-onnx project, then used offline. Follow English live with a streaming model; Whisper transcribes questions and follows other languages.'**
+  /// **'Downloaded once from the sherpa-onnx project, checked against a pinned checksum, then used offline. A streaming model follows your voice word by word (English, Spanish, French, German); Whisper transcribes questions and dictation, and follows other languages a phrase at a time.'**
   String get onDeviceModelsFooter;
 
   /// No description provided for @installed.
@@ -5725,6 +6001,588 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Quit'**
   String get quit;
+
+  /// No description provided for @pasteOrganized.
+  ///
+  /// In en, this message translates to:
+  /// **'Organized into sections and beats'**
+  String get pasteOrganized;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @newScriptSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How do you want to start?'**
+  String get newScriptSubtitle;
+
+  /// No description provided for @newScriptWordsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing and importing never change your wording. Generating writes new text from your material — read it through before you go live.'**
+  String get newScriptWordsNote;
+
+  /// No description provided for @pathWriteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Write from scratch'**
+  String get pathWriteTitle;
+
+  /// No description provided for @pathWriteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A blank script. Type it, or paste it, in the editor.'**
+  String get pathWriteBody;
+
+  /// No description provided for @pathImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import text'**
+  String get pathImportTitle;
+
+  /// No description provided for @pathImportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A file or pasted text, kept word for word. Sotto only organizes it into sections and beats.'**
+  String get pathImportBody;
+
+  /// No description provided for @pathGenerateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate with AI'**
+  String get pathGenerateTitle;
+
+  /// No description provided for @pathGenerateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'From a presentation, PDF or document. DeepSeek writes a new script for you to review and edit.'**
+  String get pathGenerateBody;
+
+  /// No description provided for @badgeKeepsWords.
+  ///
+  /// In en, this message translates to:
+  /// **'Keeps your words'**
+  String get badgeKeepsWords;
+
+  /// No description provided for @badgeWritesNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Writes new text'**
+  String get badgeWritesNew;
+
+  /// No description provided for @importDropHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop a .docx, .pdf, .md or .txt file here, or'**
+  String get importDropHint;
+
+  /// No description provided for @importChooseFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a file'**
+  String get importChooseFile;
+
+  /// No description provided for @importPasteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Or paste your text'**
+  String get importPasteLabel;
+
+  /// No description provided for @importPastePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the script here — it is kept exactly as written'**
+  String get importPastePlaceholder;
+
+  /// No description provided for @importPasteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Import text'**
+  String get importPasteAction;
+
+  /// No description provided for @genMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Material'**
+  String get genMaterial;
+
+  /// No description provided for @genMaterialHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop presentations, PDFs, documents or pictures here, or'**
+  String get genMaterialHint;
+
+  /// No description provided for @genChooseFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose files'**
+  String get genChooseFiles;
+
+  /// No description provided for @genReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading…'**
+  String get genReading;
+
+  /// No description provided for @genSlides.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 slide} other{{count} slides}}'**
+  String genSlides(int count);
+
+  /// No description provided for @genPages.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 page} other{{count} pages}}'**
+  String genPages(int count);
+
+  /// No description provided for @genParts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 part} other{{count} parts}}'**
+  String genParts(int count);
+
+  /// No description provided for @genPicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Picture'**
+  String get genPicture;
+
+  /// No description provided for @genHiddenSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 hidden slide skipped} other{{count} hidden slides skipped}}'**
+  String genHiddenSkipped(int count);
+
+  /// No description provided for @genNoNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'no speaker notes'**
+  String get genNoNotes;
+
+  /// No description provided for @genNotesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{notes on 1 slide} other{notes on {count} slides}}'**
+  String genNotesFound(int count);
+
+  /// No description provided for @genWords.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 word} other{{count} words}}'**
+  String genWords(int count);
+
+  /// No description provided for @genOcrUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{OCR on 1 scanned page} other{OCR on {count} scanned pages}}'**
+  String genOcrUsed(int count);
+
+  /// No description provided for @genOcrPicture.
+  ///
+  /// In en, this message translates to:
+  /// **'text read with OCR'**
+  String get genOcrPicture;
+
+  /// No description provided for @genRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get genRemove;
+
+  /// No description provided for @genDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get genDuration;
+
+  /// No description provided for @genMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'min'**
+  String get genMinutes;
+
+  /// No description provided for @genBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'≈ {words} words at your measured pace ({wpm} wpm)'**
+  String genBudget(int words, int wpm);
+
+  /// No description provided for @genBudgetDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'≈ {words} words at {wpm} wpm — rehearse once and it uses your own pace'**
+  String genBudgetDefault(int words, int wpm);
+
+  /// No description provided for @genAudience.
+  ///
+  /// In en, this message translates to:
+  /// **'Audience'**
+  String get genAudience;
+
+  /// No description provided for @genAudiencePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Who is listening? e.g. the board, new customers'**
+  String get genAudiencePlaceholder;
+
+  /// No description provided for @genTone.
+  ///
+  /// In en, this message translates to:
+  /// **'Tone'**
+  String get genTone;
+
+  /// No description provided for @genTonePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. confident and warm'**
+  String get genTonePlaceholder;
+
+  /// No description provided for @genChipExecutives.
+  ///
+  /// In en, this message translates to:
+  /// **'Executives'**
+  String get genChipExecutives;
+
+  /// No description provided for @genChipTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical team'**
+  String get genChipTeam;
+
+  /// No description provided for @genChipCustomers.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers'**
+  String get genChipCustomers;
+
+  /// No description provided for @genChipStudents.
+  ///
+  /// In en, this message translates to:
+  /// **'Students'**
+  String get genChipStudents;
+
+  /// No description provided for @genChipGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General public'**
+  String get genChipGeneral;
+
+  /// No description provided for @genChipConfident.
+  ///
+  /// In en, this message translates to:
+  /// **'Confident'**
+  String get genChipConfident;
+
+  /// No description provided for @genChipConversational.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversational'**
+  String get genChipConversational;
+
+  /// No description provided for @genChipFormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Formal'**
+  String get genChipFormal;
+
+  /// No description provided for @genChipInspiring.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspiring'**
+  String get genChipInspiring;
+
+  /// No description provided for @genChipConcise.
+  ///
+  /// In en, this message translates to:
+  /// **'Concise'**
+  String get genChipConcise;
+
+  /// No description provided for @genLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get genLanguage;
+
+  /// No description provided for @genLanguageSpeech.
+  ///
+  /// In en, this message translates to:
+  /// **'{language} — speech language'**
+  String genLanguageSpeech(String language);
+
+  /// No description provided for @genUseNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Use speaker notes'**
+  String get genUseNotes;
+
+  /// No description provided for @genUseNotesSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes often hold what you meant to say'**
+  String get genUseNotesSub;
+
+  /// No description provided for @genSectionPerSlide.
+  ///
+  /// In en, this message translates to:
+  /// **'One section per slide'**
+  String get genSectionPerSlide;
+
+  /// No description provided for @genSectionPerSlideSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Off: related slides share a section'**
+  String get genSectionPerSlideSub;
+
+  /// No description provided for @genQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Also prepare likely questions'**
+  String get genQuestions;
+
+  /// No description provided for @genQuestionsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'With answers from your material, in the Q&A prep tab'**
+  String get genQuestionsSub;
+
+  /// No description provided for @genPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'The text read from these files is sent to DeepSeek to write the script. Nothing is sent until you press Generate, and nothing else leaves this computer.'**
+  String get genPrivacy;
+
+  /// No description provided for @genNeedsKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating needs a DeepSeek API key'**
+  String get genNeedsKey;
+
+  /// No description provided for @genNeedsKeySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Add yours to generate scripts. Writing from scratch and importing text work without one.'**
+  String get genNeedsKeySub;
+
+  /// No description provided for @genOpenIntegrations.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings › Integrations'**
+  String get genOpenIntegrations;
+
+  /// No description provided for @genGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate script'**
+  String get genGenerate;
+
+  /// No description provided for @genCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel — nothing is saved'**
+  String get genCancel;
+
+  /// No description provided for @genTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get genTryAgain;
+
+  /// No description provided for @genFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t generate the script'**
+  String get genFailed;
+
+  /// No description provided for @genStageReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Material read'**
+  String get genStageReading;
+
+  /// No description provided for @genStageUnderstanding.
+  ///
+  /// In en, this message translates to:
+  /// **'Understanding the slides ({done}/{total})'**
+  String genStageUnderstanding(int done, int total);
+
+  /// No description provided for @genStageUnderstandingDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Understanding the slides'**
+  String get genStageUnderstandingDone;
+
+  /// No description provided for @genStageWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing the script'**
+  String get genStageWriting;
+
+  /// No description provided for @genStageChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking length, structure and slide cues'**
+  String get genStageChecking;
+
+  /// No description provided for @genStageQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing likely questions'**
+  String get genStageQuestions;
+
+  /// No description provided for @genPreviewWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'The script appears here as it is written.'**
+  String get genPreviewWaiting;
+
+  /// No description provided for @genDraftReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft ready — read it through before you go live.'**
+  String get genDraftReady;
+
+  /// No description provided for @genChecks.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 spot is marked for you to check.} other{{count} spots are marked for you to check.}}'**
+  String genChecks(int count);
+
+  /// No description provided for @genCheckMarker.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECK'**
+  String get genCheckMarker;
+
+  /// No description provided for @materialUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto can’t read {ext} files. Add a presentation (.pptx, .odp), a PDF, a document (.docx, .md, .txt) or a picture (.png, .jpg).'**
+  String materialUnsupported(String ext);
+
+  /// No description provided for @materialExportFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto can’t read {ext} files. Export it as PowerPoint (.pptx) or PDF and add that instead.'**
+  String materialExportFirst(String ext);
+
+  /// No description provided for @materialLegacy.
+  ///
+  /// In en, this message translates to:
+  /// **'This is an old Office format or a password-protected file. Save it as .pptx or .docx without a password, or export it as PDF.'**
+  String get materialLegacy;
+
+  /// No description provided for @materialTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is too large to read safely (up to 100 MB).'**
+  String get materialTooLarge;
+
+  /// No description provided for @materialTooManyPages.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has {count} slides or pages; Sotto reads up to {max}. Split it, or export the part you need.'**
+  String materialTooManyPages(int count, int max);
+
+  /// No description provided for @materialCorrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is damaged or isn’t what its name says. Open it and save it again, or export it as PDF.'**
+  String get materialCorrupted;
+
+  /// No description provided for @materialEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No text found in this file — not even with OCR.'**
+  String get materialEmpty;
+
+  /// No description provided for @markersLive.
+  ///
+  /// In en, this message translates to:
+  /// **'Show markers to check'**
+  String get markersLive;
+
+  /// No description provided for @markersLiveSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Spots a generated script marked [CHECK: …], in the cue color. Never followed by voice; off, the live view leaves them out'**
+  String get markersLiveSub;
+
+  /// No description provided for @markersCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 spot to check} other{{count} spots to check}}'**
+  String markersCount(int count);
+
+  /// No description provided for @markerPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous marker'**
+  String get markerPrevious;
+
+  /// No description provided for @markerNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next marker'**
+  String get markerNext;
+
+  /// No description provided for @markerRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove marker'**
+  String get markerRemove;
+
+  /// No description provided for @markerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The marker is selected: type the missing fact over it, or remove it.'**
+  String get markerHint;
+
+  /// No description provided for @pfMarkers.
+  ///
+  /// In en, this message translates to:
+  /// **'Spots to check'**
+  String get pfMarkers;
+
+  /// No description provided for @pfMarkersShown.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 marker is still in the script. It shows in the cue color and is never followed.} other{{count} markers are still in the script. They show in the cue color and are never followed.}}'**
+  String pfMarkersShown(int count);
+
+  /// No description provided for @pfMarkersHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 marker is still in the script. It is hidden while live.} other{{count} markers are still in the script. They are hidden while live.}}'**
+  String pfMarkersHidden(int count);
+
+  /// No description provided for @pfOpenFirstMarker.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the first'**
+  String get pfOpenFirstMarker;
+
+  /// No description provided for @genFailedNothingSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was saved. Fix the problem and try again, or go back.'**
+  String get genFailedNothingSaved;
+
+  /// No description provided for @genFailedInvalidReply.
+  ///
+  /// In en, this message translates to:
+  /// **'DeepSeek’s reply couldn’t be turned into a script twice in a row.'**
+  String get genFailedInvalidReply;
+
+  /// No description provided for @genFailedNoText.
+  ///
+  /// In en, this message translates to:
+  /// **'No text was found in the material.'**
+  String get genFailedNoText;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
