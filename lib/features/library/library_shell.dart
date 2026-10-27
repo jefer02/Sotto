@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../l10n/l10n.dart';
 
+import '../../app/app_session.dart';
 import '../../core/design/icons.dart';
 import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
@@ -23,6 +24,7 @@ import '../../core/widgets/stage_light.dart';
 import '../../core/widgets/stage_transitions.dart';
 import '../../core/widgets/window_chrome.dart';
 import '../../data/models/script.dart';
+import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
 import '../onboarding/welcome_dialog.dart';
 import 'readiness.dart';
@@ -268,6 +270,18 @@ class _Sidebar extends ConsumerWidget {
           ),
         ),
         if (!collapsed) const Padding(padding: EdgeInsets.fromLTRB(12, 8, 12, 8), child: _ReadinessCard()),
+        // App Lock on: lock from here too (chord + K anywhere).
+        if (ref.watch(lockEnabledProvider))
+          Padding(
+            padding: EdgeInsets.fromLTRB(collapsed ? 10 : 12, 0, collapsed ? 10 : 12, 2),
+            child: NavItem(
+              label: context.l10n.navLock,
+              icon: SottoIcons.lock,
+              trailing: PlatformKeys.describe(ref.watch(settingsProvider).shortcutFor(LiveAction.lockApp)),
+              collapsed: collapsed,
+              onTap: ref.watch(sessionBusyProvider) ? null : () => unawaited(ref.read(appSessionProvider)?.lock()),
+            ),
+          ),
         Padding(
           padding: EdgeInsets.fromLTRB(collapsed ? 10 : 12, 0, collapsed ? 10 : 12, 12),
           child: NavItem(
