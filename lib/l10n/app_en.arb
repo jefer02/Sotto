@@ -58,6 +58,148 @@
   "actionPrevBeatSub": "Also holds following for 3 seconds",
   "actionNextSection": "Next section",
   "actionPrevSection": "Previous section",
+  "actionLockApp": "Lock Sotto",
+  "actionLockAppSub": "Only while App lock is on (Settings → Privacy)",
+  "unlock": "Unlock",
+  "unlockWrongPassword": "Incorrect password",
+  "lockEncrypting": "Encrypting your data…",
+  "lockDecrypting": "Decrypting your data…",
+  "lockProgressBody": "Keep Sotto open — this takes a few seconds.",
+  "back": "Back",
+  "continueAction": "Continue",
+  "passwordShow": "Show password",
+  "passwordHide": "Hide password",
+  "capsLockOn": "Caps Lock is on",
+  "passwordTooShort": "Use at least {count} characters",
+  "@passwordTooShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "passwordWeak": "Weak — longer is stronger; try a few words",
+  "passwordFair": "Fair — a few more words would help",
+  "passwordGood": "Good",
+  "passwordStrong": "Strong",
+  "unlockWelcome": "Welcome back",
+  "unlockSubtitle": "Your scripts are locked on this computer.",
+  "unlockPasswordLabel": "Password",
+  "unlockPasswordPlaceholder": "Enter your password",
+  "unlockThrottled": "Too many attempts. Try again in {time}.",
+  "@unlockThrottled": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "unlockUseBiometrics": "Use {method}",
+  "@unlockUseBiometrics": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "unlockBiometricFailed": "{method} didn't unlock Sotto — use your password.",
+  "@unlockBiometricFailed": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "unlockForgot": "Forgot password?",
+  "recoveryTitle": "Use your recovery key",
+  "recoveryBody": "Enter the recovery key you saved when you turned on the lock. Then you choose a new password; your data stays as it is.",
+  "recoveryKeyLabel": "Recovery key",
+  "recoveryMalformed": "A recovery key is 28 letters and numbers, in groups of four",
+  "recoveryWrong": "That recovery key doesn't match this Sotto",
+  "newPasswordTitle": "Choose a new password",
+  "newPasswordBody": "Your recovery key stays the same.",
+  "newPasswordLabel": "New password",
+  "setPasswordAndUnlock": "Set password and unlock",
+  "resetLink": "Lost the recovery key too?",
+  "resetSotto": "Reset Sotto",
+  "resetTitle": "Reset Sotto?",
+  "resetBody": "Without the password or the recovery key, the locked data can't be recovered — by you or by anyone. Resetting deletes your scripts, collections, sessions, Q&A history, chats and forms instructions on this computer, and turns the lock off.",
+  "resetKeeps": "Your settings and your DeepSeek key stay.",
+  "resetWord": "RESET",
+  "resetTypeToConfirm": "Type {word} to confirm",
+  "@resetTypeToConfirm": {
+    "placeholders": {
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "resetConfirmLabel": "Confirmation",
+  "resetButton": "Delete everything and reset",
+  "vaultDamagedTitle": "Sotto's lock can't be read",
+  "vaultDamagedBody": "The file that holds the key to your data (lock_vault.json) is damaged, so the data can't be unlocked. If you have a backup of it, put it back and restart Sotto. Otherwise you can reset Sotto and start over.",
+  "show": "Show",
+  "copied": "Copied",
+  "change": "Change",
+  "appLock": "App lock",
+  "appLockToggle": "Lock Sotto with a password",
+  "appLockToggleSub": "Encrypts your scripts, sessions, Q&A history and chats on this computer. Sotto asks for the password when it opens.",
+  "appLockFooterOff": "Without the lock, anyone using this computer account can read Sotto's files.",
+  "appLockFooterOn": "Settings (theme, language, window size) stay readable so this screen can open; your DeepSeek key stays in the system keychain. While Sotto is unlocked, the data is open.",
+  "lockNow": "Lock now",
+  "lockNowSub": "Also from the sidebar, or {keys} from anywhere",
+  "@lockNowSub": {
+    "placeholders": {
+      "keys": {
+        "type": "String"
+      }
+    }
+  },
+  "autoLock": "Auto-lock",
+  "autoLockSub": "After this long without using Sotto. Never during a talk, rehearsal or fill.",
+  "autoLockOff": "Never",
+  "autoLockMinutes": "{count} min",
+  "@autoLockMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unlockWithBiometrics": "Unlock with {method}",
+  "@unlockWithBiometrics": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "biometricsSub": "Faster, but a copy of the data key is kept in the system keychain, where programs running as you can read it. Turning this off deletes that copy.",
+  "biometricUnlockReason": "Unlock Sotto",
+  "biometricEnableReason": "Allow unlocking Sotto this way",
+  "changePassword": "Change password",
+  "changePasswordBody": "Your data and your recovery key stay as they are.",
+  "currentPassword": "Current password",
+  "recoveryKeySub": "Opens Sotto if you forget the password",
+  "newRecoveryKey": "New key",
+  "showRecoveryKeyTitle": "Show the recovery key",
+  "showRecoveryKeyBody": "Enter your password to see it.",
+  "newRecoveryKeyTitle": "Make a new recovery key?",
+  "newRecoveryKeyBody": "The current recovery key stops working at once. Enter your password to continue.",
+  "newRecoveryKeyReady": "Your new recovery key",
+  "newRecoveryKeyReadyBody": "The old one no longer works. Save this one now — it won't be shown again unless you ask with your password.",
+  "enableLockTitle": "Create a password",
+  "enableLockBody": "At least 8 characters. A few unrelated words are easy to remember and hard to guess. There are no other rules.",
+  "saveRecoveryKeyTitle": "Save your recovery key",
+  "saveRecoveryKeyBody": "If you forget your password, this key is the only way back into your data.",
+  "recoveryKeyWarning": "Keep it somewhere other than this computer — a password manager, or on paper. Without the password or this key, your data can't be recovered, by you or by anyone.",
+  "oneDriveNote": "If your Documents folder syncs with OneDrive, older unencrypted copies may remain in its version history or recycle bin — check them afterwards.",
+  "recoveryKeySaved": "I've saved my recovery key",
+  "encryptMyData": "Encrypt my data",
+  "disableLockTitle": "Turn off the lock?",
+  "disableLockBody": "Your data is decrypted back to plain files on this computer, and the password, the recovery key and Windows Hello / Touch ID stop being used.",
+  "disableLockAction": "Turn off",
+  "navLock": "Lock",
   "actionAsk": "Ask a question",
   "actionAskSub": "Listens to the room until it goes quiet",
   "actionSend": "Send answer to chat",
