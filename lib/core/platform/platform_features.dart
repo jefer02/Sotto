@@ -21,6 +21,7 @@ class PlatformFeatures {
     required this.browserBridge,
     required this.captureExclusion,
     required this.readAloud,
+    required this.biometrics,
     this.wayland = false,
   });
 
@@ -41,6 +42,8 @@ class PlatformFeatures {
       captureExclusion: full,
       // flutter_tts has no Linux implementation.
       readAloud: full,
+      // App Lock: Windows Hello / Touch ID (local_auth has no Linux one).
+      biometrics: full,
       wayland: os == 'linux' && wayland,
     );
   }
@@ -59,6 +62,7 @@ class PlatformFeatures {
   final bool browserBridge;
   final bool captureExclusion;
   final bool readAloud;
+  final bool biometrics;
 
   /// A Wayland session on Linux: global shortcuts (keybinder) and
   /// always-on-top only work through XWayland, if at all.
