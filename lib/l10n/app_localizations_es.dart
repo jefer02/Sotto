@@ -89,6 +89,293 @@ class AppLocalizationsEs extends AppLocalizations {
   String get actionPrevSection => 'Sección anterior';
 
   @override
+  String get actionLockApp => 'Bloquear Sotto';
+
+  @override
+  String get actionLockAppSub => 'Solo con el bloqueo de la app activado (Ajustes → Privacidad)';
+
+  @override
+  String get unlock => 'Desbloquear';
+
+  @override
+  String get unlockWrongPassword => 'Contraseña incorrecta';
+
+  @override
+  String get lockEncrypting => 'Cifrando tus datos…';
+
+  @override
+  String get lockDecrypting => 'Descifrando tus datos…';
+
+  @override
+  String get lockProgressBody => 'No cierres Sotto: tarda unos segundos.';
+
+  @override
+  String get back => 'Atrás';
+
+  @override
+  String get continueAction => 'Continuar';
+
+  @override
+  String get passwordShow => 'Mostrar contraseña';
+
+  @override
+  String get passwordHide => 'Ocultar contraseña';
+
+  @override
+  String get capsLockOn => 'Bloq Mayús está activado';
+
+  @override
+  String passwordTooShort(int count) {
+    return 'Usa al menos $count caracteres';
+  }
+
+  @override
+  String get passwordWeak => 'Débil: cuanto más larga, mejor; prueba con varias palabras';
+
+  @override
+  String get passwordFair => 'Aceptable: unas palabras más la harían mejor';
+
+  @override
+  String get passwordGood => 'Buena';
+
+  @override
+  String get passwordStrong => 'Muy buena';
+
+  @override
+  String get unlockWelcome => 'Hola de nuevo';
+
+  @override
+  String get unlockSubtitle => 'Tus guiones están bloqueados en este equipo.';
+
+  @override
+  String get unlockPasswordLabel => 'Contraseña';
+
+  @override
+  String get unlockPasswordPlaceholder => 'Escribe tu contraseña';
+
+  @override
+  String unlockThrottled(String time) {
+    return 'Demasiados intentos. Vuelve a probar en $time.';
+  }
+
+  @override
+  String unlockUseBiometrics(String method) {
+    return 'Usar $method';
+  }
+
+  @override
+  String unlockBiometricFailed(String method) {
+    return '$method no ha desbloqueado Sotto: usa tu contraseña.';
+  }
+
+  @override
+  String get unlockForgot => '¿Has olvidado la contraseña?';
+
+  @override
+  String get recoveryTitle => 'Usa tu clave de recuperación';
+
+  @override
+  String get recoveryBody =>
+      'Escribe la clave de recuperación que guardaste al activar el bloqueo. Después eliges una contraseña nueva; tus datos no cambian.';
+
+  @override
+  String get recoveryKeyLabel => 'Clave de recuperación';
+
+  @override
+  String get recoveryMalformed => 'La clave tiene 28 letras y números, en grupos de cuatro';
+
+  @override
+  String get recoveryWrong => 'Esa clave de recuperación no es la de este Sotto';
+
+  @override
+  String get newPasswordTitle => 'Elige una contraseña nueva';
+
+  @override
+  String get newPasswordBody => 'Tu clave de recuperación sigue siendo la misma.';
+
+  @override
+  String get newPasswordLabel => 'Contraseña nueva';
+
+  @override
+  String get setPasswordAndUnlock => 'Guardar y desbloquear';
+
+  @override
+  String get resetLink => '¿También perdiste la clave?';
+
+  @override
+  String get resetSotto => 'Restablecer Sotto';
+
+  @override
+  String get resetTitle => '¿Restablecer Sotto?';
+
+  @override
+  String get resetBody =>
+      'Sin la contraseña ni la clave de recuperación, los datos bloqueados no se pueden recuperar: ni tú ni nadie. Al restablecer se borran de este equipo tus guiones, colecciones, sesiones, historial de preguntas, chats e instrucciones de formularios, y el bloqueo se desactiva.';
+
+  @override
+  String get resetKeeps => 'Se conservan tus ajustes y tu clave de DeepSeek.';
+
+  @override
+  String get resetWord => 'BORRAR';
+
+  @override
+  String resetTypeToConfirm(String word) {
+    return 'Escribe $word para confirmar';
+  }
+
+  @override
+  String get resetConfirmLabel => 'Confirmación';
+
+  @override
+  String get resetButton => 'Borrar todo y restablecer';
+
+  @override
+  String get vaultDamagedTitle => 'No se puede leer el bloqueo de Sotto';
+
+  @override
+  String get vaultDamagedBody =>
+      'El archivo que guarda la llave de tus datos (lock_vault.json) está dañado, así que no se pueden desbloquear. Si tienes una copia, devuélvela a su sitio y reinicia Sotto. Si no, puedes restablecer Sotto y empezar de cero.';
+
+  @override
+  String get show => 'Ver';
+
+  @override
+  String get copied => 'Copiada';
+
+  @override
+  String get change => 'Cambiar';
+
+  @override
+  String get appLock => 'Bloqueo de la app';
+
+  @override
+  String get appLockToggle => 'Proteger Sotto con contraseña';
+
+  @override
+  String get appLockToggleSub =>
+      'Cifra tus guiones, sesiones, historial de preguntas y chats en este equipo. Sotto pedirá la contraseña al abrirse.';
+
+  @override
+  String get appLockFooterOff =>
+      'Sin el bloqueo, cualquiera que use esta cuenta del equipo puede leer los archivos de Sotto.';
+
+  @override
+  String get appLockFooterOn =>
+      'Los ajustes (tema, idioma, tamaño de la ventana) siguen legibles para que esta pantalla pueda abrirse; tu clave de DeepSeek sigue en el llavero del sistema. Mientras Sotto está desbloqueado, los datos están abiertos.';
+
+  @override
+  String get lockNow => 'Bloquear ahora';
+
+  @override
+  String lockNowSub(String keys) {
+    return 'También desde la barra lateral, o con $keys desde cualquier sitio';
+  }
+
+  @override
+  String get autoLock => 'Bloqueo automático';
+
+  @override
+  String get autoLockSub => 'Tras este tiempo sin usar Sotto. Nunca en mitad de una charla, un ensayo o un relleno.';
+
+  @override
+  String get autoLockOff => 'Nunca';
+
+  @override
+  String autoLockMinutes(int count) {
+    return '$count min';
+  }
+
+  @override
+  String unlockWithBiometrics(String method) {
+    return 'Desbloquear con $method';
+  }
+
+  @override
+  String get biometricsSub =>
+      'Más rápido, pero se guarda una copia de la llave de los datos en el llavero del sistema, donde los programas que se ejecutan con tu usuario pueden leerla. Al desactivarlo se borra esa copia.';
+
+  @override
+  String get biometricUnlockReason => 'Desbloquear Sotto';
+
+  @override
+  String get biometricEnableReason => 'Permitir desbloquear Sotto así';
+
+  @override
+  String get changePassword => 'Cambiar la contraseña';
+
+  @override
+  String get changePasswordBody => 'Tus datos y tu clave de recuperación no cambian.';
+
+  @override
+  String get currentPassword => 'Contraseña actual';
+
+  @override
+  String get recoveryKeySub => 'Abre Sotto si olvidas la contraseña';
+
+  @override
+  String get newRecoveryKey => 'Nueva clave';
+
+  @override
+  String get showRecoveryKeyTitle => 'Ver la clave de recuperación';
+
+  @override
+  String get showRecoveryKeyBody => 'Escribe tu contraseña para verla.';
+
+  @override
+  String get newRecoveryKeyTitle => '¿Crear una clave de recuperación nueva?';
+
+  @override
+  String get newRecoveryKeyBody =>
+      'La clave actual deja de funcionar en ese momento. Escribe tu contraseña para seguir.';
+
+  @override
+  String get newRecoveryKeyReady => 'Tu nueva clave de recuperación';
+
+  @override
+  String get newRecoveryKeyReadyBody =>
+      'La anterior ya no sirve. Guarda esta ahora: no se volverá a mostrar salvo que la pidas con tu contraseña.';
+
+  @override
+  String get enableLockTitle => 'Crea una contraseña';
+
+  @override
+  String get enableLockBody =>
+      'Al menos 8 caracteres. Unas cuantas palabras sin relación se recuerdan fácil y cuestan de adivinar. No hay más reglas.';
+
+  @override
+  String get saveRecoveryKeyTitle => 'Guarda tu clave de recuperación';
+
+  @override
+  String get saveRecoveryKeyBody => 'Si olvidas la contraseña, esta clave es la única forma de volver a tus datos.';
+
+  @override
+  String get recoveryKeyWarning =>
+      'Guárdala fuera de este equipo: en un gestor de contraseñas o en papel. Sin la contraseña ni esta clave, tus datos no se pueden recuperar, ni por ti ni por nadie.';
+
+  @override
+  String get oneDriveNote =>
+      'Si tu carpeta Documentos se sincroniza con OneDrive, pueden quedar copias antiguas sin cifrar en su historial de versiones o en su papelera: revísalas después.';
+
+  @override
+  String get recoveryKeySaved => 'He guardado mi clave de recuperación';
+
+  @override
+  String get encryptMyData => 'Cifrar mis datos';
+
+  @override
+  String get disableLockTitle => '¿Desactivar el bloqueo?';
+
+  @override
+  String get disableLockBody =>
+      'Tus datos vuelven a guardarse sin cifrar en este equipo, y la contraseña, la clave de recuperación y Windows Hello / Touch ID dejan de usarse.';
+
+  @override
+  String get disableLockAction => 'Desactivar';
+
+  @override
+  String get navLock => 'Bloquear';
+
+  @override
   String get actionAsk => 'Escuchar una pregunta';
 
   @override
