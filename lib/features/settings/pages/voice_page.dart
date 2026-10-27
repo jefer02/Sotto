@@ -123,7 +123,7 @@ class _VoicePageState extends ConsumerState<VoicePage> {
           }
         },
       ),
-      left: [
+      sections: [
         SettingsGroup(
           title: context.l10n.pfMicrophone,
           children: [
@@ -286,7 +286,7 @@ class _VoicePageState extends ConsumerState<VoicePage> {
           ],
         ),
       ],
-      right: [
+      panel: [
         _LiveCheck(active: _testing),
         const _PaceCard(),
       ],

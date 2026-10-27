@@ -21,6 +21,7 @@ import '../../data/models/script.dart';
 import '../../data/models/settings.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
+import '../../domain/structuring/check_markers.dart';
 import '../library/readiness.dart';
 import '../live/live_controller.dart';
 
@@ -82,6 +83,8 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
     final minutes = formatMinutes(s.targetSeconds ?? s.estimatedSeconds(settings.wordsPerMinute));
 
     final l = context.l10n;
+    // Markers a generated script left to check: a warning, never a blocker.
+    final markers = CheckMarkers.inScript(s).length;
     final checks = readiness == null
         ? const <_Check>[]
         : [
@@ -150,7 +153,19 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
               ),
             _Check(icon: SottoIcons.send, title: l.pfMeetingChat, detail: l.pfMeetingChatDetail, level: CheckLevel.ok),
           ];
+    // Known at once, from the script: shown even while the rest loads.
+    final markerCheck = markers == 0
+        ? null
+        : _Check(
+            key: const ValueKey('pf-markers'),
+            icon: SottoIcons.alert,
+            title: l.pfMarkers,
+            detail: settings.showMarkersLive ? l.pfMarkersShown(markers) : l.pfMarkersHidden(markers),
+            level: CheckLevel.warn,
+            action: (l.pfOpenFirstMarker, '/script/${s.id}?marker=0'),
+          );
     final passed = checks.where((c) => c.level == CheckLevel.ok).length;
+    final total = checks.length + (markerCheck == null ? 0 : 1);
 
     return CallbackShortcuts(
       bindings: {
@@ -190,7 +205,7 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
                             const SizedBox(height: 4),
                             Text(
                               l.pfSummary(minutes, l.sectionsCount(s.sections.length)) +
-                                  (checks.isEmpty ? '' : l.pfChecksPassed(passed, checks.length)),
+                                  (checks.isEmpty ? '' : l.pfChecksPassed(passed, total)),
                               style: TypeScale.caption.copyWith(color: p.inkTertiary),
                             ),
                           ],
@@ -207,17 +222,21 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
                   // Only the checklist scrolls: the title and the go button
                   // stay put on short windows.
                   Flexible(
-                    child: checks.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.all(40),
-                            child: Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
-                          )
-                        : SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [for (final c in checks) _CheckRow(check: c)],
-                            ),
-                          ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (markerCheck != null) _CheckRow(key: markerCheck.key, check: markerCheck),
+                          if (checks.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.all(40),
+                              child: Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+                            )
+                          else
+                            for (final c in checks) _CheckRow(key: c.key, check: c),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Divider(height: 1, color: p.hairline),
@@ -285,6 +304,7 @@ class _PreflightDialogState extends ConsumerState<PreflightDialog> {
 
 class _Check {
   const _Check({
+    this.key,
     required this.icon,
     required this.title,
     required this.detail,
@@ -294,6 +314,7 @@ class _Check {
     this.blocking = false,
   });
 
+  final Key? key;
   final SottoIcons icon;
   final String title;
   final String detail;
@@ -311,7 +332,7 @@ class _Check {
 }
 
 class _CheckRow extends StatelessWidget {
-  const _CheckRow({required this.check});
+  const _CheckRow({super.key, required this.check});
   final _Check check;
 
   @override

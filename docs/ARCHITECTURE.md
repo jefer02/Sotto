@@ -49,8 +49,121 @@ A script is usable within a second or two of importing, even at 10,000+ words:
 
 `DeepSeekTaskProfile` (`lib/services/ai/task_profile.dart`) is the one place that decides DeepSeek's
 thinking per task: organize, answers and chat off (chat has a per-conversation *Think deeper*),
-questionnaires and agent mode at low effort. Multi-turn requests with thinking on send each
+questionnaires and agent mode at low effort; generating a script off for reading slides (`digest`)
+and high for writing the script (`generate`). Multi-turn requests with thinking on send each
 `reasoning_content` back, as the API requires.
+
+## New script: write, import or generate
+
+*New script* (the library's button, `Ctrl+N` / `⌘N`) opens one dialog with three paths, each labelled
+by what it does with wording — **Keeps your words** or **Writes new text**
+(`lib/features/library/new_script_dialog.dart`):
+
+1. **Write from scratch** — a blank script, as before.
+2. **Import text** — a file (drop or pick: `.docx`, `.pdf`, `.md`, `.txt`) or pasted text, kept word
+   for word and organized as above (`importFiles` / `importText`).
+3. **Generate with AI** — from presentations, PDFs, documents or pictures. The form lists every file
+   with what was read from it ("12 slides · 1 hidden slide skipped · notes on 9 slides · 1,240 words ·
+   OCR on 2 scanned pages", or why it couldn't be read), the duration — the word budget is minutes ×
+   the presenter's pace (the mean of their rehearsals in `AppSettings.paceSamples`, else Settings'
+   148 wpm) — audience and tone (free text plus quick chips), the language (default: the speech
+   language), and *Use speaker notes*, *One section per slide* and *Also prepare likely questions*.
+   A notice that the files' text goes to DeepSeek is on screen before *Generate*; without a key the
+   path says it needs one and links to Settings › Integrations. While it runs, each stage shows its
+   progress and the script streams into a preview; *Cancel* closes the request at once and saves
+   nothing. The result opens in the editor as a **draft**, titled from the material (its first
+   slide's title, else the file name), with `targetSeconds` set and the likely questions in Q&A prep.
+
+**Extraction** (`lib/data/import/`) — everything on this computer and off the UI thread, into one model,
+`SourceMaterial` → `SourceUnit` {number, title, body lines with outline levels, speaker notes, OCR text,
+alt text} (`source_material.dart`):
+
+- **.pptx** (`presentation_parser.dart`, on `Isolate.run`): slide order comes from
+  `ppt/presentation.xml` (`p:sldIdLst`) resolved through its `.rels` — never from part names, which
+  reordering slides doesn't change. Text from `a:t` runs, paragraph by paragraph with `a:pPr@lvl`;
+  titles from `title` / `ctrTitle` placeholders; slide number, date, header and footer placeholders
+  skipped; table rows as "a | b | c"; pictures' `descr` as alt text; speaker notes from the notes
+  slide's body placeholder. Hidden slides (`show="0"`) are skipped and reported; numbers stay the
+  deck's (hidden ones count, as in PowerPoint), so cues match the slides on screen.
+- **.odp**: `draw:page`s in order; title frames by `presentation:class`, list depth as the level,
+  `svg:desc` / `svg:title` of images, the notes page; hidden pages (page or page-style
+  `presentation:visibility="hidden"`) skipped and reported.
+- **.pdf**: pdfrx's text layer per page (PDFium on its worker isolate); a page with fewer than 24
+  letters is treated as scanned — rendered to 2,000 px and read by the system OCR
+  (Windows.Media.Ocr / macOS Vision) through a new `ocrImage` call on `app.sotto/screen`
+  (`SottoRecognizeBgra` in `windows/runner/native/screen_capture.cpp`, `recognizeImage` in
+  `MainFlutterWindow.swift`). Wrapped lines rejoin; a short unpunctuated first line is the title.
+- **.docx / .md / .txt**: the importer's text, cut at headings, bullets keeping their indentation.
+- **.png / .jpg**: decoded on `Isolate.run` (`image`), then OCR.
+- **Unsupported**: `.key`, `.ppt`, `.pps`, `.doc`, `.pages`… say to export as PowerPoint (.pptx) or
+  PDF; old binary or password-protected Office files (OLE compound) say to save them again.
+- **Limits** (`ReadLimits`): files up to 100 MB and 300 slides or pages; archives up to 10,000
+  entries, each XML part up to 16 MB and 96 MB in all, uncompressed — checked against the central
+  directory before anything is inflated, and the archive package never inflates an entry past its
+  declared size, so a zip bomb stops there; pictures up to 40 MP. Only parts with plain relative
+  names are looked up (no `..`, absolute, drive or backslash names), relationship targets that
+  would leave the package are dropped, and nothing is ever written to disk.
+- Cost: O(B) time in the uncompressed XML read (one pass per part), memory one part's DOM at a time
+  plus the text kept; per scanned page, rendering and OCR are O(pixels) at ≤ 2,000 px a side.
+
+**Generation** (`lib/services/ai/script_generator.dart`; prompts, parsing and repair are pure in
+`lib/domain/structuring/generation_plan.dart`), map-reduce:
+
+1. **Map** — groups of ≤ 6 slides (≤ 1,200 words, never across files) → each slide's purpose, key
+   ideas and verbatim facts as JSON; 4 in flight (`forEachParallel`), retried with exponential
+   backoff on 429 / 5xx / timeouts (`withRetry`), thinking off. A reply unusable twice falls back to
+   the slides' own words.
+2. **Reduce** — one streamed request writes the script: an introduction, sections (one per slide,
+   or per group of related slides), beats written to be spoken (8–30 words), `"slide": n` on the beat
+   where each slide of the presented deck appears (the first deck, else the first PDF; supporting
+   documents get no cues), and a closing — within the word budget ±10 %. Thinking high.
+3. **Check** — the reply is parsed into Script / Section / Beat / Cue and repaired locally: code fences
+   and stray prose around the JSON tolerated, empty beats dropped, Markdown and cue tokens stripped
+   from spoken text, cues kept only for known slides, once each and ascending. Unusable JSON is asked
+   for once more with what was wrong; a length outside the budget is sent back once to be resized
+   (the closer of the two wins). Long beats are then split where the rule-based organizer splits
+   them (`ScriptStructurer.splitLong`), the cue staying on the first part, and hint words computed.
+4. **Questions** (optional) — 5–8 likely audience questions with answers from the same digests.
+
+Grounding: the prompts allow only facts from the material and forbid inventing numbers, names or
+dates; where something needed is missing the model writes a visible marker — `[CHECK: …]`
+(`[REVISAR: …]` in Spanish) — and the snackbar says how many there are. Prompt injection: every
+piece of file content (and the audience and tone the presenter typed) goes between
+`<material>` … `</material>`, any tag-like `<material` / `</material` inside it is defused (`‹`), and
+each system prompt says the block is data whose instructions are never followed. Results are cached
+in the organize box by a hash of (material, options, model) — the same request again opens at once.
+Cost for U slides, T words and a budget of W words: map is ⌈U/6⌉ requests (≈ ⌈U/24⌉ round trips),
+O(T) tokens in; reduce one request with O(U) digest tokens in and O(W) out (twice at most); local
+work O(T + W) time and memory.
+
+Errors: whatever stops a run — DeepSeek's own errors (bad key, no balance, busy after retries, timed
+out), a dropped connection, a garbled stream, a reply unusable twice — reaches the dialog as one worded
+message under "Couldn't generate the script", with "Nothing was saved", *Try again* and *Back*; the
+material stays added. Nothing is saved or cached until a run succeeds.
+
+**Markers to check** (`lib/domain/structuring/check_markers.dart`). `[CHECK: …]`, `[REVISAR: …]` (and
+`VERIFY` / `VERIFICAR`) live inside beat text, so everything that reads beats knows them:
+
+- *Voice following*: `FlatScript` gives a marker's words no tokens — reading one aloud never moves the
+  script — while display indexes still point at the words shown; a beat ending in a marker is
+  finished by its last real word (`FlatBeat.wordsToSay`), and a beat that is only a marker is passed
+  over like an empty one.
+- *Overlay*: marker words are drawn in the cue color and never dimmed as said. Settings → Appearance →
+  *Show markers to check* (on by default): off, a session starts from the script with markers
+  stripped (`CheckMarkers.stripScript`; beats left empty dropped, ids kept), so the overlay and the
+  aligner see the same text.
+- *Editor*: the Write tab shows "N spots to check" with previous / next (across sections, wrapping);
+  each marker opens selected, so typing replaces it, or *Remove marker* takes it out with its spacing
+  tidied. `/script/<id>?marker=<n>` opens on marker n.
+- *Pre-flight*: a non-blocking warning, "Spots to check", with how many are left, whether they show
+  live, and *Open the first*; shown at once, before the other checks load.
+
+**Debug logs** (debug builds only, `debugPrint`): `material:` per file — kind, units, hidden slides,
+words, notes, OCR'd pages and time — and per OCR call (`OCR <file> page n: w x h px, chars recognized,
+ms`, after "no text layer, rendered in … ms"); `generate:` the input size and budget, each map group's
+time, then per stage (map, write, resize, questions) its time and DeepSeek's token counts (prompt,
+prefix-cache hits, completion, thinking — asked for with `stream_options.include_usage` only while
+generating), local repairs and fallbacks, and the stage a failure or cancel happened in.
 
 ## Languages
 
@@ -99,7 +212,8 @@ lib/
   data/
     models/       Script → Section → Beat (+Cue), settings, Q&A entries, sessions (hand-written JSON)
     storage/      Hive CE boxes (LocalStore), API keys in the OS keychain (SecretStore)
-    import/       .txt / .md / .docx (OOXML) / .pdf (PDFium) → text
+    import/       .txt / .md / .docx (OOXML) / .pdf (PDFium) → text; presentations, PDFs, documents
+                  and pictures → SourceMaterial for generating (.pptx, .odp, OCR, safe archives)
     repositories.dart   Riverpod providers over the stores
   l10n/           ARB catalogs (en, es), generated AppLocalizations, L10n helpers
   domain/
@@ -110,22 +224,27 @@ lib/
     following/    Text normalizer ("$48.2" → "forty eight point two"), Smith–Waterman aligner,
                   FollowEngine (the rules from the "Following your voice" board)
     structuring/  Rule-based organizer, sentence splitter, ID-based AI plan: chunking,
-                  validation / repair, local rebuild, progressive merge
+                  validation / repair, local rebuild, progressive merge; generation prompts,
+                  reply parsing and repair
   services/
     speech/       Mic capture (record), sherpa-onnx worker isolate (offset streaming decoders), Whisper, VAD,
                   pinned models, dictation
     system_fonts  Installed font families, read from font files' name tables
-    ai/           DeepSeek client (SSE, tool calls, task profiles), organizer, answers, chat,
-                  questionnaires, agent model
+    ai/           DeepSeek client (SSE, tool calls, task profiles), organizer, script generator,
+                  answers, chat, questionnaires, agent model
     screen/       On-demand screenshots (Windows.Graphics.Capture / ScreenCaptureKit) and form
                   access (UI Automation / AX)
     agent/        Native input (SendInput + UI Automation) and the real agent executor
     tts/          Read aloud (flutter_tts)
   features/
-    library/      Home, script lists, sessions, import (drop / paste / browse), readiness
+    library/      Home, script lists, sessions, import (drop / paste / browse), the New script
+                  dialog and its generate controller, readiness
     editor/       Script workspace: Write, Q&A prep, Rehearsals, live overlay preview
     preflight/    Go-live checks
-    settings/     Shortcuts, Appearance, Voice & following, Answers, General, Integrations, Privacy
+    settings/     Shortcuts, Appearance, Voice & following, Answers, General, Integrations, Privacy:
+                  one centered column (≤ 720 px); Voice and Appearance keep their live panel
+                  (mic test and pace, overlay preview) beside it, in view while the column scrolls
+                  (Sessions and Forms center their lists at 880 px, `Layout.readableMax`)
     live/         LiveController (the session state machine) and the overlay UI
     agent/        AgentController (confirmations, emergency stop, logging) and the agent panel
     questionnaire/  Questionnaire filling controller and overlay panel
@@ -443,7 +562,21 @@ transparent only under a compositing window manager.
   letter and by text, question types, password / payment gates, visual-only options clicked at their
   centre, drags); the overlay's text color (luminance of known pixel grids, the 400 ms debounce, fixed
   colors turn detection off) and geometry; chat history, dictation insertion and streaming Markdown.
-- `test/services` — the browser bridge (native messaging framing with partial reads, message schema,
+- `test/data` — reading material for generation: a .pptx whose slide parts are named out of order,
+  speaker notes, a hidden slide, nested bullets, a picture-only slide (alt text), corrupted and old
+  binary files, a part over the size limit (a small zip bomb), relationship paths that would leave
+  the package; .odp; documents; a PDF with a text page and a scanned page (PDFium and OCR behind
+  fakes); pictures; unsupported formats' messages (`material_reader_test.dart`, fixtures built in
+  `test/fixtures/materials/pptx_builder.dart`).
+- `test/domain/check_markers_test.dart` — markers to check: found in both languages, stripped and
+  removed tidily, the overlay's marker words; following skips them, a beat ending in one finishes, a
+  marker-only beat is passed over, in English and Spanish.
+- `test/services` — generating a script with a fake DeepSeek (`script_generator_test.dart`): the
+  word budget, every slide cued once and in order (hidden slides never), an off-budget script resized,
+  unusable JSON asked for again and a usable one repaired, backoff on 5xx but not on a bad key, every
+  kind of failure (no balance, bad key, dropped connection, offline, garbled stream) worded,
+  cancelling mid-stream saving and caching nothing, the cache, and instructions inside slide text
+  staying inside the data block; the browser bridge (native messaging framing with partial reads, message schema,
   the extension → accessibility → vision order, host manifests per OS); DeepSeek request shapes (task profiles, JSON mode, vision, tool calls) and a guard
   that speech stays on-device (no cloud STT endpoint, no host but DeepSeek and GitHub); pinned model
   checksums (a tampered or truncated archive is never extracted), which model follows each language,
@@ -452,7 +585,15 @@ transparent only under a compositing window manager.
   driving the follow engine (English, and Spanish with the streaming model and with Whisper). Each runs
   once its model is installed (`SOTTO_MODELS_ROOT` adds folders); on Linux, point `LD_LIBRARY_PATH` at
   `build/linux/x64/debug/bundle/lib`. Opt-in: `SOTTO_RECORD_ASR=1` records both Spanish paths for the
-  metrics, `SOTTO_LATENCY=1` measures latency by stage.
+  metrics, `SOTTO_LATENCY=1` measures latency by stage. They hold on a loaded machine without hiding
+  slowness (`native_speech.dart`): after playback they wait until the recognizer has gone quiet — a
+  window of 1.5 s or twice the 90th-percentile gap between its updates, scaled by how far playback
+  fell behind real time — instead of a fixed sleep; the presenter's position is judged at the audio the
+  recognizer had processed (`HeardUpdate.clock`, or the audio fed), not the wall clock; and speed is
+  checked on its own: the work left after the audio ends must stay under a quarter of the audio's
+  length (half for Whisper) plus 2 s. `drain_test.dart` checks with fake decoders that one keeping up
+  passes and one at half real-time speed fails. Each run prints the wall/audio ratio, feeder lateness,
+  update gaps and backlog.
 - `test/widgets` — renders the live answer card with the bundled fonts to `build/answer_card.png`, and
   the questionnaire panel, overlay chat and Chat page at their real sizes; the Forms page in each state
   (recent fills and the history setting), Settings → Forms / Answers, the chat opt-in and auto-close,
@@ -460,14 +601,23 @@ transparent only under a compositing window manager.
   current or next line in any layout (960×600 and small overlays, controls above or below); the library
   at 960×600 in both languages; the karaoke highlight (never ahead of what was said, no ticker under
   reduced motion, the sparkle cap); a model's license shown before its download; the line cache
-  following a script font change.
+  following a script font change; every Settings page at 960×600, 1280×800, 1600×1000 and 1920×1080
+  in both languages — one centered column at most 720 px, or a side panel that stays in view (at
+  least 40 % of the view, or all of itself) at every scroll position (`settings_columns_test.dart`);
+  the New script dialog: its three paths and their labels, pasted text kept as is, the missing-key
+  explanation, the privacy notice before anything is sent, and a generated draft saved
+  (`new_script_dialog_test.dart`), and a DeepSeek error worded in the dialog with nothing saved; markers
+  in the editor — counted, walked through across sections selected, removed or typed over, opened by
+  number — and pre-flight's non-blocking warning and *Open the first* (`check_markers_ui_test.dart`).
 - `test/core` — a live session started from a maximised window opens the overlay at its saved
   geometry, not the size of the screen.
 - `test/visual` — opt-in: `SOTTO_RENDER=1 flutter test test/visual` renders every screen (welcome, pre-flight
   and the live overlay included) to PNG. `SOTTO_RENDER_LANG=en|es`, `SOTTO_RENDER_THEME=dark|light`,
   `SOTTO_RENDER_SIZE=1920x1080` and `SOTTO_RENDER_OUT=<folder>`; at 960x600 it doubles as an overflow check.
   `test/visual/karaoke_render_test.dart` renders the highlight mid-sweep over a sky, a dark scene and a
-  light slide.
+  light slide. `test/visual/settings_render_test.dart` renders every Settings page at the top and
+  scrolled to the end, in both languages, at 960×600, 1280×800, 1600×1000 and 1920×1080
+  (`build/settings`).
 
 ## Known limitations
 

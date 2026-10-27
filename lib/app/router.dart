@@ -75,6 +75,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           EditorScreen(
             scriptId: s.pathParameters['id']!,
             tab: EditorTab.values.asNameMap()[s.uri.queryParameters['tab']] ?? EditorTab.write,
+            openMarker: int.tryParse(s.uri.queryParameters['marker'] ?? ''),
           ),
         ),
       ),

@@ -33,13 +33,17 @@ Future<(FollowEngine, String)> _follow(LiveRecognizer recognizer, Script script,
   final follow = FollowEngine(FlatScript.from(script), settings: const AppSettings())..jumpTo(0);
   var last = '';
   final events = <FollowEvent>[];
-  final sub = recognizer.heard.listen((t) {
-    last = t;
-    events.add(follow.onHeard(t));
+  final pb = Playback();
+  final sub = recognizer.updates.listen((u) {
+    pb.heard(u.clock);
+    last = u.text;
+    events.add(follow.onHeard(u.text));
   });
-  await playInto(recognizer, readWav(wav));
-  await Future<void>.delayed(const Duration(seconds: 3));
+  await playInto(recognizer, readWav(wav), playback: pb);
+  // Until the recognizer has caught up, not a fixed sleep.
+  final drained = await drain(pb);
   await sub.cancel();
+  drained.expectKeptUp(pb, share: 0.5);
   // ignore: avoid_print
   print(
     'heard: $last\nposition: beat ${follow.position.beat}, '
@@ -64,7 +68,7 @@ void main() {
     () async {
       final files = await ModelManager.findFiles(streamingDir!);
       expect(files, isNotNull, reason: 'model files not found in $streamingDir');
-      final engine = await SherpaEngine.start(streaming: files);
+      final engine = await SherpaEngine.start(startTimeout: engineStartTimeout, streaming: files);
       final script = _script([
         'Welcome, everyone.',
         'After early nightfall the yellow lamps would light up here and there.',
@@ -80,7 +84,7 @@ void main() {
       expect(follow.position.beat, greaterThanOrEqualTo(2));
     },
     skip: skip(streamingDir) ?? false,
-    timeout: const Timeout(Duration(minutes: 2)),
+    timeout: const Timeout(Duration(minutes: 5)),
   );
 
   // Every language but English follows through Whisper re-transcribing the
@@ -90,7 +94,7 @@ void main() {
     () async {
       final files = await ModelManager.findFiles(whisperDir!);
       expect(files, isNotNull, reason: 'model files not found in $whisperDir');
-      final engine = await SherpaEngine.start(whisper: files, language: 'en');
+      final engine = await SherpaEngine.start(startTimeout: engineStartTimeout, whisper: files, language: 'en');
       expect(engine.canFollow, isFalse);
       final seg = SegmentedRecognizer(engine, language: 'en');
       final script = _script([
@@ -109,6 +113,6 @@ void main() {
       expect(follow.position.beat, greaterThanOrEqualTo(4));
     },
     skip: skip(whisperDir) ?? false,
-    timeout: const Timeout(Duration(minutes: 3)),
+    timeout: const Timeout(Duration(minutes: 6)),
   );
 }

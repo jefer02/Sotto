@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/design/icons.dart';
 import '../../core/design/theme.dart';
+import '../../core/design/tokens.dart';
 import '../../core/design/typography.dart';
 import '../../core/platform/platform_keys.dart';
 import '../../core/widgets/buttons.dart';
@@ -57,15 +58,20 @@ class FormsScreen extends ConsumerWidget {
           ],
         ),
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(40, 28, 40, 40),
-            children: const [
-              _MasterToggle(),
-              SizedBox(height: 14),
-              FormsStatusCard(),
-              SizedBox(height: 28),
-              _RecentFills(),
-            ],
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final side = Layout.centeredInset(c.maxWidth);
+              return ListView(
+                padding: EdgeInsets.fromLTRB(side, 28, side, 40),
+                children: const [
+                  _MasterToggle(),
+                  SizedBox(height: 14),
+                  FormsStatusCard(),
+                  SizedBox(height: 28),
+                  _RecentFills(),
+                ],
+              );
+            },
           ),
         ),
       ],

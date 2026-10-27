@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../data/models/script.dart';
+import '../structuring/check_markers.dart';
 import 'text_normalizer.dart';
 
 /// One spoken token of the flattened script.
@@ -29,7 +30,8 @@ class FlatBeat {
     required this.tokenCount,
     required this.displayWords,
     required this.lastContentToken,
-  });
+    int? wordsToSay,
+  }) : wordsToSay = wordsToSay ?? displayWords.length;
 
   final int sectionIndex;
   final Beat beat;
@@ -39,6 +41,11 @@ class FlatBeat {
 
   /// Global index of the last non-stop-word token, or -1.
   final int lastContentToken;
+
+  /// Display words up to the last one meant to be said: a marker ending the
+  /// beat ("… [CHECK: Q3 revenue]") is never spoken, so saying the word
+  /// before it finishes the beat.
+  final int wordsToSay;
 
   int get endToken => firstToken + tokenCount;
 }
@@ -62,9 +69,23 @@ class FlatScript {
 
   /// [language] is the language the script is spoken in (BCP-47).
   factory FlatScript.from(Script script, {String language = 'en'}) {
+    // Markers ("[CHECK: …]") are notes to the presenter, never said: their
+    // words have no tokens, so nothing heard can match them.
+    final masks = [
+      for (final section in script.sections)
+        for (final beat in section.beats) CheckMarkers.wordMask(beat.text),
+    ];
+    var m = 0;
     final spokenBeats = [
       for (final section in script.sections)
-        for (final beat in section.beats) TextNormalizer.tokenize(beat.text, language: language),
+        for (final beat in section.beats)
+          () {
+            final mask = masks[m++];
+            return [
+              for (final t in TextNormalizer.tokenize(beat.text, language: language))
+                if (!mask[t.displayIndex]) t,
+            ];
+          }(),
     ];
     // Rare words are strong evidence of where the presenter is; words the
     // script keeps repeating are weak, stop words weaker still.
@@ -86,7 +107,12 @@ class FlatScript {
     for (var s = 0; s < script.sections.length; s++) {
       sectionFirst.add(beats.length);
       for (final beat in script.sections[s].beats) {
+        final mask = masks[b];
         final spoken = spokenBeats[b++];
+        var toSay = mask.length;
+        while (toSay > 0 && mask[toSay - 1]) {
+          toSay--;
+        }
         final first = tokens.length;
         var lastContent = -1;
         for (final t in spoken) {
@@ -101,6 +127,7 @@ class FlatScript {
             tokenCount: spoken.length,
             displayWords: TextNormalizer.displayWords(beat.text),
             lastContentToken: lastContent,
+            wordsToSay: toSay,
           ),
         );
       }

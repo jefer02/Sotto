@@ -85,7 +85,7 @@ void main() {
             '${OffsetStreams.countFor(ModelCatalog.streamingEs.chunkSeconds)}',
       );
       final tentativeOn = Platform.environment['SOTTO_LATENCY_TENTATIVE'] != '0';
-      final engine = await SherpaEngine.start(streaming: files, streams: streams);
+      final engine = await SherpaEngine.start(startTimeout: engineStartTimeout, streaming: files, streams: streams);
       final follow = FollowEngine(
         flat,
         settings: const AppSettings(language: 'es-MX', sensitivity: Sensitivity.high, advanceThreshold: 1),
@@ -147,8 +147,7 @@ void main() {
         }
         shown = math.max(shown, s);
       });
-      await playInto(engine, audio);
-      await Future<void>.delayed(const Duration(seconds: 2));
+      await drain(await playInto(engine, audio));
       await sub.cancel();
       await engine.dispose();
 

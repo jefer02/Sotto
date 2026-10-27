@@ -106,7 +106,7 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
           ),
         ),
       ),
-      left: [
+      sections: [
         SettingsGroup(
           title: context.l10n.overlayStyle,
           footer: textOnly ? context.l10n.overlayStyleTextOnlyFooter : null,
@@ -287,6 +287,14 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
                 ),
               ),
             SettingRow(
+              title: context.l10n.markersLive,
+              subtitle: context.l10n.markersLiveSub,
+              trailing: SottoToggle(
+                value: s.showMarkersLive,
+                onChanged: (v) => n.update((x) => x.copyWith(showMarkersLive: v)),
+              ),
+            ),
+            SettingRow(
               title: context.l10n.linesShown,
               subtitle: context.l10n.linesShownSub,
               trailing: SegmentedControl<int>(
@@ -378,15 +386,54 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
             ),
           ],
         ),
+        SettingsGroup(
+          title: context.l10n.motion,
+          children: [
+            SettingRow(
+              title: context.l10n.scrolling,
+              subtitle: context.l10n.scrollingSub,
+              trailing: SegmentedControl<ScrollStyle>(
+                width: 160,
+                segments: [
+                  Segment(ScrollStyle.glide, context.l10n.scrollGlide),
+                  Segment(ScrollStyle.step, context.l10n.scrollStep),
+                ],
+                value: s.scrollStyle,
+                onChanged: (v) => n.update((x) => x.copyWith(scrollStyle: v)),
+              ),
+            ),
+            SettingRow(
+              title: context.l10n.reduceMotion,
+              subtitle: context.l10n.reduceMotionSub,
+              trailing: SottoToggle(
+                value: s.reduceMotion,
+                onChanged: (v) => n.update((x) => x.copyWith(reduceMotion: v)),
+              ),
+            ),
+            if (!textOnly)
+              SettingRow(
+                title: context.l10n.blurBehind,
+                subtitle: context.l10n.blurBehindSub,
+                trailing: SottoToggle(
+                  value: s.blurBehind,
+                  onChanged: (v) => n.update((x) => x.copyWith(blurBehind: v)),
+                ),
+              ),
+          ],
+        ),
       ],
-      right: [
+      panel: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
+            // The backdrop switch goes under the label when the panel is
+            // too narrow for both (Spanish labels at 1280 px).
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              runSpacing: Space.s2,
               children: [
                 Text(context.l10n.preview, style: TypeScale.bodyStrong.copyWith(color: p.inkSecondary)),
-                const Spacer(),
                 SegmentedControl<PreviewBackground>(
                   segments: [
                     Segment(PreviewBackground.darkSlide, context.l10n.bgDarkSlide),
@@ -443,41 +490,6 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
                 ),
               ],
             ),
-          ],
-        ),
-        SettingsGroup(
-          title: context.l10n.motion,
-          children: [
-            SettingRow(
-              title: context.l10n.scrolling,
-              subtitle: context.l10n.scrollingSub,
-              trailing: SegmentedControl<ScrollStyle>(
-                width: 160,
-                segments: [
-                  Segment(ScrollStyle.glide, context.l10n.scrollGlide),
-                  Segment(ScrollStyle.step, context.l10n.scrollStep),
-                ],
-                value: s.scrollStyle,
-                onChanged: (v) => n.update((x) => x.copyWith(scrollStyle: v)),
-              ),
-            ),
-            SettingRow(
-              title: context.l10n.reduceMotion,
-              subtitle: context.l10n.reduceMotionSub,
-              trailing: SottoToggle(
-                value: s.reduceMotion,
-                onChanged: (v) => n.update((x) => x.copyWith(reduceMotion: v)),
-              ),
-            ),
-            if (!textOnly)
-              SettingRow(
-                title: context.l10n.blurBehind,
-                subtitle: context.l10n.blurBehindSub,
-                trailing: SottoToggle(
-                  value: s.blurBehind,
-                  onChanged: (v) => n.update((x) => x.copyWith(blurBehind: v)),
-                ),
-              ),
           ],
         ),
       ],

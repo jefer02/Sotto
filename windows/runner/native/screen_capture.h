@@ -33,4 +33,12 @@ bool SottoCaptureMonitor(HMONITOR monitor, int max_side, int quality, bool ocr, 
 
 void SottoCaptureFree(SottoCapture* capture);
 
+// The text on [bgra] ([width] × [height] pixels, top-down, 4 bytes each),
+// read with Windows.Media.Ocr in the same JSON as [SottoCaptureMonitor]'s
+// ocr_json, boxes in its pixels. Null when OCR is unavailable; release the
+// result with SottoTextFree.
+char* SottoRecognizeBgra(const unsigned char* bgra, int width, int height);
+
+void SottoTextFree(char* text);
+
 #endif  // RUNNER_NATIVE_SCREEN_CAPTURE_H_

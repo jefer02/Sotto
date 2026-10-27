@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -226,73 +229,246 @@ class _SettingsSearch extends ConsumerWidget {
   );
 }
 
-/// Title, description, optional action, then one or two columns.
+/// Title, description and optional action over the page's settings.
+///
+/// Settings read as one centered column at most [maxColumn] wide: a second
+/// column of short asides left most of a wide window blank once the long
+/// one scrolled. A page with something live to watch while its settings
+/// change (the overlay preview, the mic test) passes it as [panel]: on a
+/// wide window it sits beside the column and stays in view while the
+/// column scrolls ([StickyPanelRow]); narrower, it leads the column.
 class SettingsPageScaffold extends StatelessWidget {
   const SettingsPageScaffold({
     super.key,
     required this.title,
     required this.description,
-    required this.left,
-    this.right = const [],
+    required this.sections,
+    this.panel = const [],
     this.action,
   });
 
   final String title;
   final String description;
-  final List<Widget> left;
-  final List<Widget> right;
+  final List<Widget> sections;
+  final List<Widget> panel;
   final Widget? action;
+
+  /// The settings column's widest.
+  static const maxColumn = 720.0;
+
+  /// The column's narrowest beside a panel; below it the panel goes on top.
+  static const minColumn = 480.0;
+  static const panelMin = 340.0;
+  static const panelMax = 460.0;
+  static const _gutter = Space.s10;
+  static const _sides = Space.s12;
+
+  /// Where the column and the panel are, for layout tests.
+  static const columnKey = ValueKey('settings-column');
+  static const panelKey = ValueKey('settings-panel');
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    Widget stack(List<Widget> items, {Key? key}) => Column(
+      key: key,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < items.length; i++) ...[if (i > 0) const SizedBox(height: Space.s6), items[i]],
+      ],
+    );
+    final header = Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TypeScale.title1.copyWith(color: p.inkPrimary)),
+              const SizedBox(height: Space.s2),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: Text(description, style: TypeScale.body.copyWith(color: p.inkSecondary)),
+              ),
+            ],
+          ),
+        ),
+        ?action,
+      ],
+    );
     return LayoutBuilder(
       builder: (context, c) {
-        final twoColumns = c.maxWidth > 980 && right.isNotEmpty;
-        Widget col(List<Widget> children) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < children.length; i++) ...[if (i > 0) const SizedBox(height: 24), children[i]],
-          ],
-        );
+        final inner = c.maxWidth - 2 * _sides;
+        final beside = panel.isNotEmpty && inner >= minColumn + _gutter + panelMin;
+        final panelWidth = beside ? (inner * 0.4).clamp(panelMin, panelMax) : 0.0;
+        final column = beside
+            ? math.min(maxColumn, inner - _gutter - panelWidth)
+            : math.min(maxColumn, math.max(0.0, inner));
+        final used = column + (beside ? _gutter + panelWidth : 0);
+        // The column (and its panel) centered in the page.
+        final side = _sides + math.max(0.0, (inner - used) / 2);
         return ListView(
-          padding: const EdgeInsets.fromLTRB(48, 40, 48, 48),
+          padding: EdgeInsets.fromLTRB(side, Space.s10, side, Space.s12),
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: TypeScale.title1.copyWith(color: p.inkPrimary)),
-                      const SizedBox(height: 8),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 620),
-                        child: Text(description, style: TypeScale.body.copyWith(color: p.inkSecondary)),
-                      ),
-                    ],
-                  ),
-                ),
-                ?action,
-              ],
-            ),
-            const SizedBox(height: 28),
-            if (twoColumns)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: col(left)),
-                  const SizedBox(width: 40),
-                  Expanded(child: col(right)),
-                ],
+            header,
+            const SizedBox(height: Space.s8),
+            if (beside)
+              StickyPanelRow(
+                gap: _gutter,
+                panelWidth: panelWidth,
+                main: stack(sections, key: columnKey),
+                panel: stack(panel, key: panelKey),
               )
             else
-              col([...left, ...right]),
+              stack([if (panel.isNotEmpty) stack(panel, key: panelKey), stack(sections, key: columnKey)]),
           ],
         );
       },
     );
+  }
+}
+
+/// [main] and, [gap] to its right, [panel] — which stays in view while the
+/// enclosing scroll view moves [main]: it scrolls with the row until its
+/// top reaches the top of the view (less [margin]), holds there, and is
+/// carried off again only by the end of the row. A panel taller than the
+/// view scrolls until its bottom shows, then holds that.
+class StickyPanelRow extends MultiChildRenderObjectWidget {
+  StickyPanelRow({
+    super.key,
+    required Widget main,
+    required Widget panel,
+    required this.panelWidth,
+    this.gap = Space.s10,
+    this.margin = Space.s6,
+  }) : super(children: [main, panel]);
+
+  final double panelWidth;
+  final double gap;
+  final double margin;
+
+  @override
+  RenderStickyPanelRow createRenderObject(BuildContext context) => RenderStickyPanelRow(
+    position: Scrollable.maybeOf(context)?.position,
+    panelWidth: panelWidth,
+    gap: gap,
+    margin: margin,
+  );
+
+  @override
+  void updateRenderObject(BuildContext context, RenderStickyPanelRow renderObject) => renderObject
+    ..position = Scrollable.maybeOf(context)?.position
+    ..panelWidth = panelWidth
+    ..gap = gap
+    ..margin = margin;
+}
+
+class _StickyParentData extends ContainerBoxParentData<RenderBox> {}
+
+class RenderStickyPanelRow extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _StickyParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _StickyParentData> {
+  RenderStickyPanelRow({this._position, required this._panelWidth, required this._gap, required this._margin});
+
+  ScrollPosition? _position;
+  set position(ScrollPosition? value) {
+    if (identical(value, _position)) return;
+    if (attached) _position?.removeListener(markNeedsPaint);
+    _position = value;
+    if (attached) _position?.addListener(markNeedsPaint);
+    markNeedsPaint();
+  }
+
+  double _panelWidth;
+  set panelWidth(double value) {
+    if (value == _panelWidth) return;
+    _panelWidth = value;
+    markNeedsLayout();
+  }
+
+  double _gap;
+  set gap(double value) {
+    if (value == _gap) return;
+    _gap = value;
+    markNeedsLayout();
+  }
+
+  double _margin;
+  set margin(double value) {
+    if (value == _margin) return;
+    _margin = value;
+    markNeedsPaint();
+  }
+
+  RenderBox get _main => firstChild!;
+  RenderBox get _panel => lastChild!;
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _StickyParentData) child.parentData = _StickyParentData();
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _position?.addListener(markNeedsPaint);
+  }
+
+  @override
+  void detach() {
+    _position?.removeListener(markNeedsPaint);
+    super.detach();
+  }
+
+  @override
+  void performLayout() {
+    final width = constraints.maxWidth;
+    final mainWidth = math.max(0.0, width - _gap - _panelWidth);
+    _main.layout(BoxConstraints.tightFor(width: mainWidth), parentUsesSize: true);
+    _panel.layout(BoxConstraints.tightFor(width: _panelWidth), parentUsesSize: true);
+    (_main.parentData! as _StickyParentData).offset = Offset.zero;
+    size = constraints.constrain(Size(width, math.max(_main.size.height, _panel.size.height)));
+    // Where it sits until painted: the shift needs the finished layout.
+    (_panel.parentData! as _StickyParentData).offset = Offset(size.width - _panelWidth, 0);
+  }
+
+  /// How far down the row the panel is drawn right now.
+  double get panelShift {
+    final position = _position;
+    final viewport = RenderAbstractViewport.maybeOf(this);
+    if (position == null || viewport == null || !position.hasPixels || !position.hasViewportDimension) return 0;
+    // The scroll offset that puts this row's top at the top of the view.
+    final top = viewport.getOffsetToReveal(this, 0).offset;
+    final into = position.pixels - top;
+    final room = size.height - _panel.size.height;
+    if (room <= 0) return 0;
+    final view = position.viewportDimension;
+    final shift = _panel.size.height + 2 * _margin <= view
+        ? into + _margin
+        : into + view - _margin - _panel.size.height;
+    return shift.clamp(0.0, room);
+  }
+
+  Offset get _panelOffset => Offset(size.width - _panelWidth, panelShift);
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    context.paintChild(_main, offset);
+    final at = _panelOffset;
+    (_panel.parentData! as _StickyParentData).offset = at;
+    context.paintChild(_panel, offset + at);
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    final at = _panelOffset;
+    final hitPanel = result.addWithPaintOffset(
+      offset: at,
+      position: position,
+      hitTest: (result, transformed) => _panel.hitTest(result, position: transformed),
+    );
+    return hitPanel || _main.hitTest(result, position: position);
   }
 }
 

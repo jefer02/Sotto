@@ -46,13 +46,18 @@ class SessionsScreen extends ConsumerWidget {
                       body: context.l10n.emptyNoSessionsHint,
                     ),
                   )
-                : ListView.separated(
+                : LayoutBuilder(
                     key: const ValueKey('list'),
-                    padding: const EdgeInsets.fromLTRB(40, 28, 40, 40),
-                    itemCount: sessions.length + 1,
-                    separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 20 : 8),
-                    itemBuilder: (context, i) =>
-                        i == 0 ? PracticeBars(sessions: sessions) : SessionTile(record: sessions[i - 1]),
+                    builder: (context, c) {
+                      final side = Layout.centeredInset(c.maxWidth);
+                      return ListView.separated(
+                        padding: EdgeInsets.fromLTRB(side, 28, side, 40),
+                        itemCount: sessions.length + 1,
+                        separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 20 : 8),
+                        itemBuilder: (context, i) =>
+                            i == 0 ? PracticeBars(sessions: sessions) : SessionTile(record: sessions[i - 1]),
+                      );
+                    },
                   ),
           ),
         ),

@@ -13,16 +13,22 @@ import '../../core/widgets/display.dart';
 import '../../core/widgets/interactive.dart';
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
+import '../../domain/structuring/check_markers.dart';
 import '../../services/system_fonts.dart';
 import 'editor_controller.dart';
 import 'emphasis_controller.dart';
 
 /// Where the caret should land after a split or merge.
-typedef FocusRequest = ({String beatId, int offset});
+/// A beat to focus, the caret at [offset] — or, with [end], that range
+/// selected (a marker to type over).
+typedef FocusRequest = ({String beatId, int offset, int? end});
 
 class WriteTab extends ConsumerStatefulWidget {
-  const WriteTab({super.key, required this.scriptId});
+  const WriteTab({super.key, required this.scriptId, this.openMarker});
   final String scriptId;
+
+  /// Opens on this marker to check (pre-flight's "Open the first").
+  final int? openMarker;
 
   @override
   ConsumerState<WriteTab> createState() => _WriteTabState();
@@ -31,6 +37,51 @@ class WriteTab extends ConsumerStatefulWidget {
 class _WriteTabState extends ConsumerState<WriteTab> {
   final _focusRequest = ValueNotifier<FocusRequest?>(null);
   final _scroll = ScrollController();
+
+  /// The marker the bar is on; null until the presenter goes to one.
+  int? _marker;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.openMarker != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _jumpTo(widget.openMarker!);
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(WriteTab old) {
+    super.didUpdateWidget(old);
+    // Pre-flight opened from this same editor.
+    if (widget.openMarker != null && widget.openMarker != old.openMarker) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _jumpTo(widget.openMarker!);
+      });
+    }
+  }
+
+  /// Shows marker [index] (wrapping around), selected so typing replaces it.
+  void _jumpTo(int index) {
+    final c = ref.read(editorProvider(widget.scriptId).notifier);
+    final markers = c.markers;
+    if (markers.isEmpty) return;
+    final i = ((index % markers.length) + markers.length) % markers.length;
+    final m = markers[i];
+    setState(() => _marker = i);
+    c.focusBeat(m.beatId);
+    _focusRequest.value = (beatId: m.beatId, offset: m.start, end: m.end);
+  }
+
+  void _remove() {
+    final c = ref.read(editorProvider(widget.scriptId).notifier);
+    final markers = c.markers;
+    if (markers.isEmpty) return;
+    final at = (_marker ?? 0).clamp(0, markers.length - 1);
+    c.removeMarker(markers[at]);
+    if (c.markers.isNotEmpty) _jumpTo(at.clamp(0, c.markers.length - 1));
+  }
 
   @override
   void dispose() {
@@ -74,6 +125,18 @@ class _WriteTabState extends ConsumerState<WriteTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (CheckMarkers.inScript(script) case final markers when markers.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 60, bottom: Space.s5),
+                    child: _MarkerBar(
+                      markers: markers,
+                      current: (_marker ?? 0).clamp(0, markers.length - 1),
+                      onPrevious: () => _jumpTo((_marker ?? 0) - 1),
+                      onNext: () => _jumpTo(_marker == null ? 0 : _marker! + 1),
+                      onOpen: () => _jumpTo(_marker ?? 0),
+                      onRemove: _remove,
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.only(left: 60),
                   child: Text(
@@ -135,7 +198,7 @@ class _WriteTabState extends ConsumerState<WriteTab> {
                         final last = section.beats.lastOrNull;
                         if (last == null) return;
                         final id = c.splitBeat(last.id, last.text.length);
-                        if (id != null) _focusRequest.value = (beatId: id, offset: 0);
+                        if (id != null) _focusRequest.value = (beatId: id, offset: 0, end: null);
                       },
                     ),
                   ),
@@ -253,7 +316,10 @@ class _BeatRowState extends ConsumerState<BeatRow> {
     if (r == null || r.beatId != widget.beat.id || !mounted) return;
     widget.focusRequest.value = null;
     _focus.requestFocus();
-    _text.selection = TextSelection.collapsed(offset: r.offset.clamp(0, _text.text.length));
+    final length = _text.text.length;
+    _text.selection = r.end == null
+        ? TextSelection.collapsed(offset: r.offset.clamp(0, length))
+        : TextSelection(baseOffset: r.offset.clamp(0, length), extentOffset: r.end!.clamp(0, length));
   }
 
   void _moveTo(int delta, {bool toEnd = false}) {
@@ -261,7 +327,7 @@ class _BeatRowState extends ConsumerState<BeatRow> {
     final i = ids.indexOf(widget.beat.id) + delta;
     if (i < 0 || i >= ids.length) return;
     final target = ref.read(editorProvider(widget.scriptId)).script?.allBeats.where((b) => b.id == ids[i]).firstOrNull;
-    widget.focusRequest.value = (beatId: ids[i], offset: toEnd ? (target?.text.length ?? 0) : 0);
+    widget.focusRequest.value = (beatId: ids[i], offset: toEnd ? (target?.text.length ?? 0) : 0, end: null);
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
@@ -272,7 +338,7 @@ class _BeatRowState extends ConsumerState<BeatRow> {
     if (e.logicalKey == LogicalKeyboardKey.enter && !shift) {
       // Enter ends a breath: split the beat at the caret.
       final id = c.splitBeat(widget.beat.id, sel.baseOffset < 0 ? _text.text.length : sel.baseOffset);
-      if (id != null) widget.focusRequest.value = (beatId: id, offset: 0);
+      if (id != null) widget.focusRequest.value = (beatId: id, offset: 0, end: null);
       return KeyEventResult.handled;
     }
     if (e.logicalKey == LogicalKeyboardKey.backspace && sel.isCollapsed && sel.baseOffset == 0) {
@@ -281,7 +347,7 @@ class _BeatRowState extends ConsumerState<BeatRow> {
         return KeyEventResult.handled;
       }
       final r = c.mergeWithPrevious(widget.beat.id);
-      if (r != null) widget.focusRequest.value = (beatId: r.$1, offset: r.$2);
+      if (r != null) widget.focusRequest.value = (beatId: r.$1, offset: r.$2, end: null);
       return r == null ? KeyEventResult.ignored : KeyEventResult.handled;
     }
     if (e.logicalKey == LogicalKeyboardKey.arrowUp && sel.isCollapsed && sel.baseOffset == 0) {
@@ -620,6 +686,93 @@ class _KeyPointsState extends State<_KeyPoints> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The markers to check a generated script carries: how many, which one,
+/// and a way through them. A marker is resolved by typing over it (it is
+/// selected when shown) or by removing it.
+class _MarkerBar extends StatelessWidget {
+  const _MarkerBar({
+    required this.markers,
+    required this.current,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onOpen,
+    required this.onRemove,
+  });
+
+  final List<MarkerRef> markers;
+  final int current;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback onOpen;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final l = context.l10n;
+    final m = markers[current];
+    return Container(
+      key: const ValueKey('marker-bar'),
+      padding: const EdgeInsets.fromLTRB(Space.s3, Space.s2, Space.s2, Space.s2),
+      decoration: BoxDecoration(
+        color: p.cautionWash,
+        borderRadius: Radii.rM,
+        border: Border.all(color: p.cautionEdge),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SottoIcon(SottoIcons.alert, size: 14, color: p.caution),
+              const SizedBox(width: Space.s2),
+              Text(l.markersCount(markers.length), style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
+              const SizedBox(width: Space.s2),
+              Expanded(
+                child: Interactive(
+                  onTap: onOpen,
+                  builder: (context, s) => Text(
+                    '${current + 1}/${markers.length} · ${m.note.isEmpty ? m.text : m.note}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TypeScale.caption.copyWith(
+                      color: s.hovered ? p.cueText : p.inkSecondary,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ),
+              SottoIconButton(
+                key: const ValueKey('marker-prev'),
+                icon: SottoIcons.up,
+                tooltip: l.markerPrevious,
+                onPressed: onPrevious,
+              ),
+              SottoIconButton(
+                key: const ValueKey('marker-next'),
+                icon: SottoIcons.down,
+                tooltip: l.markerNext,
+                onPressed: onNext,
+              ),
+              const SizedBox(width: Space.s1),
+              SottoButton.ghost(
+                key: const ValueKey('marker-remove'),
+                label: l.markerRemove,
+                size: ButtonSize.small,
+                onPressed: onRemove,
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 22, top: 2),
+            child: Text(l.markerHint, style: TypeScale.caption.copyWith(color: p.inkTertiary)),
           ),
         ],
       ),

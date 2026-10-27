@@ -65,7 +65,7 @@ class AnswersPage extends ConsumerWidget {
     return SettingsPageScaffold(
       title: context.l10n.pfAnswers,
       description: context.l10n.answersDescription,
-      left: [
+      sections: [
         SettingsGroup(
           title: context.l10n.grounding,
           children: [
@@ -198,8 +198,6 @@ class AnswersPage extends ConsumerWidget {
             ),
           ],
         ),
-      ],
-      right: [
         SettingsGroup(
           title: context.l10n.pfMeetingChat,
           children: [SettingRow(title: context.l10n.copyThenPaste, subtitle: context.l10n.copyThenPasteSub)],

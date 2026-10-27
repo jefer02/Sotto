@@ -3374,4 +3374,379 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get undo => 'Undo';
+
+  @override
+  String get newScriptSubtitle => 'How do you want to start?';
+
+  @override
+  String get newScriptWordsNote =>
+      'Writing and importing never change your wording. Generating writes new text from your material — read it through before you go live.';
+
+  @override
+  String get pathWriteTitle => 'Write from scratch';
+
+  @override
+  String get pathWriteBody => 'A blank script. Type it, or paste it, in the editor.';
+
+  @override
+  String get pathImportTitle => 'Import text';
+
+  @override
+  String get pathImportBody =>
+      'A file or pasted text, kept word for word. Sotto only organizes it into sections and beats.';
+
+  @override
+  String get pathGenerateTitle => 'Generate with AI';
+
+  @override
+  String get pathGenerateBody =>
+      'From a presentation, PDF or document. DeepSeek writes a new script for you to review and edit.';
+
+  @override
+  String get badgeKeepsWords => 'Keeps your words';
+
+  @override
+  String get badgeWritesNew => 'Writes new text';
+
+  @override
+  String get importDropHint => 'Drop a .docx, .pdf, .md or .txt file here, or';
+
+  @override
+  String get importChooseFile => 'Choose a file';
+
+  @override
+  String get importPasteLabel => 'Or paste your text';
+
+  @override
+  String get importPastePlaceholder => 'Paste the script here — it is kept exactly as written';
+
+  @override
+  String get importPasteAction => 'Import text';
+
+  @override
+  String get genMaterial => 'Material';
+
+  @override
+  String get genMaterialHint => 'Drop presentations, PDFs, documents or pictures here, or';
+
+  @override
+  String get genChooseFiles => 'Choose files';
+
+  @override
+  String get genReading => 'Reading…';
+
+  @override
+  String genSlides(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count slides', one: '1 slide');
+    return '$_temp0';
+  }
+
+  @override
+  String genPages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count pages', one: '1 page');
+    return '$_temp0';
+  }
+
+  @override
+  String genParts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count parts', one: '1 part');
+    return '$_temp0';
+  }
+
+  @override
+  String get genPicture => 'Picture';
+
+  @override
+  String genHiddenSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hidden slides skipped',
+      one: '1 hidden slide skipped',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get genNoNotes => 'no speaker notes';
+
+  @override
+  String genNotesFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'notes on $count slides',
+      one: 'notes on 1 slide',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String genWords(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count words', one: '1 word');
+    return '$_temp0';
+  }
+
+  @override
+  String genOcrUsed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'OCR on $count scanned pages',
+      one: 'OCR on 1 scanned page',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get genOcrPicture => 'text read with OCR';
+
+  @override
+  String get genRemove => 'Remove';
+
+  @override
+  String get genDuration => 'Duration';
+
+  @override
+  String get genMinutes => 'min';
+
+  @override
+  String genBudget(int words, int wpm) {
+    return '≈ $words words at your measured pace ($wpm wpm)';
+  }
+
+  @override
+  String genBudgetDefault(int words, int wpm) {
+    return '≈ $words words at $wpm wpm — rehearse once and it uses your own pace';
+  }
+
+  @override
+  String get genAudience => 'Audience';
+
+  @override
+  String get genAudiencePlaceholder => 'Who is listening? e.g. the board, new customers';
+
+  @override
+  String get genTone => 'Tone';
+
+  @override
+  String get genTonePlaceholder => 'e.g. confident and warm';
+
+  @override
+  String get genChipExecutives => 'Executives';
+
+  @override
+  String get genChipTeam => 'Technical team';
+
+  @override
+  String get genChipCustomers => 'Customers';
+
+  @override
+  String get genChipStudents => 'Students';
+
+  @override
+  String get genChipGeneral => 'General public';
+
+  @override
+  String get genChipConfident => 'Confident';
+
+  @override
+  String get genChipConversational => 'Conversational';
+
+  @override
+  String get genChipFormal => 'Formal';
+
+  @override
+  String get genChipInspiring => 'Inspiring';
+
+  @override
+  String get genChipConcise => 'Concise';
+
+  @override
+  String get genLanguage => 'Language';
+
+  @override
+  String genLanguageSpeech(String language) {
+    return '$language — speech language';
+  }
+
+  @override
+  String get genUseNotes => 'Use speaker notes';
+
+  @override
+  String get genUseNotesSub => 'Notes often hold what you meant to say';
+
+  @override
+  String get genSectionPerSlide => 'One section per slide';
+
+  @override
+  String get genSectionPerSlideSub => 'Off: related slides share a section';
+
+  @override
+  String get genQuestions => 'Also prepare likely questions';
+
+  @override
+  String get genQuestionsSub => 'With answers from your material, in the Q&A prep tab';
+
+  @override
+  String get genPrivacy =>
+      'The text read from these files is sent to DeepSeek to write the script. Nothing is sent until you press Generate, and nothing else leaves this computer.';
+
+  @override
+  String get genNeedsKey => 'Generating needs a DeepSeek API key';
+
+  @override
+  String get genNeedsKeySub =>
+      'Add yours to generate scripts. Writing from scratch and importing text work without one.';
+
+  @override
+  String get genOpenIntegrations => 'Settings › Integrations';
+
+  @override
+  String get genGenerate => 'Generate script';
+
+  @override
+  String get genCancel => 'Cancel — nothing is saved';
+
+  @override
+  String get genTryAgain => 'Try again';
+
+  @override
+  String get genFailed => 'Couldn’t generate the script';
+
+  @override
+  String get genStageReading => 'Material read';
+
+  @override
+  String genStageUnderstanding(int done, int total) {
+    return 'Understanding the slides ($done/$total)';
+  }
+
+  @override
+  String get genStageUnderstandingDone => 'Understanding the slides';
+
+  @override
+  String get genStageWriting => 'Writing the script';
+
+  @override
+  String get genStageChecking => 'Checking length, structure and slide cues';
+
+  @override
+  String get genStageQuestions => 'Preparing likely questions';
+
+  @override
+  String get genPreviewWaiting => 'The script appears here as it is written.';
+
+  @override
+  String get genDraftReady => 'Draft ready — read it through before you go live.';
+
+  @override
+  String genChecks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spots are marked for you to check.',
+      one: '1 spot is marked for you to check.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get genCheckMarker => 'CHECK';
+
+  @override
+  String materialUnsupported(String ext) {
+    return 'Sotto can’t read $ext files. Add a presentation (.pptx, .odp), a PDF, a document (.docx, .md, .txt) or a picture (.png, .jpg).';
+  }
+
+  @override
+  String materialExportFirst(String ext) {
+    return 'Sotto can’t read $ext files. Export it as PowerPoint (.pptx) or PDF and add that instead.';
+  }
+
+  @override
+  String get materialLegacy =>
+      'This is an old Office format or a password-protected file. Save it as .pptx or .docx without a password, or export it as PDF.';
+
+  @override
+  String get materialTooLarge => 'This file is too large to read safely (up to 100 MB).';
+
+  @override
+  String materialTooManyPages(int count, int max) {
+    return 'This file has $count slides or pages; Sotto reads up to $max. Split it, or export the part you need.';
+  }
+
+  @override
+  String get materialCorrupted =>
+      'This file is damaged or isn’t what its name says. Open it and save it again, or export it as PDF.';
+
+  @override
+  String get materialEmpty => 'No text found in this file — not even with OCR.';
+
+  @override
+  String get markersLive => 'Show markers to check';
+
+  @override
+  String get markersLiveSub =>
+      'Spots a generated script marked [CHECK: …], in the cue color. Never followed by voice; off, the live view leaves them out';
+
+  @override
+  String markersCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spots to check',
+      one: '1 spot to check',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get markerPrevious => 'Previous marker';
+
+  @override
+  String get markerNext => 'Next marker';
+
+  @override
+  String get markerRemove => 'Remove marker';
+
+  @override
+  String get markerHint => 'The marker is selected: type the missing fact over it, or remove it.';
+
+  @override
+  String get pfMarkers => 'Spots to check';
+
+  @override
+  String pfMarkersShown(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count markers are still in the script. They show in the cue color and are never followed.',
+      one: '1 marker is still in the script. It shows in the cue color and is never followed.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String pfMarkersHidden(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count markers are still in the script. They are hidden while live.',
+      one: '1 marker is still in the script. It is hidden while live.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get pfOpenFirstMarker => 'Open the first';
+
+  @override
+  String get genFailedNothingSaved => 'Nothing was saved. Fix the problem and try again, or go back.';
+
+  @override
+  String get genFailedInvalidReply => 'DeepSeek’s reply couldn’t be turned into a script twice in a row.';
+
+  @override
+  String get genFailedNoText => 'No text was found in the material.';
 }

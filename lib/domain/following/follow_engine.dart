@@ -398,7 +398,7 @@ class FollowEngine {
       while (next < script.length - 1 && script.beats[next].tokenCount == 0) {
         next++;
       }
-      final finished = said >= beat.displayWords.length;
+      final finished = said >= beat.wordsToSay;
       return FollowPosition(
         beat: next,
         spokenWords: 0,
