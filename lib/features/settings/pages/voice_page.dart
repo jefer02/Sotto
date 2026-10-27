@@ -20,6 +20,7 @@ import '../../../core/widgets/ping_dot.dart';
 import '../../../data/models/settings.dart';
 import '../../../data/repositories.dart';
 import '../../../domain/following/follow_engine.dart';
+import '../../../domain/following/heard_update.dart';
 import '../../../domain/following/script_aligner.dart';
 import '../../../domain/following/text_normalizer.dart';
 import '../../../services/speech/audio_capture.dart';
@@ -28,6 +29,7 @@ import '../../../services/speech/speech_session.dart';
 import '../../library/readiness.dart';
 import '../settings_screen.dart';
 import 'appearance_page.dart' show previewScriptProvider;
+import 'model_license.dart';
 
 const languages = [
   SelectOption('en-US', 'English (United States)'),
@@ -121,7 +123,7 @@ class _VoicePageState extends ConsumerState<VoicePage> {
           }
         },
       ),
-      left: [
+      sections: [
         SettingsGroup(
           title: context.l10n.pfMicrophone,
           children: [
@@ -218,6 +220,7 @@ class _VoicePageState extends ConsumerState<VoicePage> {
               subtitle: context.l10n.engineOnDeviceSub,
               trailing: readiness == null ? null : _Status(item: readiness.voice),
             ),
+            const _FollowsWith(),
           ],
         ),
         const _ModelsGroup(),
@@ -283,7 +286,7 @@ class _VoicePageState extends ConsumerState<VoicePage> {
           ],
         ),
       ],
-      right: [
+      panel: [
         _LiveCheck(active: _testing),
         const _PaceCard(),
       ],
@@ -314,6 +317,47 @@ class _Status extends StatelessWidget {
             ok ? context.l10n.filterReady : context.l10n.needsSetup,
             style: TypeScale.caption.copyWith(color: ok ? p.confirmed : p.cueText),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Which model follows the voice in the chosen language, and why — the
+/// same choice a live session makes ([planFollowing]).
+class _FollowsWith extends ConsumerWidget {
+  const _FollowsWith();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
+    final l = context.l10n;
+    final language = ref.watch(settingsProvider.select((s) => s.language));
+    final status = ref.watch(modelStatusProvider);
+    final plan = planFollowing(language, {
+      for (final e in status.entries)
+        if (e.value is ModelReady) e.key,
+    });
+    final recommended = plan.recommended;
+    return SettingRow(
+      title: l.followsWith,
+      subtitle: switch (plan.why) {
+        FollowingWhy.streaming => l.followsWhyStreaming,
+        FollowingWhy.whisperUntilStreamingInstalled => l.followsWhyWhisperUntil(recommended!.name),
+        FollowingWhy.whisperOnly => l.followsWhyWhisperOnly,
+        FollowingWhy.none => l.followsWhyNone,
+      },
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            plan.model?.name ?? l.followsNoModel,
+            style: TypeScale.captionStrong.copyWith(color: plan.streaming ? p.confirmed : p.inkSecondary),
+          ),
+          if (!plan.streaming && recommended != null) ...[
+            const SizedBox(width: 10),
+            ModelDownloadControl(model: recommended),
+          ],
         ],
       ),
     );
@@ -395,16 +439,31 @@ class ModelDownloadControl extends ConsumerWidget {
           label: context.l10n.retry,
           icon: SottoIcons.refresh,
           size: ButtonSize.small,
-          onPressed: () => notifier.download(model),
+          onPressed: () => _download(context, notifier),
         ),
       ),
-      _ => SottoButton(
-        label: context.l10n.download,
-        icon: SottoIcons.import,
-        size: ButtonSize.small,
-        onPressed: () => notifier.download(model),
+      _ => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (model.attribution != null) ...[
+            TextLink(context.l10n.modelLicenseView, muted: true, onTap: () => confirmModelLicense(context, model)),
+            const SizedBox(width: 10),
+          ],
+          SottoButton(
+            label: context.l10n.download,
+            icon: SottoIcons.import,
+            size: ButtonSize.small,
+            onPressed: () => _download(context, notifier),
+          ),
+        ],
       ),
     };
+  }
+
+  /// A model that asks for attribution shows its license first; the
+  /// download starts only once it is accepted.
+  Future<void> _download(BuildContext context, ModelStatusNotifier notifier) async {
+    if (await confirmModelLicense(context, model)) notifier.download(model);
   }
 }
 
@@ -422,7 +481,7 @@ class _LiveCheckState extends ConsumerState<_LiveCheck> {
   SpeechSession? _session;
   FollowEngine? _engine;
   FlatScript? _flat;
-  StreamSubscription<String>? _sub;
+  StreamSubscription<HeardUpdate>? _sub;
   String _heard = '';
   String? _error;
   DateTime? _lastHeardAt;
@@ -446,11 +505,11 @@ class _LiveCheckState extends ConsumerState<_LiveCheck> {
         setState(() => _error = _session!.report.warning ?? context.l10n.noSpeechEngine);
         return;
       }
-      _sub = _session!.heard.listen((t) {
-        _engine!.onHeard(t);
+      _sub = _session!.updates.listen((u) {
+        _engine!.onUpdate(u);
         if (mounted) {
           setState(() {
-            _heard = t;
+            _heard = u.text;
             _lastHeardAt = DateTime.now();
           });
         }

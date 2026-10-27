@@ -326,6 +326,10 @@ void FlutterWindow::HandleScreenCall(
     CaptureRegion(call, std::move(result));
     return;
   }
+  if (method == "ocrImage") {
+    RecognizeImage(call, std::move(result));
+    return;
+  }
   if (method != "capture") {
     result->NotImplemented();
     return;
@@ -630,6 +634,43 @@ void FlutterWindow::CaptureRegion(
       {flutter::EncodableValue("height"), flutter::EncodableValue(oh)},
       {flutter::EncodableValue("order"), flutter::EncodableValue(std::string("bgra"))},
   }));
+}
+
+// Reads the text on pixels Dart sends (a scanned PDF page, a picture), on
+// the capture thread: the OCR engine is synchronous and can take a second.
+void FlutterWindow::RecognizeImage(
+    const flutter::MethodCall<flutter::EncodableValue>& call,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
+  if (args == nullptr) {
+    result->Error("bad_args", "Expected a map");
+    return;
+  }
+  auto it = args->find(flutter::EncodableValue("pixels"));
+  const auto* bytes = it == args->end() ? nullptr : std::get_if<std::vector<uint8_t>>(&it->second);
+  const int width = GetInt(*args, "width", 0);
+  const int height = GetInt(*args, "height", 0);
+  if (bytes == nullptr || width <= 0 || height <= 0 ||
+      bytes->size() < static_cast<size_t>(width) * static_cast<size_t>(height) * 4) {
+    result->Error("bad_args", "Expected width × height BGRA pixels");
+    return;
+  }
+  auto pixels = std::make_shared<std::vector<uint8_t>>(*bytes);
+  std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> reply(std::move(result));
+  capture_worker_.Post(
+      [pixels, width, height, reply]() -> NativeWorker::Reply {
+        char* json = SottoRecognizeBgra(pixels->data(), width, height);
+        std::string text = json == nullptr ? std::string() : std::string(json);
+        SottoTextFree(json);
+        return [reply, text]() {
+          if (text.empty()) {
+            reply->Success();
+          } else {
+            reply->Success(flutter::EncodableValue(text));
+          }
+        };
+      },
+      [reply]() { reply->Error("ocr_failed", "Text recognition failed"); });
 }
 
 void FlutterWindow::HandleBridgeCall(

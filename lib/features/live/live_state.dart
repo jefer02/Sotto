@@ -39,6 +39,7 @@ class LiveState {
     this.hidden = false,
     this.clickThrough = false,
     this.lastAdvanceAt,
+    this.jumps = 0,
     this.resumedAt,
     this.sendHold = 0,
     this.sectionSeconds = const {},
@@ -85,6 +86,11 @@ class LiveState {
 
   /// Drives the cue-dot pulse, which plays on advance only.
   final DateTime? lastAdvanceAt;
+
+  /// Counts moves that skip text instead of reading it: hotkeys, the
+  /// clicker, voice relocks. The overlay places the reading position at
+  /// once for these instead of sweeping through the words in between.
+  final int jumps;
 
   /// Drives the 300 ms cue sweep that re-anchors the eye after Dismiss.
   final DateTime? resumedAt;
@@ -171,6 +177,7 @@ class LiveState {
     bool? hidden,
     bool? clickThrough,
     DateTime? lastAdvanceAt,
+    int? jumps,
     DateTime? resumedAt,
     double? sendHold,
     Map<String, int>? sectionSeconds,
@@ -204,6 +211,7 @@ class LiveState {
     hidden: hidden ?? this.hidden,
     clickThrough: clickThrough ?? this.clickThrough,
     lastAdvanceAt: lastAdvanceAt ?? this.lastAdvanceAt,
+    jumps: jumps ?? this.jumps,
     resumedAt: resumedAt ?? this.resumedAt,
     sendHold: sendHold ?? this.sendHold,
     sectionSeconds: sectionSeconds ?? this.sectionSeconds,

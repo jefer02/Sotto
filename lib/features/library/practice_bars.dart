@@ -204,7 +204,7 @@ class _PracticeBarsState extends State<PracticeBars> with SingleTickerProviderSt
                                       curve: Motion.glideEnter,
                                     ).transform(_enter.value),
                                     child: AnimatedOpacity(
-                                      duration: Motion.quick,
+                                      duration: context.motion(Motion.quick),
                                       opacity: _selected == null || _selected == i ? 1 : 0.62,
                                       child: DecoratedBox(
                                         decoration: BoxDecoration(

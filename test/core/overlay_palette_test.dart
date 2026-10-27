@@ -10,8 +10,11 @@ void main() {
     expect(o.textOnly, isTrue);
     expect(o.ground.a, 0);
     expect(o.edge.a, 0);
-    // White text gets a dark outline by default ("Auto").
-    expect(o.outline, const Color(0xFF000000));
+    // Before its first reading, Auto shows white text with a thin, soft
+    // dark outline.
+    expect(o.ink, lightInk);
+    expect(o.outline.withValues(alpha: 1), darkInk);
+    expect(o.outline.a, closeTo(OverlayPalette.contrastOutlineAlpha, 0.01));
   });
 
   test('auto outline contrasts with the text color', () {

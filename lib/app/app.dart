@@ -22,7 +22,7 @@ import '../features/forms/autofill_controller.dart';
 import '../features/forms/autofill_view.dart';
 import '../features/live/backdrop_tone_controller.dart';
 import '../features/live/live_controller.dart';
-import '../features/library/library_actions.dart';
+import '../features/library/new_script_dialog.dart';
 import '../features/live/overlay_palette.dart';
 import '../features/live/overlay_screen.dart';
 import '../features/preflight/preflight_dialog.dart';
@@ -147,6 +147,8 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
     // Auto-fill (or "Fill what's on screen now") outside a session.
     final autoFillOverlay = ref.watch(autoFillControllerProvider.select((a) => a.overlay));
     final locale = appLocale(settings.uiLanguage);
+    final reduceMotion =
+        settings.reduceMotion || WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
     // Controllers and services read strings without a BuildContext.
     L10n.current = lookupAppLocalizations(locale);
     Intl.defaultLocale = locale.languageCode;
@@ -178,13 +180,22 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           color: const Color(0x00000000),
-          // A backdrop change crossfades the text color over 200 ms.
-          themeAnimationDuration: const Duration(milliseconds: 200),
-          themeAnimationCurve: Curves.easeInOut,
+          // A backdrop change crossfades the text color; instant under reduce motion.
+          themeAnimationDuration: reduceMotion ? Duration.zero : Motion.backdropFade,
+          themeAnimationCurve: Motion.crossfade,
           theme: buildSottoTheme(
             overlayDark ? SottoPalette.stage : SottoPalette.houseLights,
             overlay: overlay,
           ).copyWith(scaffoldBackgroundColor: const Color(0x00000000), canvasColor: const Color(0x00000000)),
+          // "Reduce motion" reaches every effect in the overlay too, not only
+          // the ones that read the setting themselves.
+          builder: (context, child) {
+            final media = MediaQuery.of(context);
+            return MediaQuery(
+              data: media.copyWith(disableAnimations: media.disableAnimations || settings.reduceMotion),
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
           home: isLive
               ? const OverlayScreen()
               : autoFillOverlay
@@ -208,10 +219,7 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
         darkTheme: buildSottoTheme(SottoPalette.stage),
         themeMode: themeMode,
         // Light ↔ dark crossfades (SottoPalette.lerp); instant under reduce motion.
-        themeAnimationDuration:
-            settings.reduceMotion || WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations
-            ? Duration.zero
-            : Motion.panel,
+        themeAnimationDuration: reduceMotion ? Duration.zero : Motion.panel,
         themeAnimationCurve: Motion.move,
         routerConfig: ref.watch(routerProvider),
         // "Reduce motion" (Settings › Appearance) calms the main window too,
@@ -308,7 +316,7 @@ class _AutoLockScopeState extends ConsumerState<_AutoLockScope> {
   }
 }
 
-/// Main-window shortcuts: ⌘N new script, ⌘, settings (⌘K is handled by the
+/// Main-window shortcuts: ⌘N new script (the "New script" dialog), ⌘, settings (⌘K is handled by the
 /// sidebar search field).
 class _GlobalShortcuts extends ConsumerWidget {
   const _GlobalShortcuts({required this.child});
@@ -322,7 +330,7 @@ class _GlobalShortcuts extends ConsumerWidget {
     return CallbackShortcuts(
       bindings: {
         key(LogicalKeyboardKey.comma): () => router.go('/settings/shortcuts'),
-        key(LogicalKeyboardKey.keyN): () => unawaited(createScriptAndOpen(ref)),
+        key(LogicalKeyboardKey.keyN): () => unawaited(showNewScriptDialog(ref)),
       },
       child: child,
     );

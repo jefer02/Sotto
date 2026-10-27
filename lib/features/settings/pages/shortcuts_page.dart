@@ -63,7 +63,25 @@ class _ShortcutsPageState extends ConsumerState<ShortcutsPage> {
       action: ResetLink(
         onTap: () => notifier.update((s) => s.copyWith(bindings: const {}, chord: PlatformKeys.defaultChord)),
       ),
-      left: [
+      sections: [
+        SettingsGroup(
+          title: context.l10n.chord,
+          children: [
+            SettingRow(
+              title: context.l10n.sottoChord,
+              subtitle: context.l10n.sottoChordSub,
+              trailing: SottoSelect<String>(
+                width: 200,
+                value: _chordKey(settings.chord),
+                options: [for (final c in _chords) SelectOption(_chordKey(c), _chordLabel(c))],
+                onChanged: (k) =>
+                    notifier.update((s) => s.copyWith(chord: _chords.firstWhere((c) => _chordKey(c) == k))),
+              ),
+            ),
+            if (!PlatformKeys.isMac)
+              SettingRow(title: context.l10n.altGrLayouts, subtitle: context.l10n.altGrLayoutsSub),
+          ],
+        ),
         Row(
           children: [
             Expanded(
@@ -88,26 +106,6 @@ class _ShortcutsPageState extends ConsumerState<ShortcutsPage> {
         ),
         if (live.isNotEmpty) SettingsGroup(title: context.l10n.groupLive, children: live),
         if (answers.isNotEmpty) SettingsGroup(title: context.l10n.setAnswers, children: answers),
-      ],
-      right: [
-        SettingsGroup(
-          title: context.l10n.chord,
-          children: [
-            SettingRow(
-              title: context.l10n.sottoChord,
-              subtitle: context.l10n.sottoChordSub,
-              trailing: SottoSelect<String>(
-                width: 200,
-                value: _chordKey(settings.chord),
-                options: [for (final c in _chords) SelectOption(_chordKey(c), _chordLabel(c))],
-                onChanged: (k) =>
-                    notifier.update((s) => s.copyWith(chord: _chords.firstWhere((c) => _chordKey(c) == k))),
-              ),
-            ),
-            if (!PlatformKeys.isMac)
-              SettingRow(title: context.l10n.altGrLayouts, subtitle: context.l10n.altGrLayoutsSub),
-          ],
-        ),
         if (overlay.isNotEmpty) SettingsGroup(title: context.l10n.groupOverlay, children: overlay),
       ],
     );
@@ -278,7 +276,7 @@ class _ShortcutRowState extends ConsumerState<ShortcutRow> {
         onTap: _start,
         semanticLabel: context.l10n.changeShortcutFor(a.title),
         builder: (context, st) => AnimatedContainer(
-          duration: Motion.quick,
+          duration: context.motion(Motion.quick),
           height: 30,
           padding: const EdgeInsets.symmetric(horizontal: 6),
           decoration: BoxDecoration(

@@ -50,7 +50,7 @@ class GeneralPage extends ConsumerWidget {
     return SettingsPageScaffold(
       title: context.l10n.setGeneral,
       description: context.l10n.generalDescription,
-      left: [
+      sections: [
         SettingsGroup(
           title: context.l10n.interface,
           children: [
@@ -181,8 +181,6 @@ class GeneralPage extends ConsumerWidget {
             ),
           ],
         ),
-      ],
-      right: [
         SurfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,7 +303,7 @@ class _IntegrationsPageState extends ConsumerState<IntegrationsPage> {
     return SettingsPageScaffold(
       title: l.setIntegrations,
       description: kEmbeddedDeepSeekKey.isEmpty ? l.integrationsDescription : l.integrationsDescriptionBuiltIn,
-      left: [
+      sections: [
         SettingsGroup(
           title: 'DeepSeek',
           footer: l.deepseekFooter,
@@ -440,7 +438,43 @@ class PrivacyPage extends ConsumerWidget {
     return SettingsPageScaffold(
       title: context.l10n.setPrivacy,
       description: context.l10n.privacyDescription,
-      left: [
+      sections: [
+        SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(context.l10n.whatLeaves, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
+              const SizedBox(height: 12),
+              for (final (label, text) in [
+                (context.l10n.privVoice, context.l10n.privVoiceBody),
+                (context.l10n.privRoom, context.l10n.privRoomBody),
+                (context.l10n.privAnswers, context.l10n.privAnswersBody),
+                (
+                  context.l10n.privScreen,
+                  s.screenAwareness ? context.l10n.privScreenOnBody : context.l10n.privScreenOffBody,
+                ),
+                (context.l10n.privAgent, s.agentEnabled ? context.l10n.privAgentOnBody : context.l10n.privAgentOffBody),
+                (context.l10n.privModels, context.l10n.privModelsBody),
+                (context.l10n.privConsent, context.l10n.privConsentBody),
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110,
+                        child: Text(label, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
+                      ),
+                      Expanded(
+                        child: Text(text, style: TypeScale.body.copyWith(color: p.inkSecondary)),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
         const AppLockSection(),
         SettingsGroup(
           title: context.l10n.capture,
@@ -525,44 +559,6 @@ class PrivacyPage extends ConsumerWidget {
               ),
             ),
           ],
-        ),
-      ],
-      right: [
-        SurfaceCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(context.l10n.whatLeaves, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
-              const SizedBox(height: 12),
-              for (final (label, text) in [
-                (context.l10n.privVoice, context.l10n.privVoiceBody),
-                (context.l10n.privRoom, context.l10n.privRoomBody),
-                (context.l10n.privAnswers, context.l10n.privAnswersBody),
-                (
-                  context.l10n.privScreen,
-                  s.screenAwareness ? context.l10n.privScreenOnBody : context.l10n.privScreenOffBody,
-                ),
-                (context.l10n.privAgent, s.agentEnabled ? context.l10n.privAgentOnBody : context.l10n.privAgentOffBody),
-                (context.l10n.privModels, context.l10n.privModelsBody),
-                (context.l10n.privConsent, context.l10n.privConsentBody),
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 110,
-                        child: Text(label, style: TypeScale.bodyStrong.copyWith(color: p.inkPrimary)),
-                      ),
-                      Expanded(
-                        child: Text(text, style: TypeScale.body.copyWith(color: p.inkSecondary)),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
         ),
       ],
     );

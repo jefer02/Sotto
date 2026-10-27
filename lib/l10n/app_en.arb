@@ -328,8 +328,12 @@
   "modelStreamingEnDesc": "Follows your voice word by word",
   "modelStreamingEnLight": "English · streaming (light)",
   "modelStreamingEnLightDesc": "For older or low-power machines",
+  "modelStreamingEs": "Spanish · streaming",
+  "modelStreamingFr": "French · streaming",
+  "modelStreamingDe": "German · streaming",
+  "modelStreamingKrokoDesc": "Follows your voice word by word · Kroko community model, CC BY-SA",
   "modelWhisperBase": "Whisper base",
-  "modelWhisperBaseDesc": "Question transcripts in 99 languages; also follows non-English scripts",
+  "modelWhisperBaseDesc": "Question transcripts in 99 languages; also follows languages without a streaming model",
   "modelWhisperTurbo": "Whisper large-v3 turbo",
   "modelWhisperTurboDesc": "Most accurate question transcripts; needs a fast machine",
   "modelDownloadFailed": "Download failed ({status}).",
@@ -342,10 +346,47 @@
   },
   "modelIncomplete": "The model archive was incomplete.",
   "modelOffline": "No internet connection. Models download once, then work offline.",
+  "modelChecksumFailed": "The download didn't match the published checksum, so it was discarded. Try again.",
+  "modelLicenseTitle": "License of “{model}”",
+  "@modelLicenseTitle": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelLicenseBody": "This model is shared under Creative Commons Attribution-ShareAlike (CC BY-SA); its publisher doesn’t say which version. Sotto downloads it unchanged from the sherpa-onnx project on GitHub, checks it against a pinned checksum, and runs it only on this computer.",
+  "modelLicenseAttribution": "Attribution",
+  "modelLicenseSource": "Source and license: {url}",
+  "@modelLicenseSource": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "modelLicenseAccept": "Accept and download",
+  "modelLicenseView": "License",
   "engineUnavailable": "Unavailable",
   "engineOnDeviceStreaming": "On-device · streaming",
+  "engineOnDeviceStreamingModel": "On-device · streaming · {model}",
+  "@engineOnDeviceStreamingModel": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "engineOnDeviceWhisper": "On-device · Whisper",
   "engineModelsMissing": "Speech models are not installed yet. Download them in Settings → Voice & following.",
+  "engineStreamingRecommended": "Following with Whisper waits for pauses. Download “{model}” in Settings → Voice & following to follow word by word.",
+  "@engineStreamingRecommended": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "sttEngineFailed": "Speech engine failed to start: {error}",
   "@sttEngineFailed": {
     "placeholders": {
@@ -382,6 +423,14 @@
     }
   },
   "readyDownloadModels": "Download speech models in Voice & following",
+  "readyStreamingRecommended": "Follows with Whisper, a phrase at a time. Download “{model}” to follow word by word.",
+  "@readyStreamingRecommended": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "readyHotkeys": "Hotkeys {chord}",
   "@readyHotkeys": {
     "placeholders": {
@@ -1065,6 +1114,31 @@
   "overlayThemeSub": "Dark disappears into slides and video.",
   "matchApp": "Match app",
   "readability": "Readability",
+  "scriptFont": "Script font",
+  "scriptFontOverlay": "Overlay script",
+  "scriptFontEditor": "Editor script",
+  "scriptFontChange": "Change…",
+  "scriptFontOverlayTitle": "Overlay script font",
+  "scriptFontEditorTitle": "Editor script font",
+  "scriptFontBundled": "Included with Sotto",
+  "scriptFontSystem": "On this computer",
+  "scriptFontSearch": "Search fonts",
+  "scriptFontLoading": "Looking for installed fonts…",
+  "scriptFontNone": "No fonts match",
+  "scriptFontWeight": "Weight",
+  "scriptFontSpacing": "Letter spacing",
+  "scriptFontReset": "Reset to default",
+  "scriptFontApply": "Apply",
+  "scriptFontDefaultTag": "Default",
+  "scriptFontSample": "Thank you all for being here today; let’s look at how the year went.",
+  "scriptFontMissing": "“{family}” isn’t installed on this computer, so Sotto shows the default font instead.",
+  "@scriptFontMissing": {
+    "placeholders": {
+      "family": {
+        "type": "String"
+      }
+    }
+  },
   "textSize": "Text size",
   "linesShown": "Lines shown",
   "linesShownSub": "Before and after the line you are saying",
@@ -1086,11 +1160,26 @@
   "metricLineLength": "Line length at this size",
   "motion": "Motion",
   "scrolling": "Scrolling",
-  "scrollingSub": "Glide eases between beats; Step jumps.",
+  "scrollingSub": "Glide follows your voice letter by letter, at your pace; Step moves a line at a time.",
   "scrollGlide": "Glide",
   "scrollStep": "Step",
   "reduceMotion": "Reduce motion",
   "reduceMotionSub": "Also follows your system setting",
+  "highlightEffect": "Highlight effect",
+  "highlightEffectSub": "How the words you’re saying light up on the current line",
+  "highlightOff": "Off",
+  "highlightSimple": "Simple",
+  "highlightGlow": "Glow + sparkles",
+  "highlightGlowSub": "A cold glow sweeps letter by letter as you speak, with sparkles rising off it; the line keeps its color. With Reduce motion it rests on the word you said.",
+  "highlightSimpleSub": "The letters you’re saying take the accent color as you speak.",
+  "highlightUseFont": "Use {font}, the serif it was designed with",
+  "@highlightUseFont": {
+    "placeholders": {
+      "font": {
+        "type": "String"
+      }
+    }
+  },
   "blurBehind": "Blur behind the overlay",
   "blurBehindSub": "Softens busy slides. Uses the system’s vibrancy on macOS and acrylic on Windows 11.",
   "voiceDescription": "How Sotto listens to you while you present. On-device recognition keeps your voice on this computer.",
@@ -1111,6 +1200,19 @@
   "addLanguage": "Add a language",
   "engine": "Engine",
   "engineOnDeviceSub": "sherpa-onnx on this computer · no audio leaves it",
+  "followsWith": "Follows with",
+  "followsWhyStreaming": "Word by word: a streaming model hears each word as you say it. Whisper still transcribes questions and dictation.",
+  "followsWhyWhisperUntil": "Whisper only hears whole phrases: the script waits for your pauses, then moves a phrase at once. Download “{model}” to follow word by word.",
+  "@followsWhyWhisperUntil": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "followsWhyWhisperOnly": "No streaming model speaks this language yet: Whisper follows a phrase at a time.",
+  "followsWhyNone": "Download a model below to follow your voice.",
+  "followsNoModel": "No model yet",
   "following": "Following",
   "advance": "Advance",
   "followMyVoice": "Follow my voice",
@@ -1130,7 +1232,7 @@
   "ready": "Ready",
   "needsSetup": "Needs setup",
   "onDeviceModels": "On-device models",
-  "onDeviceModelsFooter": "Downloaded once from the sherpa-onnx project, then used offline. Follow English live with a streaming model; Whisper transcribes questions and follows other languages.",
+  "onDeviceModelsFooter": "Downloaded once from the sherpa-onnx project, checked against a pinned checksum, then used offline. A streaming model follows your voice word by word (English, Spanish, French, German); Whisper transcribes questions and dictation, and follows other languages a phrase at a time.",
   "installed": "Installed",
   "removeModel": "Remove model",
   "unpacking": "Unpacking",
@@ -1976,5 +2078,240 @@
   "readyHotkeysWaylandSub": "Wayland doesn't let apps register global shortcuts. Log in with an X11 session (\"on Xorg\") or use the overlay's buttons.",
   "startupFailedTitle": "Sotto couldn't open your data",
   "startupFailedBody": "Another copy of Sotto may still be open, or a sync app such as OneDrive is holding one of its files. Close it, then try again.",
-  "quit": "Quit"
+  "quit": "Quit",
+  "pasteOrganized": "Organized into sections and beats",
+  "undo": "Undo",
+  "newScriptSubtitle": "How do you want to start?",
+  "newScriptWordsNote": "Writing and importing never change your wording. Generating writes new text from your material — read it through before you go live.",
+  "pathWriteTitle": "Write from scratch",
+  "pathWriteBody": "A blank script. Type it, or paste it, in the editor.",
+  "pathImportTitle": "Import text",
+  "pathImportBody": "A file or pasted text, kept word for word. Sotto only organizes it into sections and beats.",
+  "pathGenerateTitle": "Generate with AI",
+  "pathGenerateBody": "From a presentation, PDF or document. DeepSeek writes a new script for you to review and edit.",
+  "badgeKeepsWords": "Keeps your words",
+  "badgeWritesNew": "Writes new text",
+  "importDropHint": "Drop a .docx, .pdf, .md or .txt file here, or",
+  "importChooseFile": "Choose a file",
+  "importPasteLabel": "Or paste your text",
+  "importPastePlaceholder": "Paste the script here — it is kept exactly as written",
+  "importPasteAction": "Import text",
+  "genMaterial": "Material",
+  "genMaterialHint": "Drop presentations, PDFs, documents or pictures here, or",
+  "genChooseFiles": "Choose files",
+  "genReading": "Reading…",
+  "genSlides": "{count, plural, =1{1 slide} other{{count} slides}}",
+  "@genSlides": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genPages": "{count, plural, =1{1 page} other{{count} pages}}",
+  "@genPages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genParts": "{count, plural, =1{1 part} other{{count} parts}}",
+  "@genParts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genPicture": "Picture",
+  "genHiddenSkipped": "{count, plural, =1{1 hidden slide skipped} other{{count} hidden slides skipped}}",
+  "@genHiddenSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genNoNotes": "no speaker notes",
+  "genNotesFound": "{count, plural, =1{notes on 1 slide} other{notes on {count} slides}}",
+  "@genNotesFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genWords": "{count, plural, =1{1 word} other{{count} words}}",
+  "@genWords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genOcrUsed": "{count, plural, =1{OCR on 1 scanned page} other{OCR on {count} scanned pages}}",
+  "@genOcrUsed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genOcrPicture": "text read with OCR",
+  "genRemove": "Remove",
+  "genDuration": "Duration",
+  "genMinutes": "min",
+  "genBudget": "≈ {words} words at your measured pace ({wpm} wpm)",
+  "@genBudget": {
+    "placeholders": {
+      "words": {
+        "type": "int"
+      },
+      "wpm": {
+        "type": "int"
+      }
+    }
+  },
+  "genBudgetDefault": "≈ {words} words at {wpm} wpm — rehearse once and it uses your own pace",
+  "@genBudgetDefault": {
+    "placeholders": {
+      "words": {
+        "type": "int"
+      },
+      "wpm": {
+        "type": "int"
+      }
+    }
+  },
+  "genAudience": "Audience",
+  "genAudiencePlaceholder": "Who is listening? e.g. the board, new customers",
+  "genTone": "Tone",
+  "genTonePlaceholder": "e.g. confident and warm",
+  "genChipExecutives": "Executives",
+  "genChipTeam": "Technical team",
+  "genChipCustomers": "Customers",
+  "genChipStudents": "Students",
+  "genChipGeneral": "General public",
+  "genChipConfident": "Confident",
+  "genChipConversational": "Conversational",
+  "genChipFormal": "Formal",
+  "genChipInspiring": "Inspiring",
+  "genChipConcise": "Concise",
+  "genLanguage": "Language",
+  "genLanguageSpeech": "{language} — speech language",
+  "@genLanguageSpeech": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "genUseNotes": "Use speaker notes",
+  "genUseNotesSub": "Notes often hold what you meant to say",
+  "genSectionPerSlide": "One section per slide",
+  "genSectionPerSlideSub": "Off: related slides share a section",
+  "genQuestions": "Also prepare likely questions",
+  "genQuestionsSub": "With answers from your material, in the Q&A prep tab",
+  "genPrivacy": "The text read from these files is sent to DeepSeek to write the script. Nothing is sent until you press Generate, and nothing else leaves this computer.",
+  "genNeedsKey": "Generating needs a DeepSeek API key",
+  "genNeedsKeySub": "Add yours to generate scripts. Writing from scratch and importing text work without one.",
+  "genOpenIntegrations": "Settings › Integrations",
+  "genGenerate": "Generate script",
+  "genCancel": "Cancel — nothing is saved",
+  "genTryAgain": "Try again",
+  "genFailed": "Couldn’t generate the script",
+  "genStageReading": "Material read",
+  "genStageUnderstanding": "Understanding the slides ({done}/{total})",
+  "@genStageUnderstanding": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "genStageUnderstandingDone": "Understanding the slides",
+  "genStageWriting": "Writing the script",
+  "genStageChecking": "Checking length, structure and slide cues",
+  "genStageQuestions": "Preparing likely questions",
+  "genPreviewWaiting": "The script appears here as it is written.",
+  "genDraftReady": "Draft ready — read it through before you go live.",
+  "genChecks": "{count, plural, =1{1 spot is marked for you to check.} other{{count} spots are marked for you to check.}}",
+  "@genChecks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "genCheckMarker": "CHECK",
+  "materialUnsupported": "Sotto can’t read {ext} files. Add a presentation (.pptx, .odp), a PDF, a document (.docx, .md, .txt) or a picture (.png, .jpg).",
+  "@materialUnsupported": {
+    "placeholders": {
+      "ext": {
+        "type": "String"
+      }
+    }
+  },
+  "materialExportFirst": "Sotto can’t read {ext} files. Export it as PowerPoint (.pptx) or PDF and add that instead.",
+  "@materialExportFirst": {
+    "placeholders": {
+      "ext": {
+        "type": "String"
+      }
+    }
+  },
+  "materialLegacy": "This is an old Office format or a password-protected file. Save it as .pptx or .docx without a password, or export it as PDF.",
+  "materialTooLarge": "This file is too large to read safely (up to 100 MB).",
+  "materialTooManyPages": "This file has {count} slides or pages; Sotto reads up to {max}. Split it, or export the part you need.",
+  "@materialTooManyPages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "materialCorrupted": "This file is damaged or isn’t what its name says. Open it and save it again, or export it as PDF.",
+  "materialEmpty": "No text found in this file — not even with OCR.",
+  "markersLive": "Show markers to check",
+  "markersLiveSub": "Spots a generated script marked [CHECK: …], in the cue color. Never followed by voice; off, the live view leaves them out",
+  "markersCount": "{count, plural, =1{1 spot to check} other{{count} spots to check}}",
+  "@markersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "markerPrevious": "Previous marker",
+  "markerNext": "Next marker",
+  "markerRemove": "Remove marker",
+  "markerHint": "The marker is selected: type the missing fact over it, or remove it.",
+  "pfMarkers": "Spots to check",
+  "pfMarkersShown": "{count, plural, =1{1 marker is still in the script. It shows in the cue color and is never followed.} other{{count} markers are still in the script. They show in the cue color and are never followed.}}",
+  "@pfMarkersShown": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pfMarkersHidden": "{count, plural, =1{1 marker is still in the script. It is hidden while live.} other{{count} markers are still in the script. They are hidden while live.}}",
+  "@pfMarkersHidden": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pfOpenFirstMarker": "Open the first",
+  "genFailedNothingSaved": "Nothing was saved. Fix the problem and try again, or go back.",
+  "genFailedInvalidReply": "DeepSeek’s reply couldn’t be turned into a script twice in a row.",
+  "genFailedNoText": "No text was found in the material."
 }

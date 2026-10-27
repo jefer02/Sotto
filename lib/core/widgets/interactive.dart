@@ -108,7 +108,11 @@ class _InteractiveState extends State<Interactive> {
           onTap: _active ? widget.onTap : null,
           onLongPressStart: widget.onLongPressStart == null ? null : (_) => widget.onLongPressStart!(),
           onLongPressEnd: widget.onLongPressEnd == null ? null : (_) => widget.onLongPressEnd!(),
-          child: AnimatedOpacity(duration: Motion.quick, opacity: widget.enabled ? 1 : 0.42, child: child),
+          child: AnimatedOpacity(
+            duration: context.motion(Motion.quick),
+            opacity: widget.enabled ? 1 : 0.42,
+            child: child,
+          ),
         ),
       ),
     );

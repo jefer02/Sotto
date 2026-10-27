@@ -31,9 +31,7 @@ Future<OrganizePrep> _prepare(String text) {
   return Isolate.run(() => OrganizePrep.build(text, labels));
 }
 
-Future<LlmClient?> _llmFor(WidgetRef ref) async {
-  return LlmClient.forSettings(ref.read(settingsProvider), ref.read(secretStoreProvider));
-}
+Future<LlmClient?> _llmFor(WidgetRef ref) => ref.read(organizerLlmProvider)();
 
 /// Usable at once, refined in the background:
 /// 1. the same text organized before → the cached result, instantly;

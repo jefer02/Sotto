@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/import/material_reader.dart' show ImageOcr;
+import '../../domain/forms/screen_text.dart' show OcrLine;
 import '../../domain/overlay/backdrop_tone.dart';
 
 /// Which display to capture.
@@ -157,6 +159,23 @@ class ScreenService {
     }
   }
 
+  /// The text on a picture — [bgra], [width] × [height] pixels — read on
+  /// this computer (Windows.Media.Ocr, macOS Vision), lines in reading
+  /// order. Null where there is no OCR or it found nothing. Needs no
+  /// permission: nothing is captured.
+  Future<String?> recognizeImage(Uint8List bgra, int width, int height) async {
+    if (!supported) return null;
+    try {
+      final json = await _channel.invokeMethod<String>('ocrImage', {'pixels': bgra, 'width': width, 'height': height});
+      final lines = OcrLine.parse(json);
+      return lines.isEmpty ? null : lines.map((l) => l.text).join('\n');
+    } on PlatformException {
+      return null;
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
   /// macOS needs Screen Recording permission; Windows needs none.
   Future<ScreenPermission> permission() async {
     if (!supported) return ScreenPermission.unsupported;
@@ -189,3 +208,12 @@ class ScreenService {
 }
 
 final screenServiceProvider = Provider<ScreenService>((ref) => ScreenService());
+
+/// [ImageOcr] through [ScreenService.recognizeImage].
+class NativeImageOcr implements ImageOcr {
+  const NativeImageOcr(this.screen);
+  final ScreenService screen;
+
+  @override
+  Future<String?> read(Uint8List bgra, int width, int height) => screen.recognizeImage(bgra, width, height);
+}

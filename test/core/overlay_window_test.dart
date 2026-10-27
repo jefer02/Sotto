@@ -247,6 +247,41 @@ void main() {
       expect(window.isOverlay, isFalse);
       expect(host.maximized, isTrue);
     });
+
+    test('ending while the session is still starting leaves nothing live', () async {
+      final live = container.read(liveControllerProvider.notifier);
+      final starting = live.start(_script());
+      // Before start has finished opening the overlay.
+      final ended = live.end();
+      await Future.wait([starting, ended]);
+      expect(container.read(liveControllerProvider).isLive, isFalse);
+      expect(window.isOverlay, isFalse);
+      // The main window came back after the overlay's last frame.
+      expect(host.setBoundsCalls.last, isNot(saved));
+      expect(host.maximized, isTrue);
+    });
+
+    test('two ends at once tear down and save once', () async {
+      final store = container.read(localStoreProvider);
+      final live = container.read(liveControllerProvider.notifier);
+      await live.start(_script());
+      final before = store.sessions.length;
+      final (a, b) = await (live.end(), live.end()).wait;
+      expect(a, isNotNull);
+      expect(identical(a, b), isTrue);
+      expect(store.sessions.length, before + 1);
+      expect(window.isOverlay, isFalse);
+    });
+
+    test('a new session can start after a raced end', () async {
+      final live = container.read(liveControllerProvider.notifier);
+      final starting = live.start(_script());
+      await Future.wait([starting, live.end()]);
+      await live.start(_script());
+      expect(container.read(liveControllerProvider).isLive, isTrue);
+      expect(window.isOverlay, isTrue);
+      await live.end();
+    });
   });
 
   group('a panel over another app (auto-fill, chord + F)', () {

@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 import '../design/icons.dart';
 import '../design/theme.dart';
@@ -449,6 +449,62 @@ class RenderSettingRow extends RenderBox
 // ───────────────────────────── Meters ─────────────────────────────
 
 /// A row of section segments sized by duration; the current one can glow.
+/// A section's name under its segment, never cut off: it wraps by words
+/// onto two lines where it has room, and where even one word won't fit it
+/// gives way to the section's number. Hovering always shows the full name.
+class _SegmentLabel extends StatelessWidget {
+  const _SegmentLabel(this.title, {required this.number});
+
+  final String title;
+  final int number;
+
+  static const _maxLines = 2;
+
+  /// Whether [title] fits [width] in [style] without breaking a word or
+  /// running past [_maxLines].
+  static bool _fits(String title, TextStyle style, double width, TextScaler scaler, TextDirection dir) {
+    TextPainter painter(String text, {double maxWidth = double.infinity, int? maxLines}) => TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: dir,
+      textScaler: scaler,
+      maxLines: maxLines,
+    )..layout(maxWidth: maxWidth);
+    for (final word in title.split(RegExp(r'\s+')).where((w) => w.isNotEmpty)) {
+      final w = painter(word);
+      final wide = w.width > width;
+      w.dispose();
+      if (wide) return false;
+    }
+    final all = painter(title, maxWidth: width, maxLines: _maxLines);
+    final over = all.didExceedMaxLines;
+    all.dispose();
+    return !over;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final style = TypeScale.caption.copyWith(color: p.inkTertiary, fontSize: 11);
+    final number = this.number.toString().padLeft(2, '0');
+    final numberStyle = TypeScale.monoSmall.copyWith(color: p.inkTertiary);
+    return Tooltip(
+      message: title,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final scaler = MediaQuery.textScalerOf(context);
+          final dir = Directionality.of(context);
+          if (_fits(title, style, c.maxWidth, scaler, dir)) {
+            return Text(title, maxLines: _maxLines, softWrap: true, style: style);
+          }
+          // Too narrow even for the number: the tooltip carries the name.
+          if (!_fits(number, numberStyle, c.maxWidth, scaler, dir)) return const SizedBox.shrink();
+          return ExcludeSemantics(child: Text(number, maxLines: 1, style: numberStyle));
+        },
+      ),
+    );
+  }
+}
+
 class SectionBar extends StatelessWidget {
   const SectionBar({
     super.key,
@@ -502,15 +558,7 @@ class SectionBar extends StatelessWidget {
                           : (trackColor ?? p.primaryTrack),
                     ),
                   ),
-                  if (labels != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      labels![i],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TypeScale.caption.copyWith(color: p.inkTertiary, fontSize: 11),
-                    ),
-                  ],
+                  if (labels != null) ...[const SizedBox(height: 8), _SegmentLabel(labels![i], number: i + 1)],
                 ],
               ),
             ),
@@ -660,7 +708,7 @@ class SurfaceCard extends StatelessWidget {
         ? Color.alphaBlend(accent!.withValues(alpha: (p.isDark ? 0.16 : 0.11) + (hovered ? 0.05 : 0)), top)
         : top;
     final card = AnimatedContainer(
-      duration: Motion.quick,
+      duration: context.motion(Motion.quick),
       padding: padding,
       decoration: BoxDecoration(
         gradient: LinearGradient(

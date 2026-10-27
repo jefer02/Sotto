@@ -14,7 +14,9 @@ import '../../data/models/session_record.dart';
 import '../../data/models/settings.dart';
 import '../../data/models/shortcut.dart';
 import '../../data/repositories.dart';
+import '../../domain/structuring/check_markers.dart';
 import '../../domain/following/follow_engine.dart';
+import '../../domain/following/heard_update.dart';
 import '../../domain/following/script_aligner.dart';
 import '../../domain/structuring/script_structurer.dart';
 import '../../services/ai/answer_service.dart';
@@ -48,6 +50,15 @@ class LiveController extends Notifier<LiveState> {
   int _lastSection = 0;
   int _questionCount = 0;
   SessionEnded? onEnded;
+
+  /// Bumped by every start and end: a start still awaiting the overlay or
+  /// the speech engines when the session ends (or restarts) sees it changed
+  /// and backs out, releasing what it opened.
+  int _generation = 0;
+
+  /// The end in progress: a second end (hold-to-end and the shortcut
+  /// together) waits for it instead of tearing down and saving twice.
+  Future<SessionRecord?>? _ending;
 
   /// Screenshot (JPEG data URL) for the question being asked, and whether
   /// the question is about the screen itself. Held in memory only — never
@@ -98,8 +109,12 @@ class LiveController extends Notifier<LiveState> {
     await _hotkeys.registerAll(_settings, {LiveAction.goLive: (onDown: openPreflight, onUp: null), ...extra});
   }
 
-  Future<void> start(Script script, {int startSection = 0, bool rehearsal = false}) async {
-    if (state.isLive) return;
+  Future<void> start(Script original, {int startSection = 0, bool rehearsal = false}) async {
+    if (state.isLive || _ending != null) return;
+    final gen = ++_generation;
+    // Markers to check are never followed (the aligner skips them); with
+    // them hidden, the live view doesn't show them at all.
+    final script = _settings.showMarkersLive ? original : CheckMarkers.stripScript(original);
     final flat = FlatScript.from(script, language: _settings.language);
     if (flat.length == 0) return;
     final startBeat = startSection < flat.sectionFirstBeat.length ? flat.sectionFirstBeat[startSection] : 0;
@@ -118,13 +133,25 @@ class LiveController extends Notifier<LiveState> {
     );
 
     await _window.enterOverlay(settings);
+    if (gen != _generation) return;
     await _registerLiveHotkeys();
+    if (gen != _generation) return;
 
     if (settings.advanceMode != AdvanceMode.manual) {
       try {
         final hints = script.hintWords.isNotEmpty ? script.hintWords : ScriptStructurer.hintWordsFor(script.sections);
-        _speech = await SpeechSession.start(settings: settings, models: ref.read(modelManagerProvider), hints: hints);
-        _subs.add(_speech!.heard.listen(_onHeard));
+        final speech = await SpeechSession.start(
+          settings: settings,
+          models: ref.read(modelManagerProvider),
+          hints: hints,
+        );
+        if (gen != _generation) {
+          // Ended while the engines loaded: nobody else will close them.
+          await speech.dispose();
+          return;
+        }
+        _speech = speech;
+        _subs.add(speech.updates.listen(_onHeard));
         _subs.add(
           _speech!.level.listen((l) {
             if ((l - state.voiceLevel).abs() > 0.04) state = state.copyWith(voiceLevel: l);
@@ -137,6 +164,7 @@ class LiveController extends Notifier<LiveState> {
         );
         if (report.warning != null) _notice(report.warning!, seconds: 8);
       } catch (e) {
+        if (gen != _generation) return;
         state = state.copyWith(manualMode: true);
         // StateError's toString adds "Bad state:"; show just the message.
         _notice(e is StateError ? e.message : '$e', seconds: 8);
@@ -166,8 +194,17 @@ class LiveController extends Notifier<LiveState> {
     if (_settings.advanceMode == AdvanceMode.timed) _scheduleTimedAdvance();
   }
 
-  Future<SessionRecord?> end() async {
-    if (!state.isLive) return null;
+  /// Ends the session once, whoever asks: overlapping calls share one end.
+  Future<SessionRecord?> end() {
+    if (_ending case final ending?) return ending;
+    if (!state.isLive) return Future.value();
+    final ending = _end();
+    _ending = ending;
+    return ending.whenComplete(() => _ending = null);
+  }
+
+  Future<SessionRecord?> _end() async {
+    _generation++;
     _accumulateSection();
     final s = state;
     final record = SessionRecord(
@@ -227,6 +264,7 @@ class LiveController extends Notifier<LiveState> {
   /// Every step runs even if an earlier one fails: whatever breaks, the
   /// presenter must get their normal window back.
   Future<void> _teardown() async {
+    _generation++;
     _clock?.cancel();
     _timedAdvance?.cancel();
     _sendTimer?.cancel();
@@ -241,22 +279,29 @@ class LiveController extends Notifier<LiveState> {
     _llm = null;
     _engine = null;
     final tts = _tts;
-    for (final step in <Future<void> Function()>[
-      () async => draft?.cancel(),
-      () async {
-        for (final s in subs) {
-          await s.cancel();
+    try {
+      for (final step in <Future<void> Function()>[
+        () async => draft?.cancel(),
+        () async {
+          for (final s in subs) {
+            await s.cancel();
+          }
+        },
+        () async => speech?.dispose(),
+        tts.stop,
+        _hotkeys.unregisterAll,
+      ]) {
+        try {
+          await step();
+        } catch (e) {
+          debugPrint('live teardown step failed: $e');
         }
-      },
-      () async => speech?.dispose(),
-      tts.stop,
-      _hotkeys.unregisterAll,
-      _window.exitOverlay,
-    ]) {
+      }
+    } finally {
       try {
-        await step();
+        await _window.exitOverlay();
       } catch (e) {
-        debugPrint('live teardown step failed: $e');
+        debugPrint('live teardown: overlay exit failed: $e');
       }
     }
   }
@@ -324,14 +369,18 @@ class LiveController extends Notifier<LiveState> {
 
   // ───────────────────────────── Following ─────────────────────────────
 
-  void _onHeard(String text) {
+  void _onHeard(HeardUpdate heard) {
     final engine = _engine;
     if (engine == null) return;
-    if (state.phase == LivePhase.standby && text.trim().isNotEmpty) _beginReading();
-    if (state.phase != LivePhase.reading || _settings.advanceMode != AdvanceMode.voice) return;
+    if (state.phase == LivePhase.standby && heard.text.trim().isNotEmpty) _beginReading();
+    if (state.phase != LivePhase.reading || _settings.advanceMode != AdvanceMode.voice) {
+      // Paused or manual: what is said now must not count later.
+      engine.ignore(heard);
+      return;
+    }
 
     final before = engine.position;
-    final event = engine.onHeard(text);
+    final event = engine.onUpdate(heard);
     if (event == FollowEvent.none) return;
     final after = engine.position;
     var spoken = state.wordsSpoken;
@@ -342,6 +391,7 @@ class LiveController extends Notifier<LiveState> {
       position: after,
       wordsSpoken: spoken,
       lastAdvanceAt: event == FollowEvent.advanced || event == FollowEvent.jumped ? DateTime.now() : null,
+      jumps: event == FollowEvent.jumped || event == FollowEvent.relocked ? state.jumps + 1 : null,
     );
     _trackSection();
   }
@@ -360,7 +410,7 @@ class LiveController extends Notifier<LiveState> {
       state = state.copyWith(wordsSpoken: spoken);
     }
     engine.jumpTo(target, suspend: suspend);
-    state = state.copyWith(position: engine.position, lastAdvanceAt: DateTime.now());
+    state = state.copyWith(position: engine.position, lastAdvanceAt: DateTime.now(), jumps: state.jumps + 1);
     _trackSection();
     if (_settings.advanceMode == AdvanceMode.timed) _scheduleTimedAdvance();
   }

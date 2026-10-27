@@ -347,6 +347,17 @@ bool SottoCaptureMonitor(HMONITOR monitor, int max_side, int quality, bool ocr, 
   return true;
 }
 
+char* SottoRecognizeBgra(const unsigned char* bgra, int width, int height) {
+  if (bgra == nullptr || width <= 0 || height <= 0) return nullptr;
+  Pixels px;
+  px.width = width;
+  px.height = height;
+  px.bgra.assign(bgra, bgra + static_cast<size_t>(width) * height * 4);
+  return Recognize(px, 1.0);
+}
+
+void SottoTextFree(char* text) { std::free(text); }
+
 void SottoCaptureFree(SottoCapture* capture) {
   if (capture->jpeg != nullptr) std::free(capture->jpeg);
   capture->jpeg = nullptr;

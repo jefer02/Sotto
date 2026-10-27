@@ -38,10 +38,13 @@ import '../../core/widgets/stage_transitions.dart';
 enum EditorTab { write, prep, rehearsals }
 
 class EditorScreen extends ConsumerStatefulWidget {
-  const EditorScreen({super.key, required this.scriptId, this.tab = EditorTab.write});
+  const EditorScreen({super.key, required this.scriptId, this.tab = EditorTab.write, this.openMarker});
 
   final String scriptId;
   final EditorTab tab;
+
+  /// Opens the Write tab on this marker to check.
+  final int? openMarker;
 
   @override
   ConsumerState<EditorScreen> createState() => _EditorScreenState();
@@ -111,7 +114,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                           Expanded(
                             child: Column(
                               children: [
-                                Expanded(child: WriteTab(scriptId: widget.scriptId)),
+                                Expanded(
+                                  child: WriteTab(scriptId: widget.scriptId, openMarker: widget.openMarker),
+                                ),
                                 _Footer(scriptId: widget.scriptId),
                               ],
                             ),
@@ -200,7 +205,7 @@ class _Header extends ConsumerWidget {
                 ),
                 const SizedBox(width: 14),
                 AnimatedSwitcher(
-                  duration: Motion.snappy,
+                  duration: context.motion(Motion.snappy),
                   child: save == SaveState.saved
                       ? Tooltip(
                           key: const ValueKey('saved'),
@@ -577,7 +582,7 @@ class _SectionItem extends StatelessWidget {
       child: Interactive(
         onTap: onTap,
         builder: (context, s) => AnimatedContainer(
-          duration: Motion.quick,
+          duration: context.motion(Motion.quick),
           padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
           decoration: BoxDecoration(
             color: selected ? p.float : (s.hovered ? p.hoverWash : Colors.transparent),

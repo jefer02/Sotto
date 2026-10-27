@@ -32,6 +32,13 @@ class WorkingCopies {
 
 final workingCopiesProvider = Provider<WorkingCopies>((ref) => WorkingCopies());
 
+/// The DeepSeek client organizing refines with, or null without a key —
+/// then organizing is the rule-based pass alone, with no error. Tests swap it.
+final organizerLlmProvider = Provider<Future<LlmClient?> Function()>(
+  (ref) =>
+      () => LlmClient.forSettings(ref.read(settingsProvider), ref.read(secretStoreProvider)),
+);
+
 final organizeCacheProvider = Provider<OrganizeCache>((ref) {
   final store = ref.watch(localStoreProvider);
   return OrganizeCache(store.organizeCache, hmacKey: store.organizeKey);
@@ -71,6 +78,13 @@ class OrganizeJobs extends Notifier<Map<String, OrganizeProgress>> {
   Map<String, OrganizeProgress> build() => const {};
 
   bool isRunning(String scriptId) => _running.containsKey(scriptId);
+
+  /// Stops refining [scriptId] (the organizing was undone): nothing more
+  /// lands, and the progress bar goes.
+  void cancel(String scriptId) {
+    _running.remove(scriptId)?.cancel();
+    if (state.containsKey(scriptId)) state = {...state}..remove(scriptId);
+  }
 
   void _set(String id, OrganizeProgress p) => state = {...state, id: p};
 
