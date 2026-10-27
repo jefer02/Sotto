@@ -11,7 +11,6 @@ import '../../core/utils/ids.dart';
 import '../../data/import/script_importer.dart';
 import '../../data/models/script.dart';
 import '../../data/repositories.dart';
-import '../../data/storage/organize_cache.dart';
 import '../../domain/structuring/organize_plan.dart';
 import '../../domain/structuring/script_structurer.dart';
 import '../../services/ai/llm_client.dart';
@@ -43,7 +42,7 @@ Future<Script> importText(WidgetRef ref, ImportResult result, {String? collectio
   final repo = ref.read(scriptRepositoryProvider);
   final settings = ref.read(settingsProvider);
   final llm = useAi ? await _llmFor(ref) : null;
-  final cacheKey = OrganizeCache.keyFor(result.text, settings.aiModel);
+  final cacheKey = ref.read(organizeCacheProvider).keyFor(result.text, settings.aiModel);
   final now = DateTime.now();
 
   Script scriptWith(List<Section> sections, ScriptStatus status) => Script(

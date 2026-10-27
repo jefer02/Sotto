@@ -153,6 +153,8 @@ class AppSettings {
     this.chatAutoClose = 60,
     this.chatContextMessages = 20,
     this.historyRetentionDays = 30,
+    this.autoLockMinutes = 15,
+    this.lockBiometrics = false,
     this.onboarded = false,
     this.welcomeDone = false,
   });
@@ -301,6 +303,16 @@ class AppSettings {
 
   /// 0: history off — Q&A and questionnaire logs aren't kept.
   final int historyRetentionDays;
+
+  /// App Lock: lock after this many minutes without input to Sotto's
+  /// window; 0 = never. Only used while the lock is on.
+  final int autoLockMinutes;
+
+  static const autoLockChoices = [0, 5, 15, 30, 60];
+
+  /// App Lock: Windows Hello / Touch ID unlocks too (the data key is then
+  /// also in the keychain — see `AppSession.enableBiometrics`).
+  final bool lockBiometrics;
   final bool onboarded;
 
   /// The first-run welcome (models → first script) was finished or skipped.
@@ -384,6 +396,8 @@ class AppSettings {
     int? chatAutoClose,
     int? chatContextMessages,
     int? historyRetentionDays,
+    int? autoLockMinutes,
+    bool? lockBiometrics,
     bool? onboarded,
     bool? welcomeDone,
   }) => AppSettings(
@@ -457,6 +471,8 @@ class AppSettings {
     chatAutoClose: chatAutoClose ?? this.chatAutoClose,
     chatContextMessages: chatContextMessages ?? this.chatContextMessages,
     historyRetentionDays: historyRetentionDays ?? this.historyRetentionDays,
+    autoLockMinutes: autoLockMinutes ?? this.autoLockMinutes,
+    lockBiometrics: lockBiometrics ?? this.lockBiometrics,
     onboarded: onboarded ?? this.onboarded,
     welcomeDone: welcomeDone ?? this.welcomeDone,
   );
@@ -535,6 +551,8 @@ class AppSettings {
     'chatAutoClose': chatAutoClose,
     'chatContextMessages': chatContextMessages,
     'historyRetentionDays': historyRetentionDays,
+    'autoLockMinutes': autoLockMinutes,
+    'lockBiometrics': lockBiometrics,
     'onboarded': onboarded,
     'welcomeDone': welcomeDone,
   };
@@ -648,6 +666,11 @@ class AppSettings {
       chatAutoClose: j['chatAutoClose'] as int? ?? d.chatAutoClose,
       chatContextMessages: j['chatContextMessages'] as int? ?? d.chatContextMessages,
       historyRetentionDays: j['historyRetentionDays'] as int? ?? d.historyRetentionDays,
+      autoLockMinutes: switch (j['autoLockMinutes']) {
+        final int m when autoLockChoices.contains(m) => m,
+        _ => d.autoLockMinutes,
+      },
+      lockBiometrics: j['lockBiometrics'] as bool? ?? d.lockBiometrics,
       onboarded: j['onboarded'] as bool? ?? d.onboarded,
       welcomeDone: j['welcomeDone'] as bool? ?? d.welcomeDone,
     );

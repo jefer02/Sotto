@@ -8,17 +8,25 @@ import '../models/script.dart';
 
 /// AI organizing results keyed by a hash of the text (and the model and
 /// prompt version), so importing the same file again is instant.
+///
+/// Hive encrypts values, not keys: with the App Lock on, [hmacKey] (a
+/// subkey of the data key) turns the plain SHA-256 into an HMAC, so the
+/// keys can't confirm that a guessed text was ever organized.
 class OrganizeCache {
-  OrganizeCache(this._box, {this.maxEntries = 40});
+  OrganizeCache(this._box, {this.maxEntries = 40, this.hmacKey});
 
   final Box<Map> _box;
   final int maxEntries;
+  final List<int>? hmacKey;
 
   /// Bump when the prompt or the rebuild changes what a result means.
   static const version = 1;
 
-  static String keyFor(String text, String model) =>
-      sha256.convert(utf8.encode('v$version\u0000$model\u0000$text')).toString();
+  String keyFor(String text, String model) {
+    final input = utf8.encode('v$version\u0000$model\u0000$text');
+    final key = hmacKey;
+    return (key == null ? sha256.convert(input) : Hmac(sha256, key).convert(input)).toString();
+  }
 
   /// The cached sections, with fresh ids (they become a new script).
   List<Section>? get(String key) {

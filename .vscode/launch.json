@@ -10,6 +10,19 @@
       // The DeepSeek key built into dev runs (git-ignored; see README).
       "toolArgs": ["--dart-define-from-file=secrets.json"],
       "preLaunchTask": "Cerrar Sotto abierto"
+    },
+    {
+      // Same app, its own data: the boxes, the App Lock vault and the
+      // failed-attempt count go to C:\SottoTest (data\, support\), and
+      // the lock's keychain entry has its own name. Your real data and
+      // lock are never touched. Seeded with the sample scripts on first run.
+      "name": "Sotto (test data)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "windows",
+      "toolArgs": ["--dart-define-from-file=secrets.json", "--dart-define=SOTTO_DATA_ROOT=C:\\SottoTest"],
+      "preLaunchTask": "Cerrar Sotto abierto"
     }
   ]
 }

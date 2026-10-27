@@ -7,6 +7,30 @@ All notable changes to Sotto are listed here. The format follows
 The release workflow copies the section whose heading matches the tag (`v1.0.0` → `## [1.0.0]`)
 into the GitHub release notes.
 
+## [Unreleased]
+
+### Added
+
+- **App lock** (Settings → Privacy, off by default). A password encrypts your scripts, collections,
+  sessions, Q&A history, chats and forms instructions on this computer (AES-256, key derived with
+  Argon2id). Still no account: nothing leaves your computer.
+  - An unlock screen in your theme and language, with show/hide, a Caps Lock hint and a countdown
+    after repeated wrong passwords.
+  - A **recovery key**, shown once and again on request, to set a new password if you forget it.
+    You can also make a new one, which retires the old one.
+  - **Lock now** from the sidebar, Settings or Ctrl+Alt+K / ⌃⌥K (rebindable), and **auto-lock**
+    after 5–60 minutes without input. It never locks during a talk, rehearsal, agent run or fill.
+  - Optional **Windows Hello / Touch ID** unlock.
+  - **Reset Sotto** for when both the password and the recovery key are lost. The data can't be
+    recovered without one of them.
+- Development: `--dart-define=SOTTO_DATA_ROOT=<folder>` (and the "Sotto (test data)" launch
+  configuration) runs debug and profile builds on separate data.
+
+### Changed
+
+- The forms instructions are now kept with your data rather than with the settings. A copy stays in
+  the settings while the lock is off, so older versions still find them.
+
 ## [1.0.0] - 2026-10-10
 
 First public release.

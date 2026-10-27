@@ -30,6 +30,7 @@ import '../../../services/ai/llm_client.dart';
 import '../../../services/screen/screen_service.dart';
 import '../../library/readiness.dart';
 import '../settings_screen.dart';
+import 'app_lock_section.dart';
 import '../../../core/platform/platform_features.dart';
 import '../../../core/widgets/stage_transitions.dart';
 
@@ -474,6 +475,7 @@ class PrivacyPage extends ConsumerWidget {
             ],
           ),
         ),
+        const AppLockSection(),
         SettingsGroup(
           title: context.l10n.capture,
           children: [

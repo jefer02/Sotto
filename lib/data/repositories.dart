@@ -120,13 +120,26 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   @override
   AppSettings build() {
-    final raw = ref.watch(localStoreProvider).settingsWrites.get(_key);
-    return _features.clamp(raw == null ? const AppSettings() : AppSettings.fromJson(raw));
+    final store = ref.watch(localStoreProvider);
+    final raw = store.settingsWrites.get(_key);
+    // Personal text lives in the prefs box (encrypted with the lock on).
+    final private = store.prefs.get(_key)?[LocalStore.privatePrefsKey];
+    return _features.clamp(AppSettings.fromJson({...?raw, if (private is String) LocalStore.privatePrefsKey: private}));
   }
 
   void update(AppSettings Function(AppSettings s) change) {
+    final before = state;
     state = _features.clamp(change(state));
-    unawaited(ref.read(localStoreProvider).settingsWrites.put(_key, state.toJson()));
+    final store = ref.read(localStoreProvider);
+    // With the lock off, `settings` keeps a copy for older builds.
+    final json = state.toJson();
+    if (store.encrypted) json.remove(LocalStore.privatePrefsKey);
+    unawaited(store.settingsWrites.put(_key, json));
+    if (state.formsInstructions != before.formsInstructions) {
+      unawaited(
+        store.prefs.put(_key, {...?store.prefs.get(_key), LocalStore.privatePrefsKey: state.formsInstructions}),
+      );
+    }
   }
 
   void reset(AppSettings Function(AppSettings current, AppSettings defaults) pick) =>

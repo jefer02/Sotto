@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,6 +28,8 @@ import '../features/live/overlay_screen.dart';
 import '../features/preflight/preflight_dialog.dart';
 import '../features/questionnaire/questionnaire_controller.dart';
 import '../features/questionnaire/questionnaire_view.dart';
+import 'app_session.dart';
+import 'auto_lock.dart';
 import 'router.dart';
 import '../core/platform/platform_features.dart';
 
@@ -96,6 +99,9 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
           // Chord + Esc, outside a session too: whatever Sotto is doing on
           // screen stops at once, and auto-fill rests.
           LiveAction.agentStop: (onDown: _emergencyStop, onUp: null),
+          // Chord + K locks Sotto — only with the App Lock on.
+          if (ref.read(lockEnabledProvider))
+            LiveAction.lockApp: (onDown: () => unawaited(ref.read(appSessionProvider)?.lock()), onUp: null),
           // The chat's shortcuts exist only with the chat turned on.
           if (ref.read(settingsProvider).showChat) ...{
             LiveAction.openChat: (onDown: () => unawaited(_openChat()), onUp: null),
@@ -165,70 +171,147 @@ class _SottoAppState extends ConsumerState<SottoApp> with WidgetsBindingObserver
       // Auto text color: what's behind the overlay, sampled on-device.
       final backdrop = isLive ? ref.watch(backdropToneProvider) : null;
       final overlay = overlayPaletteFor(settings, dark: overlayDark, backdrop: backdrop);
-      return MaterialApp(
+      return _AutoLockScope(
+        child: MaterialApp(
+          key: ValueKey(locale.languageCode),
+          debugShowCheckedModeBanner: false,
+          title: 'Sotto',
+          locale: locale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          color: const Color(0x00000000),
+          // A backdrop change crossfades the text color; instant under reduce motion.
+          themeAnimationDuration: reduceMotion ? Duration.zero : Motion.backdropFade,
+          themeAnimationCurve: Motion.crossfade,
+          theme: buildSottoTheme(
+            overlayDark ? SottoPalette.stage : SottoPalette.houseLights,
+            overlay: overlay,
+          ).copyWith(scaffoldBackgroundColor: const Color(0x00000000), canvasColor: const Color(0x00000000)),
+          // "Reduce motion" reaches every effect in the overlay too, not only
+          // the ones that read the setting themselves.
+          builder: (context, child) {
+            final media = MediaQuery.of(context);
+            return MediaQuery(
+              data: media.copyWith(disableAnimations: media.disableAnimations || settings.reduceMotion),
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
+          home: isLive
+              ? const OverlayScreen()
+              : autoFillOverlay
+              ? const AutoFillOverlayScreen()
+              : (formOverlay ? const QuestionnaireOverlayScreen() : const AgentOverlayScreen()),
+        ),
+      );
+    }
+
+    // Keyed by language so every screen, including strings computed outside
+    // widgets, rebuilds when the language changes.
+    return _AutoLockScope(
+      child: MaterialApp.router(
         key: ValueKey(locale.languageCode),
         debugShowCheckedModeBanner: false,
         title: 'Sotto',
         locale: locale,
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
-        color: const Color(0x00000000),
-        // A backdrop change crossfades the text color; instant under reduce motion.
-        themeAnimationDuration: reduceMotion ? Duration.zero : Motion.backdropFade,
-        themeAnimationCurve: Motion.crossfade,
-        theme: buildSottoTheme(
-          overlayDark ? SottoPalette.stage : SottoPalette.houseLights,
-          overlay: overlay,
-        ).copyWith(scaffoldBackgroundColor: const Color(0x00000000), canvasColor: const Color(0x00000000)),
-        // "Reduce motion" reaches every effect in the overlay too, not only
-        // the ones that read the setting themselves.
+        theme: buildSottoTheme(SottoPalette.houseLights),
+        darkTheme: buildSottoTheme(SottoPalette.stage),
+        themeMode: themeMode,
+        // Light ↔ dark crossfades (SottoPalette.lerp); instant under reduce motion.
+        themeAnimationDuration: reduceMotion ? Duration.zero : Motion.panel,
+        themeAnimationCurve: Motion.move,
+        routerConfig: ref.watch(routerProvider),
+        // "Reduce motion" (Settings › Appearance) calms the main window too,
+        // not only the overlay: every effect checks disableAnimations.
         builder: (context, child) {
           final media = MediaQuery.of(context);
           return MediaQuery(
             data: media.copyWith(disableAnimations: media.disableAnimations || settings.reduceMotion),
-            child: child ?? const SizedBox.shrink(),
+            // The ground under every page: a page arriving fades in over it,
+            // never over the bare window (transparent once the overlay has
+            // run, so the desktop showed through mid-transition).
+            child: ColoredBox(
+              color: context.palette.ground,
+              // The curtain rises on launch; the house lights come up after a show.
+              child: LaunchCurtain(child: _GlobalShortcuts(child: child ?? const SizedBox.shrink())),
+            ),
           );
         },
-        home: isLive
-            ? const OverlayScreen()
-            : autoFillOverlay
-            ? const AutoFillOverlayScreen()
-            : (formOverlay ? const QuestionnaireOverlayScreen() : const AgentOverlayScreen()),
-      );
-    }
+      ),
+    );
+  }
+}
 
-    // Keyed by language so every screen, including strings computed outside
-    // widgets, rebuilds when the language changes.
-    return MaterialApp.router(
-      key: ValueKey(locale.languageCode),
-      debugShowCheckedModeBanner: false,
-      title: 'Sotto',
-      locale: locale,
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      theme: buildSottoTheme(SottoPalette.houseLights),
-      darkTheme: buildSottoTheme(SottoPalette.stage),
-      themeMode: themeMode,
-      // Light ↔ dark crossfades (SottoPalette.lerp); instant under reduce motion.
-      themeAnimationDuration: reduceMotion ? Duration.zero : Motion.panel,
-      themeAnimationCurve: Motion.move,
-      routerConfig: ref.watch(routerProvider),
-      // "Reduce motion" (Settings › Appearance) calms the main window too,
-      // not only the overlay: every effect checks disableAnimations.
-      builder: (context, child) {
-        final media = MediaQuery.of(context);
-        return MediaQuery(
-          data: media.copyWith(disableAnimations: media.disableAnimations || settings.reduceMotion),
-          // The ground under every page: a page arriving fades in over it,
-          // never over the bare window (transparent once the overlay has
-          // run, so the desktop showed through mid-transition).
-          child: ColoredBox(
-            color: context.palette.ground,
-            // The curtain rises on launch; the house lights come up after a show.
-            child: LaunchCurtain(child: _GlobalShortcuts(child: child ?? const SizedBox.shrink())),
-          ),
-        );
-      },
+/// With the App Lock on: any key, click, scroll or pointer move in the
+/// window keeps Sotto unlocked; after Settings → Privacy → Auto-lock
+/// without any, it locks — never mid-session ([sessionBusyProvider]), but
+/// right after, if the time is up by then. Above both the main window and
+/// the overlay, so going live doesn't restart the count.
+class _AutoLockScope extends ConsumerStatefulWidget {
+  const _AutoLockScope({required this.child});
+  final Widget child;
+
+  @override
+  ConsumerState<_AutoLockScope> createState() => _AutoLockScopeState();
+}
+
+class _AutoLockScopeState extends ConsumerState<_AutoLockScope> {
+  /// Development: `--dart-define=SOTTO_AUTOLOCK_SECONDS=20` replaces any
+  /// non-zero choice with that many seconds. Ignored in release builds.
+  static const _devSeconds = int.fromEnvironment('SOTTO_AUTOLOCK_SECONDS');
+
+  static Duration _timeout(int minutes) =>
+      minutes > 0 && _devSeconds > 0 && !kReleaseMode ? Duration(seconds: _devSeconds) : Duration(minutes: minutes);
+
+  AutoLock? _auto;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!ref.read(lockEnabledProvider)) return;
+    _arm();
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
+  void _arm() {
+    _auto?.dispose();
+    _auto = AutoLock(timeout: _timeout(ref.read(settingsProvider).autoLockMinutes), onLock: _lock)
+      ..busy = ref.read(sessionBusyProvider);
+  }
+
+  Future<void> _lock() async {
+    // Something started in the same instant: count again from now.
+    final locked = await ref.read(appSessionProvider)?.lock() ?? false;
+    if (!locked && mounted) _arm();
+  }
+
+  bool _onKey(KeyEvent event) {
+    _auto?.activity();
+    return false;
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
+    _auto?.dispose();
+    super.dispose();
+  }
+
+  void _activity(PointerEvent _) => _auto?.activity();
+
+  @override
+  Widget build(BuildContext context) {
+    if (_auto == null) return widget.child;
+    ref.listen(sessionBusyProvider, (_, busy) => _auto?.busy = busy);
+    ref.listen(settingsProvider.select((s) => s.autoLockMinutes), (_, m) => _auto?.timeout = _timeout(m));
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _activity,
+      onPointerHover: _activity,
+      onPointerMove: _activity,
+      onPointerSignal: _activity,
+      child: widget.child,
     );
   }
 }

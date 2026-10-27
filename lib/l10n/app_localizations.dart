@@ -230,6 +230,522 @@ abstract class AppLocalizations {
   /// **'Previous section'**
   String get actionPrevSection;
 
+  /// No description provided for @actionLockApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock Sotto'**
+  String get actionLockApp;
+
+  /// No description provided for @actionLockAppSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Only while App lock is on (Settings → Privacy)'**
+  String get actionLockAppSub;
+
+  /// No description provided for @unlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get unlock;
+
+  /// No description provided for @unlockWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect password'**
+  String get unlockWrongPassword;
+
+  /// No description provided for @lockEncrypting.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypting your data…'**
+  String get lockEncrypting;
+
+  /// No description provided for @lockDecrypting.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrypting your data…'**
+  String get lockDecrypting;
+
+  /// No description provided for @lockProgressBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep Sotto open — this takes a few seconds.'**
+  String get lockProgressBody;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @continueAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueAction;
+
+  /// No description provided for @passwordShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get passwordShow;
+
+  /// No description provided for @passwordHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get passwordHide;
+
+  /// No description provided for @capsLockOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Caps Lock is on'**
+  String get capsLockOn;
+
+  /// No description provided for @passwordTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at least {count} characters'**
+  String passwordTooShort(int count);
+
+  /// No description provided for @passwordWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak — longer is stronger; try a few words'**
+  String get passwordWeak;
+
+  /// No description provided for @passwordFair.
+  ///
+  /// In en, this message translates to:
+  /// **'Fair — a few more words would help'**
+  String get passwordFair;
+
+  /// No description provided for @passwordGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get passwordGood;
+
+  /// No description provided for @passwordStrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Strong'**
+  String get passwordStrong;
+
+  /// No description provided for @unlockWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back'**
+  String get unlockWelcome;
+
+  /// No description provided for @unlockSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your scripts are locked on this computer.'**
+  String get unlockSubtitle;
+
+  /// No description provided for @unlockPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get unlockPasswordLabel;
+
+  /// No description provided for @unlockPasswordPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get unlockPasswordPlaceholder;
+
+  /// No description provided for @unlockThrottled.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Try again in {time}.'**
+  String unlockThrottled(String time);
+
+  /// No description provided for @unlockUseBiometrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {method}'**
+  String unlockUseBiometrics(String method);
+
+  /// No description provided for @unlockBiometricFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{method} didn\'t unlock Sotto — use your password.'**
+  String unlockBiometricFailed(String method);
+
+  /// No description provided for @unlockForgot.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get unlockForgot;
+
+  /// No description provided for @recoveryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your recovery key'**
+  String get recoveryTitle;
+
+  /// No description provided for @recoveryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the recovery key you saved when you turned on the lock. Then you choose a new password; your data stays as it is.'**
+  String get recoveryBody;
+
+  /// No description provided for @recoveryKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery key'**
+  String get recoveryKeyLabel;
+
+  /// No description provided for @recoveryMalformed.
+  ///
+  /// In en, this message translates to:
+  /// **'A recovery key is 28 letters and numbers, in groups of four'**
+  String get recoveryMalformed;
+
+  /// No description provided for @recoveryWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'That recovery key doesn\'t match this Sotto'**
+  String get recoveryWrong;
+
+  /// No description provided for @newPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a new password'**
+  String get newPasswordTitle;
+
+  /// No description provided for @newPasswordBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your recovery key stays the same.'**
+  String get newPasswordBody;
+
+  /// No description provided for @newPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get newPasswordLabel;
+
+  /// No description provided for @setPasswordAndUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Set password and unlock'**
+  String get setPasswordAndUnlock;
+
+  /// No description provided for @resetLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Lost the recovery key too?'**
+  String get resetLink;
+
+  /// No description provided for @resetSotto.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Sotto'**
+  String get resetSotto;
+
+  /// No description provided for @resetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Sotto?'**
+  String get resetTitle;
+
+  /// No description provided for @resetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Without the password or the recovery key, the locked data can\'t be recovered — by you or by anyone. Resetting deletes your scripts, collections, sessions, Q&A history, chats and forms instructions on this computer, and turns the lock off.'**
+  String get resetBody;
+
+  /// No description provided for @resetKeeps.
+  ///
+  /// In en, this message translates to:
+  /// **'Your settings and your DeepSeek key stay.'**
+  String get resetKeeps;
+
+  /// No description provided for @resetWord.
+  ///
+  /// In en, this message translates to:
+  /// **'RESET'**
+  String get resetWord;
+
+  /// No description provided for @resetTypeToConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Type {word} to confirm'**
+  String resetTypeToConfirm(String word);
+
+  /// No description provided for @resetConfirmLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmation'**
+  String get resetConfirmLabel;
+
+  /// No description provided for @resetButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete everything and reset'**
+  String get resetButton;
+
+  /// No description provided for @vaultDamagedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sotto\'s lock can\'t be read'**
+  String get vaultDamagedTitle;
+
+  /// No description provided for @vaultDamagedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The file that holds the key to your data (lock_vault.json) is damaged, so the data can\'t be unlocked. If you have a backup of it, put it back and restart Sotto. Otherwise you can reset Sotto and start over.'**
+  String get vaultDamagedBody;
+
+  /// No description provided for @show.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get show;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
+
+  /// No description provided for @change.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get change;
+
+  /// No description provided for @appLock.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock'**
+  String get appLock;
+
+  /// No description provided for @appLockToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock Sotto with a password'**
+  String get appLockToggle;
+
+  /// No description provided for @appLockToggleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypts your scripts, sessions, Q&A history and chats on this computer. Sotto asks for the password when it opens.'**
+  String get appLockToggleSub;
+
+  /// No description provided for @appLockFooterOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Without the lock, anyone using this computer account can read Sotto\'s files.'**
+  String get appLockFooterOff;
+
+  /// No description provided for @appLockFooterOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings (theme, language, window size) stay readable so this screen can open; your DeepSeek key stays in the system keychain. While Sotto is unlocked, the data is open.'**
+  String get appLockFooterOn;
+
+  /// No description provided for @lockNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock now'**
+  String get lockNow;
+
+  /// No description provided for @lockNowSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Also from the sidebar, or {keys} from anywhere'**
+  String lockNowSub(String keys);
+
+  /// No description provided for @autoLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-lock'**
+  String get autoLock;
+
+  /// No description provided for @autoLockSub.
+  ///
+  /// In en, this message translates to:
+  /// **'After this long without using Sotto. Never during a talk, rehearsal or fill.'**
+  String get autoLockSub;
+
+  /// No description provided for @autoLockOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get autoLockOff;
+
+  /// No description provided for @autoLockMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String autoLockMinutes(int count);
+
+  /// No description provided for @unlockWithBiometrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock with {method}'**
+  String unlockWithBiometrics(String method);
+
+  /// No description provided for @biometricsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Faster, but a copy of the data key is kept in the system keychain, where programs running as you can read it. Turning this off deletes that copy.'**
+  String get biometricsSub;
+
+  /// No description provided for @biometricUnlockReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Sotto'**
+  String get biometricUnlockReason;
+
+  /// No description provided for @biometricEnableReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow unlocking Sotto this way'**
+  String get biometricEnableReason;
+
+  /// No description provided for @changePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get changePassword;
+
+  /// No description provided for @changePasswordBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data and your recovery key stay as they are.'**
+  String get changePasswordBody;
+
+  /// No description provided for @currentPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get currentPassword;
+
+  /// No description provided for @recoveryKeySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens Sotto if you forget the password'**
+  String get recoveryKeySub;
+
+  /// No description provided for @newRecoveryKey.
+  ///
+  /// In en, this message translates to:
+  /// **'New key'**
+  String get newRecoveryKey;
+
+  /// No description provided for @showRecoveryKeyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the recovery key'**
+  String get showRecoveryKeyTitle;
+
+  /// No description provided for @showRecoveryKeyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password to see it.'**
+  String get showRecoveryKeyBody;
+
+  /// No description provided for @newRecoveryKeyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make a new recovery key?'**
+  String get newRecoveryKeyTitle;
+
+  /// No description provided for @newRecoveryKeyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The current recovery key stops working at once. Enter your password to continue.'**
+  String get newRecoveryKeyBody;
+
+  /// No description provided for @newRecoveryKeyReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Your new recovery key'**
+  String get newRecoveryKeyReady;
+
+  /// No description provided for @newRecoveryKeyReadyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The old one no longer works. Save this one now — it won\'t be shown again unless you ask with your password.'**
+  String get newRecoveryKeyReadyBody;
+
+  /// No description provided for @enableLockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a password'**
+  String get enableLockTitle;
+
+  /// No description provided for @enableLockBody.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 8 characters. A few unrelated words are easy to remember and hard to guess. There are no other rules.'**
+  String get enableLockBody;
+
+  /// No description provided for @saveRecoveryKeyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save your recovery key'**
+  String get saveRecoveryKeyTitle;
+
+  /// No description provided for @saveRecoveryKeyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'If you forget your password, this key is the only way back into your data.'**
+  String get saveRecoveryKeyBody;
+
+  /// No description provided for @recoveryKeyWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep it somewhere other than this computer — a password manager, or on paper. Without the password or this key, your data can\'t be recovered, by you or by anyone.'**
+  String get recoveryKeyWarning;
+
+  /// No description provided for @oneDriveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'If your Documents folder syncs with OneDrive, older unencrypted copies may remain in its version history or recycle bin — check them afterwards.'**
+  String get oneDriveNote;
+
+  /// No description provided for @recoveryKeySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ve saved my recovery key'**
+  String get recoveryKeySaved;
+
+  /// No description provided for @encryptMyData.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypt my data'**
+  String get encryptMyData;
+
+  /// No description provided for @disableLockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off the lock?'**
+  String get disableLockTitle;
+
+  /// No description provided for @disableLockBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data is decrypted back to plain files on this computer, and the password, the recovery key and Windows Hello / Touch ID stop being used.'**
+  String get disableLockBody;
+
+  /// No description provided for @disableLockAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off'**
+  String get disableLockAction;
+
+  /// No description provided for @navLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock'**
+  String get navLock;
+
   /// No description provided for @actionAsk.
   ///
   /// In en, this message translates to:

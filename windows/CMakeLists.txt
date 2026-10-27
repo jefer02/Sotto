@@ -65,6 +65,13 @@ endif()
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+# local_auth_windows (App lock: Windows Hello) still builds with /await and
+# <experimental/coroutine>, which MSVC 14.5x rejects unless told this is
+# known. Remove once the plugin moves to C++20 coroutines.
+if(TARGET local_auth_windows_plugin)
+  target_compile_definitions(local_auth_windows_plugin PRIVATE _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+endif()
+
 
 # === Installation ===
 # Support files are copied into place next to the executable, so that it can

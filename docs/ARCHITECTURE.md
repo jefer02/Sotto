@@ -204,14 +204,18 @@ is logged in the session record, and `Ctrl+Alt+Esc` cancels whatever the extensi
 
 ```
 lib/
-  app/            App root, go_router routes, global shortcuts
+  app/            App root, go_router routes, global shortcuts; AppSession (start, lock,
+                  unlock), the unlock screen and auto-lock
   core/
     design/       Design tokens (tokens.dart), typography, theme, 48 icons from the design
     widgets/      Component library: buttons, keycaps, controls, chips, settings rows, chrome
     platform/     WindowService (main window ⇄ overlay), HotkeyService, key labels
   data/
     models/       Script → Section → Beat (+Cue), settings, Q&A entries, sessions (hand-written JSON)
-    storage/      Hive CE boxes (LocalStore), API keys in the OS keychain (SecretStore)
+    storage/      Hive CE boxes (LocalStore), API keys in the OS keychain (SecretStore),
+                  where things live on disk (StoragePaths)
+    lock/         App lock: the vault (Argon2id / AES-GCM / HKDF), recovery key, throttle,
+                  crash-safe encrypt/decrypt migration
     import/       .txt / .md / .docx (OOXML) / .pdf (PDFium) → text; presentations, PDFs, documents
                   and pictures → SourceMaterial for generating (.pptx, .odp, OCR, safe archives)
     repositories.dart   Riverpod providers over the stores
@@ -526,6 +530,132 @@ call. Responses stream in a line protocol, so the headline appears first and the
 Live answers run with DeepSeek's thinking mode off for latency; `reasoning_content` from thinking
 models is ignored.
 
+## App lock
+
+Opt-in (Settings → Privacy → App lock). Off, Sotto starts exactly as before.
+
+**Key hierarchy.** A random 32-byte data key (DEK, `Random.secure()`) encrypts the data boxes
+(`HiveAesCipher`, AES-256-CBC per record). The DEK is never written in plain form; it is wrapped in
+`lock_vault.json` twice:
+
+- under a key from the **password**: Argon2id (`cryptography`'s `DartArgon2id`, run in
+  `Isolate.run`), 16-byte random salt, **64 MiB, 2 passes, parallelism 1**, 32-byte output. Measured
+  on a mid-range Windows laptop, AOT-compiled: 64 MiB × 3 took 870–960 ms (over the 800 ms budget),
+  64 MiB × 2 590–630 ms, 48 MiB × 3 650–670 ms, 19 MiB × 2 (OWASP's floor) 170–200 ms.
+  `cryptography_flutter` has no native Argon2 on desktop, so this is pure Dart;
+- under a key from the **recovery key**: 128 random bits shown as 28 Crockford Base32 characters
+  (7 groups of 4; the last 12 bits are a SHA-256 checksum, so a typo is caught before any
+  decryption). HKDF-SHA256 is enough to stretch it: it is already high-entropy.
+
+Each wrap is **AES-256-GCM** with a fresh 12-byte nonce. A wrong password is a failed GCM tag. Hive
+doesn't check keys, so the boxes are never opened with a key the vault hasn't confirmed. The vault
+also keeps the recovery key sealed under the DEK, so it can be shown again after a password check and
+so a key read from the keychain can be verified.
+
+**Vault format** (`lock_vault.json`, application-support folder, never in Documents): `format` (1),
+`kdf` (`name`, `memoryKiB`, `iterations`, `parallelism`, `length`), `salt`, and three slots —
+`password`, `recovery`, `recoveryKey` — each `{nonce, data}` (base64; data is ciphertext + 16-byte
+tag), plus `createdAt`. Every slot's GCM associated data is the header (format, KDF name and
+parameters, salt) plus the slot's name, so editing a parameter, swapping slots or changing the salt
+fails authentication. KDF parameters are bounds-checked on read. The file is written atomically
+(temp file + rename). **A valid vault on disk is what "the lock is on" means**; a vault that exists
+but can't be read keeps Sotto locked, and only Reset helps.
+
+Changing the password re-wraps the DEK under a new salt; the data and the recovery key stay.
+Regenerating the recovery key re-wraps the DEK under the new one, and the old one stops working the
+moment the vault is replaced.
+
+**Organize cache keys.** Hive encrypts values, not keys. Record keys are UUIDs (documented, accepted)
+except `organize_cache`, keyed by a hash of the text. With the lock on that becomes HMAC-SHA256 under
+an HKDF subkey of the DEK (`info = "sotto-organize-cache"`), so a key can't confirm that a guessed
+script was organized. The cache starts empty when the lock is turned on or off.
+
+**What is encrypted:** `scripts`, `collections`, `qa_history`, `sessions`, `organize_cache`, `chats`
+and `prefs`. `prefs` holds the one setting that is personal text, the forms instructions. While the
+lock is off a copy also stays in `settings`, so an older build still finds it. With the lock on that
+copy is removed and `settings` is compacted. **`settings` stays plain**: the unlock screen needs the
+theme, language and reduced-motion setting first.
+
+**Startup** (`main.dart`):
+
+1. `StoragePaths` (Documents\Sotto for the boxes, application support for the lock files).
+2. `LockMigration.recover`, before any box is opened.
+3. Only the `settings` box.
+4. No vault: the data boxes open and the usual startup runs (seeding, organize reset, pruning, the
+   model check, the bridge). Vault: `UnlockApp`, a standalone `MaterialApp` with nothing else
+   running.
+
+Unlocking opens the data with the cipher, then runs the same startup steps. A box that won't open
+shows `StartupFailure` with Retry on either path.
+
+**Sessions and locking** (`AppSession`). Each unlock is a fresh session: a new `ProviderContainer`
+over the opened store (`localStoreProvider`, `appSessionProvider`, `secretStoreProvider`
+overridden). Locking:
+
+1. Releases every global hotkey.
+2. Shows the unlock screen, so the old widget tree unmounts.
+3. Flushes the write buffers.
+4. **Disposes the container.** Every StreamProvider, controller and the browser bridge closes through
+   its own `onDispose`.
+5. Closes the data boxes and zero-fills the DEK (best effort).
+
+No provider needs to know about the lock, and nothing can keep a closed box. While locked there are
+no idle hotkeys, no bridge, no auto-fill, no agent, no overlay and no DeepSeek calls, because none of
+their providers exist. Unlocking always lands on Home; turning the lock on or off reopens on
+Settings → Privacy (`initialLocationProvider`).
+
+**Auto-lock** (`AutoLock`) counts input to Sotto's window: keys, clicks, scrolls and pointer moves.
+The count sits above both the main window and the overlay, so going live doesn't restart it. It never
+locks while `sessionBusyProvider` is true (a live session or rehearsal, an agent run, a
+questionnaire, a fill, an organize job). If the time ran out meanwhile, it locks as soon as that
+ends. Choices: Off / 5 / 15 / 30 / 60 min (15 by default).
+
+**Migration** (`LockMigration`), crash-safe:
+
+1. A marker (`lock_migration.json`) says `copy`.
+2. Each box is copied into `<name>_migrating` with the new cipher, closed, reopened through that
+   cipher and checked: same count, same keys.
+3. Turning on: the vault is written as `lock_vault.pending.json`.
+4. The marker says `swap`; each original file is deleted and its copy renamed in its place.
+5. The pending vault becomes `lock_vault.json` (on), or the vault is deleted (off).
+6. The marker goes.
+
+On the next start, a marker at `copy` rolls back (temp boxes and pending vault deleted; the originals
+were never touched), and one at `swap` rolls forward (only renames, no key needed). An unreadable
+marker stops startup instead of guessing. Turning the lock on twice is refused before anything is
+opened.
+
+**Biometrics** (off by default; Windows and macOS through `local_auth`, hidden on Linux and where
+Windows Hello / Touch ID isn't set up). `local_auth` only answers yes or no, so turning it on stores
+the DEK in the keychain (`SecretKey.appLockKey`, never cached in memory). Anything running as the
+user can read it there; the setting says so. Turning it off, turning the lock off and Reset all delete
+the entry. A key read from the keychain is verified against the vault before use. The
+`local_auth_windows` plugin still builds with `/await`, which MSVC 14.5x rejects:
+`windows/CMakeLists.txt` defines `_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS` for that one
+target.
+
+**Throttling.** Five wrong attempts are free. Then the next waits 30 s, 1 min, 5 min, 15 min, and 1 h
+from then on (`lock_attempts.json`, so quitting doesn't reset it; a clock set back can't stretch the
+wait past an hour). Nothing is ever wiped for failing. This is a speed bump for someone at the
+keyboard; Argon2id is the real cost of a guess, including for someone who copied the files.
+
+**Reset Sotto** (unlock screen → Forgot password → Reset, with the word typed to confirm) deletes the
+data boxes (`prefs` included), the vault, the attempt count, any migration marker and temp boxes, and
+the keychain entry. It keeps `settings` and the DeepSeek key.
+
+**Hygiene and limits.** Passwords, keys and the recovery key are never logged and never stored in
+`AppSettings`; only the unlock duration is logged, in debug and profile builds. Password fields are
+cleared after use. Dart can't guarantee that memory is zeroed: `VaultCrypto.forget` zero-fills the
+buffers Sotto owns, but copies made by the crypto library or the garbage collector may survive until
+reused. Deleting the plaintext files when turning the lock on isn't a secure erase, and a synced or
+backed-up Documents folder may keep old plain versions.
+
+**Test data.** Debug and profile builds take `--dart-define=SOTTO_DATA_ROOT=C:\SottoTest`
+(`.vscode/launch.json` → "Sotto (test data)"): the boxes go to `<root>\data`, the lock files to
+`<root>\support`, and the lock's keychain entry is named `sotto.dev.appLockKey`. Release builds
+ignore it. Speech models stay shared. `--dart-define=SOTTO_AUTOLOCK_SECONDS=20` makes any auto-lock
+choice other than Never last 20 seconds instead, for testing (also ignored in release builds).
+
 ## macOS notes
 
 **No App Sandbox.** Sotto is distributed outside the App Store, so `macos/Runner/Release.entitlements` and
@@ -608,9 +738,19 @@ transparent only under a compositing window manager.
   explanation, the privacy notice before anything is sent, and a generated draft saved
   (`new_script_dialog_test.dart`), and a DeepSeek error worded in the dialog with nothing saved; markers
   in the editor — counted, walked through across sections selected, removed or typed over, opened by
-  number — and pre-flight's non-blocking warning and *Open the first* (`check_markers_ui_test.dart`).
+  number — and pre-flight's non-blocking warning and *Open the first* (`check_markers_ui_test.dart`);
+  the unlock screen in every state (show / hide, Caps Lock, loading, wrong password, shake vs reduced
+  motion, throttled, Windows Hello, forgot password, Reset, a damaged vault, Spanish, a small window)
+  and Settings → Privacy → App lock with its dialogs.
 - `test/core` — a live session started from a maximised window opens the overlay at its saved
-  geometry, not the size of the screen.
+  geometry, not the size of the screen. App lock: `AppSession` on a temp folder (turning the lock on
+  and off, lock / unlock, restart, throttling across a restart, never locking mid-session, forgot
+  password, recovery key shown / regenerated, keychain keys verified, Windows Hello, Reset, a damaged
+  vault) and auto-lock with `fake_async`.
+- `test/data` — the vault (round trips, wrong password, recovery key, change password, seven kinds of
+  tampering, parameters in JSON, the real Argon2 cost once), the recovery key format, throttling with
+  `fake_async`, and the migration (plain → encrypted → plain, interrupted in each phase, the forms
+  instructions moving between `settings` and `prefs`, HMAC organize-cache keys).
 - `test/visual` — opt-in: `SOTTO_RENDER=1 flutter test test/visual` renders every screen (welcome, pre-flight
   and the live overlay included) to PNG. `SOTTO_RENDER_LANG=en|es`, `SOTTO_RENDER_THEME=dark|light`,
   `SOTTO_RENDER_SIZE=1920x1080` and `SOTTO_RENDER_OUT=<folder>`; at 960x600 it doubles as an overflow check.
@@ -618,6 +758,8 @@ transparent only under a compositing window manager.
   light slide. `test/visual/settings_render_test.dart` renders every Settings page at the top and
   scrolled to the end, in both languages, at 960×600, 1280×800, 1600×1000 and 1920×1080
   (`build/settings`).
+  `unlock_render_test.dart` and `app_lock_render_test.dart` render the unlock screen and the App lock
+  settings in both languages and themes (to `build/unlock` and `build/app_lock`).
 
 ## Known limitations
 

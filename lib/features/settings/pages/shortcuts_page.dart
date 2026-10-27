@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/l10n.dart';
 
+import '../../../app/app_session.dart';
 import '../../../core/design/icons.dart';
 import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
@@ -35,6 +36,8 @@ class _ShortcutsPageState extends ConsumerState<ShortcutsPage> {
   ShortcutGroup? _group;
 
   bool _visible(LiveAction a) =>
+      // Lock Sotto exists only while the App Lock is on.
+      (a != LiveAction.lockApp || ref.read(lockEnabledProvider)) &&
       (_group == null || a.group == _group) &&
       (_filter.isEmpty ||
           a.title.toLowerCase().contains(_filter) ||
