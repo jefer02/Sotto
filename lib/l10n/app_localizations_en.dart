@@ -89,6 +89,291 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionPrevSection => 'Previous section';
 
   @override
+  String get actionLockApp => 'Lock Sotto';
+
+  @override
+  String get actionLockAppSub => 'Only while App lock is on (Settings → Privacy)';
+
+  @override
+  String get unlock => 'Unlock';
+
+  @override
+  String get unlockWrongPassword => 'Incorrect password';
+
+  @override
+  String get lockEncrypting => 'Encrypting your data…';
+
+  @override
+  String get lockDecrypting => 'Decrypting your data…';
+
+  @override
+  String get lockProgressBody => 'Keep Sotto open — this takes a few seconds.';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get continueAction => 'Continue';
+
+  @override
+  String get passwordShow => 'Show password';
+
+  @override
+  String get passwordHide => 'Hide password';
+
+  @override
+  String get capsLockOn => 'Caps Lock is on';
+
+  @override
+  String passwordTooShort(int count) {
+    return 'Use at least $count characters';
+  }
+
+  @override
+  String get passwordWeak => 'Weak — longer is stronger; try a few words';
+
+  @override
+  String get passwordFair => 'Fair — a few more words would help';
+
+  @override
+  String get passwordGood => 'Good';
+
+  @override
+  String get passwordStrong => 'Strong';
+
+  @override
+  String get unlockWelcome => 'Welcome back';
+
+  @override
+  String get unlockSubtitle => 'Your scripts are locked on this computer.';
+
+  @override
+  String get unlockPasswordLabel => 'Password';
+
+  @override
+  String get unlockPasswordPlaceholder => 'Enter your password';
+
+  @override
+  String unlockThrottled(String time) {
+    return 'Too many attempts. Try again in $time.';
+  }
+
+  @override
+  String unlockUseBiometrics(String method) {
+    return 'Use $method';
+  }
+
+  @override
+  String unlockBiometricFailed(String method) {
+    return '$method didn\'t unlock Sotto — use your password.';
+  }
+
+  @override
+  String get unlockForgot => 'Forgot password?';
+
+  @override
+  String get recoveryTitle => 'Use your recovery key';
+
+  @override
+  String get recoveryBody =>
+      'Enter the recovery key you saved when you turned on the lock. Then you choose a new password; your data stays as it is.';
+
+  @override
+  String get recoveryKeyLabel => 'Recovery key';
+
+  @override
+  String get recoveryMalformed => 'A recovery key is 28 letters and numbers, in groups of four';
+
+  @override
+  String get recoveryWrong => 'That recovery key doesn\'t match this Sotto';
+
+  @override
+  String get newPasswordTitle => 'Choose a new password';
+
+  @override
+  String get newPasswordBody => 'Your recovery key stays the same.';
+
+  @override
+  String get newPasswordLabel => 'New password';
+
+  @override
+  String get setPasswordAndUnlock => 'Set password and unlock';
+
+  @override
+  String get resetLink => 'Lost the recovery key too?';
+
+  @override
+  String get resetSotto => 'Reset Sotto';
+
+  @override
+  String get resetTitle => 'Reset Sotto?';
+
+  @override
+  String get resetBody =>
+      'Without the password or the recovery key, the locked data can\'t be recovered — by you or by anyone. Resetting deletes your scripts, collections, sessions, Q&A history, chats and forms instructions on this computer, and turns the lock off.';
+
+  @override
+  String get resetKeeps => 'Your settings and your DeepSeek key stay.';
+
+  @override
+  String get resetWord => 'RESET';
+
+  @override
+  String resetTypeToConfirm(String word) {
+    return 'Type $word to confirm';
+  }
+
+  @override
+  String get resetConfirmLabel => 'Confirmation';
+
+  @override
+  String get resetButton => 'Delete everything and reset';
+
+  @override
+  String get vaultDamagedTitle => 'Sotto\'s lock can\'t be read';
+
+  @override
+  String get vaultDamagedBody =>
+      'The file that holds the key to your data (lock_vault.json) is damaged, so the data can\'t be unlocked. If you have a backup of it, put it back and restart Sotto. Otherwise you can reset Sotto and start over.';
+
+  @override
+  String get show => 'Show';
+
+  @override
+  String get copied => 'Copied';
+
+  @override
+  String get change => 'Change';
+
+  @override
+  String get appLock => 'App lock';
+
+  @override
+  String get appLockToggle => 'Lock Sotto with a password';
+
+  @override
+  String get appLockToggleSub =>
+      'Encrypts your scripts, sessions, Q&A history and chats on this computer. Sotto asks for the password when it opens.';
+
+  @override
+  String get appLockFooterOff => 'Without the lock, anyone using this computer account can read Sotto\'s files.';
+
+  @override
+  String get appLockFooterOn =>
+      'Settings (theme, language, window size) stay readable so this screen can open; your DeepSeek key stays in the system keychain. While Sotto is unlocked, the data is open.';
+
+  @override
+  String get lockNow => 'Lock now';
+
+  @override
+  String lockNowSub(String keys) {
+    return 'Also from the sidebar, or $keys from anywhere';
+  }
+
+  @override
+  String get autoLock => 'Auto-lock';
+
+  @override
+  String get autoLockSub => 'After this long without using Sotto. Never during a talk, rehearsal or fill.';
+
+  @override
+  String get autoLockOff => 'Never';
+
+  @override
+  String autoLockMinutes(int count) {
+    return '$count min';
+  }
+
+  @override
+  String unlockWithBiometrics(String method) {
+    return 'Unlock with $method';
+  }
+
+  @override
+  String get biometricsSub =>
+      'Faster, but a copy of the data key is kept in the system keychain, where programs running as you can read it. Turning this off deletes that copy.';
+
+  @override
+  String get biometricUnlockReason => 'Unlock Sotto';
+
+  @override
+  String get biometricEnableReason => 'Allow unlocking Sotto this way';
+
+  @override
+  String get changePassword => 'Change password';
+
+  @override
+  String get changePasswordBody => 'Your data and your recovery key stay as they are.';
+
+  @override
+  String get currentPassword => 'Current password';
+
+  @override
+  String get recoveryKeySub => 'Opens Sotto if you forget the password';
+
+  @override
+  String get newRecoveryKey => 'New key';
+
+  @override
+  String get showRecoveryKeyTitle => 'Show the recovery key';
+
+  @override
+  String get showRecoveryKeyBody => 'Enter your password to see it.';
+
+  @override
+  String get newRecoveryKeyTitle => 'Make a new recovery key?';
+
+  @override
+  String get newRecoveryKeyBody => 'The current recovery key stops working at once. Enter your password to continue.';
+
+  @override
+  String get newRecoveryKeyReady => 'Your new recovery key';
+
+  @override
+  String get newRecoveryKeyReadyBody =>
+      'The old one no longer works. Save this one now — it won\'t be shown again unless you ask with your password.';
+
+  @override
+  String get enableLockTitle => 'Create a password';
+
+  @override
+  String get enableLockBody =>
+      'At least 8 characters. A few unrelated words are easy to remember and hard to guess. There are no other rules.';
+
+  @override
+  String get saveRecoveryKeyTitle => 'Save your recovery key';
+
+  @override
+  String get saveRecoveryKeyBody => 'If you forget your password, this key is the only way back into your data.';
+
+  @override
+  String get recoveryKeyWarning =>
+      'Keep it somewhere other than this computer — a password manager, or on paper. Without the password or this key, your data can\'t be recovered, by you or by anyone.';
+
+  @override
+  String get oneDriveNote =>
+      'If your Documents folder syncs with OneDrive, older unencrypted copies may remain in its version history or recycle bin — check them afterwards.';
+
+  @override
+  String get recoveryKeySaved => 'I\'ve saved my recovery key';
+
+  @override
+  String get encryptMyData => 'Encrypt my data';
+
+  @override
+  String get disableLockTitle => 'Turn off the lock?';
+
+  @override
+  String get disableLockBody =>
+      'Your data is decrypted back to plain files on this computer, and the password, the recovery key and Windows Hello / Touch ID stop being used.';
+
+  @override
+  String get disableLockAction => 'Turn off';
+
+  @override
+  String get navLock => 'Lock';
+
+  @override
   String get actionAsk => 'Ask a question';
 
   @override
