@@ -32,10 +32,14 @@ Page<void> fadeThroughPage(BuildContext context, GoRouterState state, Widget chi
   );
 }
 
+/// Where a session opens: Home, or Settings → Privacy after the App Lock
+/// was turned on or off (that starts a new session).
+final initialLocationProvider = Provider<String>((ref) => '/');
+
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/',
+    initialLocation: ref.watch(initialLocationProvider),
     routes: [
       ShellRoute(
         pageBuilder: (context, state, child) => fadeThroughPage(context, state, LibraryShell(child: child)),
