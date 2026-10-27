@@ -147,6 +147,36 @@ key.
 Settings → Privacy controls how long history is kept and can delete all local data. DeepSeek's own
 policy applies to what it receives.
 
+### App lock (optional)
+
+Settings → Privacy → **App lock** puts a password on Sotto. It's off by default, and Sotto still has
+no account: the password never leaves your computer.
+
+**When it's on, it protects** your scripts, collections, sessions and rehearsals, Q&A history, chats
+and forms instructions *at rest*. They're encrypted on disk (AES-256) with a key that only your
+password or your recovery key can unlock (Argon2id). Someone who copies the files, or uses your
+computer while Sotto is closed or locked, can't read them. Sotto locks when you press **Lock now**
+(sidebar, Settings, or Ctrl+Alt+K / ⌃⌥K) and after the inactivity time you choose (never in the
+middle of a talk, a rehearsal or a fill).
+
+**It doesn't protect:**
+
+- **Settings** (theme, language, window size, shortcuts). They stay readable so the unlock screen can
+  open in your language and theme.
+- **Your DeepSeek key.** It was already in the system keychain and stays there.
+- **A running, unlocked Sotto.** While it's open and unlocked, your data is too, to you and to any
+  program running as you.
+- **Copies made before you turned the lock on.** Deleting a file isn't a secure erase. If your
+  Documents folder syncs with OneDrive (or a backup tool copies it), older unencrypted versions may
+  remain in its version history, recycle bin or backups. Check them after turning the lock on.
+- **Windows Hello / Touch ID,** if you turn it on, keeps a copy of the key in the system keychain,
+  where programs running as you can read it. It's faster, but weaker than the password alone.
+
+**If you forget the password,** the recovery key (shown once when you turn the lock on, and again
+later after entering your password) lets you set a new one. **If you lose both, the data is gone.**
+Nobody can recover it, us included. The unlock screen's *Reset Sotto* then deletes the locked data
+so you can start over; your settings and your DeepSeek key stay.
+
 ## Browser extension
 
 **Sotto Bridge** (`extension/`, for Chrome, Edge and Firefox) lets form filling read web forms from the
