@@ -57,6 +57,10 @@ dependencies:
   screen_retriever: ^0.2.2
   collection: ^1.19.1
   crypto: ^3.0.7
+  # App lock: Argon2id, AES-GCM and HKDF (data/lock/vault.dart).
+  cryptography: ^2.9.0
+  # App lock: Windows Hello / Touch ID (Windows and macOS only).
+  local_auth: ^3.0.2
   path: ^1.9.1
   flutter_localizations:
     sdk: flutter
