@@ -38,6 +38,7 @@ class SottoButton extends StatelessWidget {
     this.shortcutText,
     this.expand = false,
     this.tone,
+    this.loading = false,
   });
 
   const SottoButton.primary({
@@ -49,6 +50,7 @@ class SottoButton extends StatelessWidget {
     this.shortcut,
     this.shortcutText,
     this.expand = false,
+    this.loading = false,
   }) : variant = ButtonVariant.primary,
        tone = null;
 
@@ -62,6 +64,7 @@ class SottoButton extends StatelessWidget {
     this.shortcutText,
     this.expand = false,
     this.tone,
+    this.loading = false,
   }) : variant = ButtonVariant.ghost;
 
   final String label;
@@ -78,6 +81,10 @@ class SottoButton extends StatelessWidget {
   /// Overrides the ink colour (used for destructive ghost actions).
   final Color? tone;
 
+  /// Working (a key being derived): a spinner in place of the label, at
+  /// the same size, and presses ignored — without the disabled dimming.
+  final bool loading;
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -87,8 +94,8 @@ class SottoButton extends StatelessWidget {
     // The chip on a cue-filled face can't reach AA contrast; the tooltip can.
     final chipInTooltip = variant == ButtonVariant.primary && keys != null;
     final button = Interactive(
-      onTap: onPressed,
-      enabled: onPressed != null,
+      onTap: loading ? null : onPressed,
+      enabled: onPressed != null || loading,
       semanticLabel: keys == null ? label : '$label, $keys',
       builder: (context, s) {
         final (Color bg, Color border, Color ink, List<BoxShadow> shadow) = switch (variant) {
@@ -198,7 +205,15 @@ class SottoButton extends StatelessWidget {
                     ),
                   )
                 : null,
-            child: content,
+            child: loading
+                ? Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Opacity(opacity: 0, child: content),
+                      SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 1.6, color: ink)),
+                    ],
+                  )
+                : content,
           ),
         );
       },
