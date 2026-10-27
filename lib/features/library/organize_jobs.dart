@@ -32,9 +32,10 @@ class WorkingCopies {
 
 final workingCopiesProvider = Provider<WorkingCopies>((ref) => WorkingCopies());
 
-final organizeCacheProvider = Provider<OrganizeCache>(
-  (ref) => OrganizeCache(ref.watch(localStoreProvider).organizeCache),
-);
+final organizeCacheProvider = Provider<OrganizeCache>((ref) {
+  final store = ref.watch(localStoreProvider);
+  return OrganizeCache(store.organizeCache, hmacKey: store.organizeKey);
+});
 
 /// A running (or just finished) refinement, for the progress bar.
 class OrganizeProgress {
