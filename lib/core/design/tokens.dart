@@ -662,33 +662,45 @@ abstract final class Motion {
 /// Highlight effect). Lengths are in ems — shares of the line's font size —
 /// or in characters, so the look holds at any text size and in any font.
 abstract final class Karaoke {
-  /// Around light text: a cold cyan-white bloom with a near-white core,
-  /// added over the glyphs (the line stays white; its edges light up).
-  static const glowOnLightInk = Color(0xFF8FCBFF);
+  /// Glow's pill: the palette's cue color at these opacities. Light text
+  /// (a dark ground) takes a deeper tint, dark text (a light ground) a pale
+  /// one, so the word over it keeps its contrast; the hairline edge keeps
+  /// the pill's shape on a busy backdrop.
+  static const pillOnLightInk = 0.30;
+  static const pillOnDarkInk = 0.14;
+  static const pillEdgeOnLightInk = 0.55;
+  static const pillEdgeOnDarkInk = 0.35;
+
+  /// Text only has no ground under the pill, only the slide: it takes a
+  /// deeper tint to read as one (the glyphs' outline keeps their contrast).
+  static const pillTextOnlyOnLightInk = 0.5;
+  static const pillTextOnlyOnDarkInk = 0.32;
+
+  /// The pill reaches this far past the word's letters on each side, and
+  /// this far past the font's box above and below; it always stays this far
+  /// inside its line's edges, so the line gap stays clear.
+  static const pillPadX = 0.16;
+  static const pillPadY = 0.02;
+  static const pillInset = 0.05;
+
+  /// The shine: a near-white light inside the pill, at the cursor, trailing
+  /// off behind it over [shineTrail] ems and ahead of it over [shineLead].
   static const coreOnLightInk = Color(0xFFE6F5FF);
-
-  /// Around dark text (Auto over a light slide): electric blue, so the halo
-  /// reads as light without lifting the glyphs' own dark.
-  static const glowOnDarkInk = Primitives.electric500;
   static const coreOnDarkInk = Primitives.electric300;
+  static const shineOnLightInk = 0.22;
+  static const shineOnDarkInk = 0.45;
+  static const shineTrail = 1.6;
+  static const shineLead = 0.4;
 
-  /// Halo spread (Gaussian sigma) and how strong it is; dark text gets a
-  /// fainter halo so it never washes the letters out.
-  static const haloBlur = 0.22;
-  static const coreBlur = 0.05;
-  static const haloAlpha = 0.9;
-  static const coreAlpha = 1.0;
+  /// Sparkles twinkle inside the pill at this share of full strength.
+  static const sparkleAlpha = 0.7;
 
-  /// The glyphs are thickened by these strokes before blurring.
-  static const haloStroke = 0.12;
-  static const coreStroke = 0.04;
-  static const darkInkStrength = 0.6;
-
-  /// The glow covers the letter being said and trails off over this many
-  /// characters behind it; it ends this many characters past the head.
+  /// The highlight stays on a line until the cursor is this many characters
+  /// past its end.
   static const trailChars = 1.8;
 
-  /// Past the head the light rolls off over this many ems (about a letter).
+  /// Simple: past the head the tint rolls off over this many ems (about a
+  /// letter).
   static const headFeather = 0.45;
 
   /// Sparkles: a fixed pool, spawned per character swept.
