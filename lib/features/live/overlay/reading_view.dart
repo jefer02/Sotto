@@ -518,6 +518,7 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
           SchedulerBinding.instance.addPostFrameCallback((_) => _measure());
         }
         final anchorY = _anchorY;
+        final dpr = MediaQuery.devicePixelRatioOf(context);
         return ShaderMask(
           blendMode: BlendMode.dstIn,
           shaderCallback: (rect) => LinearGradient(
@@ -540,9 +541,15 @@ class _AnchoredScriptState extends State<AnchoredScript> with TickerProviderStat
                 right: widget.rightInset,
                 child: AnimatedBuilder(
                   animation: _scroll,
+                  // On whole physical pixels: the glyphs and the highlight's
+                  // pill stay sharp while the column glides.
                   builder: (context, child) => Opacity(
                     opacity: _measured ? 1 : 0,
-                    child: Transform.translate(key: scrollKey, offset: Offset(0, _scroll.value), child: child),
+                    child: Transform.translate(
+                      key: scrollKey,
+                      offset: Offset(0, (_scroll.value * dpr).roundToDouble() / dpr),
+                      child: child,
+                    ),
                   ),
                   child: RepaintBoundary(
                     child: Column(
