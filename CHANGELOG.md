@@ -9,6 +9,8 @@ into the GitHub release notes.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-27
+
 ### Added
 
 - **App lock** (Settings → Privacy, off by default). A password encrypts your scripts, collections,

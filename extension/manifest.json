@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Sotto Bridge",
   "short_name": "Sotto",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Lets the Sotto desktop app read and fill the form in your active tab, only when you ask it to.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAr5+oYhL8pHRgYtlVyM3gVwGsjwhO3NDF5WyiaWmUgQ6sNxyViema/7TfOrqrV5OWK97YOCcrRNOcK1zUqWt0piq90xMG2vKkIYKJVXPQaqSj9if0DAO4ZxGODWcGYAVaFceJOxmo30O+xiZ2xu8qUjLnv8FTOnjhlUMXt1Snj+QEdLRGoLToz9fxwFpt60Hc+f0p3LNj+7aYwQn23cOoXZY6BDtFC/KBPlnFeEEQZlz3s0+IS8I5cG35utMUCAl23MkjpXnjxU9Y1tXzXhCHgc/lPK6bY7gWrZLjuIfvtbj09re2nlD07uaU2xmdiTCZKaEFJZF6KtGW5wgXGYjnKQIDAQAB",
   "permissions": ["activeTab", "scripting", "nativeMessaging"],

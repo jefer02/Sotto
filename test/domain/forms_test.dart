@@ -307,7 +307,7 @@ void main() {
     expect(llm.profile, DeepSeekTaskProfile.questionnaire);
     expect(llm.profile!.requestFields['thinking'], {'type': 'enabled', 'reasoning_effort': 'low'});
     expect(llm.json, isTrue);
-    expect(llm.system, contains('Return only JSON'));
+    expect(llm.system, contains('Output ONLY the JSON'));
     expect(llm.user, contains('My name is Ana.'));
     expect(llm.user, contains('the language of the questionnaire'));
     expect(llm.user, contains('two to four sentences'));
