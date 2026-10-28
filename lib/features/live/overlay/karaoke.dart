@@ -94,17 +94,19 @@ class SparklePool {
 /// ahead of it: the cursor itself never passes the last word confirmed as
 /// said.
 ///
-/// * [HighlightEffect.glow]: a cold glow sweeps letter by letter — the line
-///   itself keeps its color; the glow is the same text, blurred and tinted,
-///   drawn behind it and masked to the letters at the cursor with a
-///   gradient that trails off behind them — and sparkles rise off it.
+/// * [HighlightEffect.glow]: a crisp rounded pill in the cue color behind
+///   the word at the cursor, the line keeping its color over it. It is as
+///   tall as the font's own box and inset from its line, so it never
+///   touches the line above or below; a word broken over two lines gets a
+///   pill on each. A soft shine follows the cursor across it and sparkles
+///   twinkle in it, both clipped to the pill. Nothing is blurred, and
+///   nothing is drawn over the glyphs.
 /// * [HighlightEffect.simple]: the letters at the cursor take the cue color.
-/// * Reduced motion: a still glow on the word last said; no sweep, no
-///   sparkles, no ticker.
+/// * Reduced motion: the pill holds still on the word last said; no shine,
+///   no sparkles, no ticker.
 ///
-/// Per frame: O(s + p) — s ≤ 2 line segments under the mask, p ≤
-/// [Karaoke.particleCap] sparkles — with one saveLayer bounded to the masked
-/// letters. Space: the fixed sparkle pool plus three laid-out copies of the
+/// Per frame: O(s + p) — s ≤ 2 line pieces, p ≤ [Karaoke.particleCap]
+/// sparkles. Space: the fixed sparkle pool plus one laid-out copy of the
 /// line, rebuilt only when the line, its style or its width change.
 class KaraokeLine extends StatefulWidget {
   const KaraokeLine({
@@ -168,8 +170,10 @@ class KaraokeLineState extends State<KaraokeLine> with SingleTickerProviderState
   Offset? _head;
   final _random = math.Random(11);
 
-  /// The laid-out copies of the line and what they were laid out for.
+  /// The laid-out copies of the line and what they were laid out for, and
+  /// the lines they broke into.
   (Object, List<TextPainter>)? _copies;
+  List<ui.LineMetrics> _lineMetrics = const [];
 
   bool get _animated => widget.effect == HighlightEffect.glow && !widget.reduceMotion;
 
@@ -185,6 +189,11 @@ class KaraokeLineState extends State<KaraokeLine> with SingleTickerProviderState
   /// (tests: never past what was said).
   @visibleForTesting
   double? paintedHead;
+
+  /// Glow's pills as last painted, in the paragraph's coordinates: one per
+  /// line the word spans (tests: each stays inside its line).
+  @visibleForTesting
+  List<Rect> paintedPills = const [];
 
   @override
   void initState() {
@@ -271,11 +280,15 @@ class KaraokeLineState extends State<KaraokeLine> with SingleTickerProviderState
 
   @override
   Widget build(BuildContext context) {
-    final painter = _KaraokePainter(this, textScaler: MediaQuery.textScalerOf(context));
-    // Light text glows from within: the bloom is added over the glyphs and
-    // their outline. Dark text (a light slide) gets it behind, so the glow
-    // never lifts its dark. Simple's tint sits over the letters.
-    final glowBehind = widget.effect == HighlightEffect.glow && widget.palette.ink.computeLuminance() <= 0.5;
+    final painter = _KaraokePainter(
+      this,
+      textScaler: MediaQuery.textScalerOf(context),
+      devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+    );
+    // Glow's pill sits behind the glyphs, so nothing is ever drawn over
+    // them and they stay crisp. Simple's tint recolors the letters, so it
+    // sits over them.
+    final glowBehind = widget.effect == HighlightEffect.glow;
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -302,16 +315,20 @@ class _Frame extends ChangeNotifier {
 /// The glow (or tint) and the sparkles. Lays out copies of the line once
 /// and repaints them masked each frame.
 class _KaraokePainter extends CustomPainter {
-  _KaraokePainter(this.s, {required this.textScaler}) : super(repaint: s._repaint);
+  _KaraokePainter(this.s, {required this.textScaler, required this.devicePixelRatio}) : super(repaint: s._repaint);
 
   final KaraokeLineState s;
   final TextScaler textScaler;
+  final double devicePixelRatio;
 
   KaraokeLine get w => s.widget;
 
   static final _maskPaint = Paint();
   static final _layerPaint = Paint();
   static final _sparkPaint = Paint();
+  static final _fillPaint = Paint();
+  static final _edgePaint = Paint()..style = PaintingStyle.stroke;
+  static final _shinePaint = Paint();
   static final _star = () {
     // A four-point star, one unit across.
     final p = Path()..moveTo(0, -0.5);
@@ -332,13 +349,126 @@ class _KaraokePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final p = _paragraph;
     if (p == null) return;
+    if (w.effect == HighlightEffect.glow) {
+      _paintPill(canvas, p);
+    } else {
+      _paintTint(canvas, p);
+    }
+  }
+
+  /// Glow: a crisp pill behind the word being said — or, still, the word
+  /// last said — inside its own line. Moving, a soft shine follows the
+  /// cursor across it and sparkles twinkle in it; both are clipped to the
+  /// pill, and nothing is blurred.
+  void _paintPill(Canvas canvas, RenderParagraph p) {
     final o = w.palette;
     final lightInk = o.ink.computeLuminance() > 0.5;
+    final em = w.fontSize;
+    final length = s._length.toDouble();
+
+    final int word;
+    double? head;
+    if (w.reduceMotion) {
+      word = _wordEndingBy(w.said.value - w.beatStart);
+      if (word >= 0) s.paintedHead = (w.wordStarts[word] + w.wordLengths[word]).toDouble();
+    } else {
+      final h = w.cursor.value - w.beatStart;
+      word = h <= 0 || h > length + Karaoke.trailChars ? -1 : _wordAt(math.min(h, length));
+      if (word >= 0) s.paintedHead = head = math.min(h, length);
+    }
+    final pills = word < 0 ? const <RRect>[] : _pills(p, word, lightInk);
+    s.paintedPills = [for (final pill in pills) pill.outerRect];
+    if (pills.isEmpty) return;
+
+    final fill = o.textOnly
+        ? (lightInk ? Karaoke.pillTextOnlyOnLightInk : Karaoke.pillTextOnlyOnDarkInk)
+        : (lightInk ? Karaoke.pillOnLightInk : Karaoke.pillOnDarkInk);
+    _fillPaint.color = o.cue.withValues(alpha: o.cue.a * fill);
+    _edgePaint
+      ..color = o.cue.withValues(alpha: o.cue.a * (lightInk ? Karaoke.pillEdgeOnLightInk : Karaoke.pillEdgeOnDarkInk))
+      ..strokeWidth = 1 / devicePixelRatio;
+    final headAt = head == null ? null : _caret(p, head);
+    if (headAt != null) s._head = Offset(headAt.dx, headAt.dy + em * 0.55);
+    for (final pill in pills) {
+      canvas.drawRRect(pill, _fillPaint);
+      canvas.drawRRect(pill.deflate(0.5 / devicePixelRatio), _edgePaint);
+      // The shine and sparkles live in the piece of the pill the cursor is on.
+      if (headAt == null || headAt.dy + em * 0.5 < pill.top || headAt.dy + em * 0.5 > pill.bottom) continue;
+      canvas.save();
+      canvas.clipRRect(pill);
+      final energy = s._energy;
+      if (energy > 0) {
+        final shine = (lightInk ? Karaoke.coreOnLightInk : Karaoke.coreOnDarkInk).withValues(
+          alpha: (lightInk ? Karaoke.shineOnLightInk : Karaoke.shineOnDarkInk) * energy,
+        );
+        final trail = em * Karaoke.shineTrail, lead = em * Karaoke.shineLead;
+        _shinePaint.shader = ui.Gradient.linear(
+          Offset(headAt.dx - trail, 0),
+          Offset(headAt.dx + lead, 0),
+          [shine.withValues(alpha: 0), shine, shine.withValues(alpha: 0)],
+          [0, trail / (trail + lead), 1],
+        );
+        canvas.drawRect(pill.outerRect, _shinePaint);
+      }
+      _paintSparkles(canvas, lightInk);
+      canvas.restore();
+    }
+  }
+
+  /// The pill around [word]: one per line the word spans, as wide as its
+  /// letters plus a little, as tall as the font's own box (its ascent and
+  /// descent, without the extra line height) and always inset from its
+  /// line's edges, so it never reaches the line above or below. Its edges
+  /// sit on physical pixels.
+  List<RRect> _pills(RenderParagraph p, int word, bool lightInk) {
+    final em = w.fontSize;
+    _copies(p, lightInk);
+    final metrics = s._lineMetrics;
+    final start = w.wordStarts[word];
+    final boxes = p.getBoxesForSelection(
+      TextSelection(baseOffset: start, extentOffset: start + w.wordLengths[word]),
+    );
+    final onLine = <int, Rect>{};
+    for (final b in boxes) {
+      final r = b.toRect(), y = r.center.dy;
+      final i = metrics.indexWhere((m) => y >= m.baseline - m.ascent && y <= m.baseline + m.descent);
+      if (i >= 0) onLine[i] = onLine[i]?.expandToInclude(r) ?? r;
+    }
+    final dpr = devicePixelRatio;
+    final origin = p.localToGlobal(Offset.zero);
+    double snap(double v, double o, double Function(double) round) => round((o + v) * dpr) / dpr - o;
+    final inset = math.max(1 / dpr, em * Karaoke.pillInset);
+    return [
+      for (final MapEntry(key: i, value: r) in onLine.entries)
+        () {
+          final m = metrics[i];
+          // The line's height spreads ascent and descent alike.
+          final unscaled = m.ascent <= 0 ? 1.0 : m.unscaledAscent / m.ascent;
+          final top = math.max(m.baseline - m.unscaledAscent - em * Karaoke.pillPadY, m.baseline - m.ascent + inset);
+          final bottom = math.min(
+            m.baseline + m.descent * unscaled + em * Karaoke.pillPadY,
+            m.baseline + m.descent - inset,
+          );
+          // Vertical edges snap inwards: never a pixel nearer the next line.
+          final rect = Rect.fromLTRB(
+            snap(r.left - em * Karaoke.pillPadX, origin.dx, (v) => v.roundToDouble()),
+            snap(top, origin.dy, (v) => v.ceilToDouble()),
+            snap(r.right + em * Karaoke.pillPadX, origin.dx, (v) => v.roundToDouble()),
+            snap(bottom, origin.dy, (v) => v.floorToDouble()),
+          );
+          return RRect.fromRectAndRadius(rect, Radius.circular(rect.height / 2));
+        }(),
+    ];
+  }
+
+  /// Simple: the letters at the cursor take the cue color — a crisp tinted
+  /// copy of the line over it, masked to them and clipped to their line.
+  void _paintTint(Canvas canvas, RenderParagraph p) {
+    final lightInk = w.palette.ink.computeLuminance() > 0.5;
     final em = w.fontSize;
 
     // Which letters: the still word, or the sweep at the cursor.
     final double head, tail;
-    var energy = 1.0;
     if (w.reduceMotion) {
       final said = w.said.value - w.beatStart;
       final word = _wordEndingBy(said);
@@ -347,89 +477,67 @@ class _KaraokePainter extends CustomPainter {
       head = (w.wordStarts[word] + w.wordLengths[word]).toDouble();
     } else {
       head = w.cursor.value - w.beatStart;
-      tail = head - (w.effect == HighlightEffect.glow ? Karaoke.trailChars : Karaoke.simpleTrailChars);
-      if (w.effect == HighlightEffect.glow) energy = s._energy;
+      tail = head - Karaoke.simpleTrailChars;
     }
     final length = s._length.toDouble();
-    if (head <= 0 || tail >= length) {
-      _paintSparkles(canvas, lightInk);
-      return;
-    }
+    if (head <= 0 || tail >= length) return;
 
     final h = head.clamp(0.0, length), t = tail.clamp(0.0, length);
     s.paintedHead = h;
     final segments = _segments(p, t, h);
     if (segments.isEmpty) return;
-    final headCaret = _caret(p, h);
-    s._head = Offset(headCaret.dx, headCaret.dy + em * 0.55);
 
-    if (energy > 0) {
-      final halo = em * Karaoke.haloBlur;
-      var bounds = segments.first.rect;
-      for (final seg in segments.skip(1)) {
-        bounds = bounds.expandToInclude(seg.rect);
+    // The tint rolls off over about a letter past the head; behind it, it
+    // trails off eased (fast at first, then slowly), never a hard edge.
+    final feather = w.reduceMotion ? 0.0 : Karaoke.headFeather * em;
+    var bounds = segments.first.rect;
+    for (final seg in segments.skip(1)) {
+      bounds = bounds.expandToInclude(seg.rect);
+    }
+    _layerPaint.blendMode = BlendMode.srcOver;
+    canvas.saveLayer(bounds.inflate(feather), _layerPaint);
+    _maskPaint.blendMode = BlendMode.dstIn;
+    for (final seg in segments) {
+      final x0 = seg.x0, x1 = seg.x1;
+      final end = seg.endsAtHead ? x1 + feather : x1;
+      final a0 = w.reduceMotion ? 1.0 : seg.a0, a1 = w.reduceMotion ? 1.0 : seg.a1;
+      final span = math.max(end - x0, 0.001);
+      // Only this line: the copy carries the lines above and below too.
+      final clip = Rect.fromLTRB(x0, seg.rect.top, end, seg.rect.bottom);
+      canvas.save();
+      canvas.clipRect(clip);
+      for (final copy in _copies(p, lightInk)) {
+        copy.paint(canvas, Offset.zero);
       }
-      bounds = bounds.inflate(halo * 2.5);
-      _layerPaint.blendMode = lightInk && w.effect == HighlightEffect.glow ? BlendMode.plus : BlendMode.srcOver;
-      canvas.saveLayer(bounds, _layerPaint);
-      // Per line piece: the same text, blurred and tinted, clipped to the
-      // piece, then multiplied by the mask (dstIn) — opaque at the head,
-      // trailing off behind it, a short feather past it; the still mode
-      // lights the word evenly. Nothing outside the glyphs survives.
-      // The light rolls off over about a letter past the head; behind it,
-      // it trails off eased (fast at first, then slowly), never a hard edge.
-      final feather = w.reduceMotion ? 0.0 : Karaoke.headFeather * em;
-      _maskPaint.blendMode = BlendMode.dstIn;
-      for (final seg in segments) {
-        final x0 = seg.x0, x1 = seg.x1;
-        final end = seg.endsAtHead ? x1 + feather : x1;
-        final a0 = w.reduceMotion ? 1.0 : seg.a0 * energy, a1 = w.reduceMotion ? 1.0 : seg.a1 * energy;
-        final span = math.max(end - x0, 0.001);
-        final clip = Rect.fromLTRB(
-          x0 - halo * 2.5,
-          seg.rect.top - halo * 2.5,
-          end + halo * 2.5,
-          seg.rect.bottom + halo * 2.5,
-        );
-        canvas.save();
-        canvas.clipRect(clip);
-        for (final copy in _copies(p, lightInk)) {
-          copy.paint(canvas, Offset.zero);
-        }
-        final head = ((x1 - x0) / span).clamp(0.0, 1.0);
-        Color white(double a) => const Color(0xFFFFFFFF).withValues(alpha: a.clamp(0.0, 1.0));
-        if (w.reduceMotion) {
-          // The still word: evenly lit, its light fading out at both ends.
-          final pad = halo * 2.5;
-          _maskPaint.shader = ui.Gradient.linear(
-            Offset(x0 - pad, 0),
-            Offset(x1 + pad, 0),
-            [white(0), white(1), white(1), white(0)],
-            [0, pad / (x1 - x0 + 2 * pad), 1 - pad / (x1 - x0 + 2 * pad), 1],
-          );
-          canvas.drawRect(clip, _maskPaint);
-          canvas.restore();
-          continue;
-        }
-        _maskPaint.shader = ui.Gradient.linear(
-          Offset(x0, 0),
-          Offset(end, 0),
-          [
-            white(a0),
-            white(a0 + (a1 - a0) * 0.25),
-            white(a1),
-            white(seg.endsAtHead && feather > 0 ? a1 * 0.35 : a1),
-            white(seg.endsAtHead && feather > 0 ? 0 : a1),
-          ],
-          [0, head * 0.55, head, head + (1 - head) * 0.4, 1],
-          TileMode.decal,
-        );
-        canvas.drawRect(clip, _maskPaint);
-        canvas.restore();
-      }
+      final at = ((x1 - x0) / span).clamp(0.0, 1.0);
+      Color white(double a) => const Color(0xFFFFFFFF).withValues(alpha: a.clamp(0.0, 1.0));
+      _maskPaint.shader = ui.Gradient.linear(
+        Offset(x0, 0),
+        Offset(end, 0),
+        [
+          white(a0),
+          white(a0 + (a1 - a0) * 0.25),
+          white(a1),
+          white(seg.endsAtHead && feather > 0 ? a1 * 0.35 : a1),
+          white(seg.endsAtHead && feather > 0 ? 0 : a1),
+        ],
+        [0, at * 0.55, at, at + (1 - at) * 0.4, 1],
+        TileMode.decal,
+      );
+      canvas.drawRect(clip, _maskPaint);
       canvas.restore();
     }
-    _paintSparkles(canvas, lightInk);
+    canvas.restore();
+  }
+
+  /// The word local character [c] falls in — or, between words, the one
+  /// before — or −1 before the first.
+  int _wordAt(double c) {
+    var word = -1;
+    for (var k = 0; k < w.wordStarts.length && w.wordStarts[k] < c; k++) {
+      word = k;
+    }
+    return word;
   }
 
   /// The last word that has ended by local character [said], or −1.
@@ -480,6 +588,7 @@ class _KaraokePainter extends CustomPainter {
     return out;
   }
 
+  /// The sparkles, crisp four-point stars; the caller clips them to the pill.
   void _paintSparkles(Canvas canvas, bool lightInk) {
     final pool = s.sparkles;
     if (pool.alive == 0) return;
@@ -490,48 +599,30 @@ class _KaraokePainter extends CustomPainter {
       // In fast, out slow; it twinkles all the while.
       final fade = life < 0.15 ? life / 0.15 : 1 - (life - 0.15) / 0.85;
       final glint = 0.55 + 0.45 * math.sin(pool.phase[i] + pool.twinkle[i] * pool.age[i] * 2 * math.pi);
-      final a = (fade * glint).clamp(0.0, 1.0);
+      final a = (fade * glint * Karaoke.sparkleAlpha).clamp(0.0, 1.0);
       if (a <= 0.02) continue;
       final r = pool.size[i] * (0.7 + 0.3 * glint);
-      _sparkPaint
-        ..color = color.withValues(alpha: a)
-        ..maskFilter = null;
+      _sparkPaint.color = color.withValues(alpha: a);
       canvas.save();
       canvas.translate(pool.x[i], pool.y[i]);
       canvas.scale(r);
       canvas.drawPath(_star, _sparkPaint);
       canvas.restore();
-      // A small soft bloom around its heart.
-      _sparkPaint
-        ..color = color.withValues(alpha: a * 0.7)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, math.max(0.8, r * 0.22));
-      canvas.drawCircle(Offset(pool.x[i], pool.y[i]), r * 0.2, _sparkPaint);
     }
-    _sparkPaint.maskFilter = null;
   }
 
-  /// The blurred and tinted copies of the line (halo and core), or the
-  /// crisp tinted one for Simple — laid out to the paragraph's width.
+  /// The line laid out again to the paragraph's width: for Glow, to read
+  /// its line metrics; for Simple, the crisp tinted copy it draws.
   List<TextPainter> _copies(RenderParagraph p, bool lightInk) {
     final em = w.fontSize;
     final key = (p.constraints.maxWidth, w.effect, lightInk, w.palette.cue, em, w.replica, textScaler);
     final cache = s._copies;
     if (cache != null && cache.$1 == key) return cache.$2;
-    // A copy may be drawn twice; it is disposed once.
     for (final old in {...?cache?.$2}) {
       old.dispose();
     }
-    // [stroke]: the glyphs thickened before blurring, so a thin serif
-    // still throws enough light.
-    TextPainter copy(Color color, double blur, {double stroke = 0}) {
+    TextPainter copy(Color color) {
       final paint = Paint()..color = color;
-      if (stroke > 0) {
-        paint
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = stroke
-          ..strokeJoin = StrokeJoin.round;
-      }
-      if (blur > 0) paint.maskFilter = MaskFilter.blur(BlurStyle.normal, blur);
       final tp = TextPainter(text: w.replica(paint), textDirection: TextDirection.ltr, textScaler: textScaler);
       // The cue chip's placeholder, as big as the real one.
       final boxes = p.getBoxesForSelection(const TextSelection(baseOffset: 0, extentOffset: 1));
@@ -548,33 +639,15 @@ class _KaraokePainter extends CustomPainter {
       return tp;
     }
 
-    final strength = lightInk ? 1.0 : Karaoke.darkInkStrength;
-    final halo = copy(
-      (lightInk ? Karaoke.glowOnLightInk : Karaoke.glowOnDarkInk).withValues(alpha: Karaoke.haloAlpha * strength),
-      em * Karaoke.haloBlur,
-      stroke: em * Karaoke.haloStroke,
-    );
-    final copies = w.effect == HighlightEffect.glow
-        ? [
-            // The halo twice: a soft bloom wide enough to read as light.
-            halo,
-            halo,
-            copy(
-              (lightInk ? Karaoke.coreOnLightInk : Karaoke.coreOnDarkInk).withValues(
-                alpha: Karaoke.coreAlpha * strength,
-              ),
-              em * Karaoke.coreBlur,
-              stroke: em * Karaoke.coreStroke,
-            ),
-          ]
-        : [copy(w.palette.cue, 0)];
-    if (w.effect != HighlightEffect.glow) halo.dispose();
+    final copies = [copy(w.palette.cue)];
     s._copies = (key, copies);
+    s._lineMetrics = copies.first.computeLineMetrics();
     return copies;
   }
 
   @override
-  bool shouldRepaint(_KaraokePainter old) => old.s != s || old.textScaler != textScaler;
+  bool shouldRepaint(_KaraokePainter old) =>
+      old.s != s || old.textScaler != textScaler || old.devicePixelRatio != devicePixelRatio;
 }
 
 /// The characters on the line holding character [c] of [p]: what sits at
