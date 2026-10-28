@@ -215,10 +215,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          path: assets
+          path: release-assets
           merge-multiple: true
       - name: Checksums
-        working-directory: assets
+        working-directory: release-assets
         # Every asset at the top level (a release takes files, not folders). On failure, the error
         # and the file listing become an annotation, visible on the run page.
         run: |
@@ -254,7 +254,7 @@ jobs:
           } >> notes.md
       - name: Create draft release
         run: |
-          gh release create "$GITHUB_REF_NAME" assets/* \
+          gh release create "$GITHUB_REF_NAME" release-assets/* \
             --draft \
             --title "Sotto $VERSION" \
             --notes-file notes.md \
