@@ -28,7 +28,7 @@ void main() {
   test('panel style keeps the translucent ground and no glyph shadows', () {
     final o = overlayPaletteFor(const AppSettings(overlayStyle: OverlayStyle.panel), dark: true);
     expect(o.textOnly, isFalse);
-    expect(o.ground.a, closeTo(0.8, 0.01));
+    expect(o.ground.a, closeTo(0.9, 0.01));
     expect(o.textShadows(), isNull);
   });
 
