@@ -90,7 +90,7 @@ class AppSettings {
     this.shadowStrength = 0.6,
     this.readingSize = ReadingSize.m,
     this.linesShown = 5,
-    this.overlayOpacity = 0.8,
+    this.overlayOpacity = 0.9,
     this.placement = OverlayPlacement.topCenter,
     this.layout = OverlayLayout.auto,
     this.rememberPositionPerDisplay = true,
