@@ -1,8 +1,43 @@
-# Sotto
+<p align="center">
+  <img src="assets/branding/sotto_icon_256.png" alt="" width="96" height="96">
+</p>
 
-*The voice in the wings.* Sotto is a live presentation assistant for your desktop. It keeps your
-script in a small overlay just under the camera, follows your voice line by line, and drafts an
-answer when the audience asks a question, so you can look at the room, not at your notes.
+<h1 align="center">Sotto</h1>
+
+<p align="center">
+  <em>The voice in the wings.</em><br>
+  A live presentation assistant for your desktop.
+</p>
+
+<p align="center">
+  <a href="https://github.com/jefer02/Sotto/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/jefer02/Sotto?label=release"></a>
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-blue">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green"></a>
+  <img alt="Built with Flutter" src="https://img.shields.io/badge/built%20with-Flutter-02569B?logo=flutter">
+</p>
+
+<p align="center">
+  <a href="#download-and-install">Download</a> ·
+  <a href="#first-launch">First launch</a> ·
+  <a href="#privacy">Privacy</a> ·
+  <a href="#build-from-source">Build from source</a> ·
+  <a href="docs/ARCHITECTURE.md">How it works</a>
+</p>
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/home-light.webp">
+  <img alt="Sotto's home screen: the next script ready to go live, recent scripts and the live readiness checklist" src="docs/images/home-dark.webp">
+</picture>
+
+Sotto keeps your script in a small overlay just under the camera, follows your voice line by line,
+and drafts an answer when the audience asks a question, so you can look at the room, not at your
+notes.
+
+<p align="center">
+  <img alt="The teleprompter overlay: the current line in white, the next lines dimmed, with section, pace and time on top" src="docs/images/overlay.webp" width="600">
+</p>
+
+## Features
 
 - **Teleprompter overlay.** A floating, always-on-top window that shows the line you're saying and
   the next ones. Its text stays readable over dark slides, white slides and video calls. On Windows
@@ -18,6 +53,31 @@ answer when the audience asks a question, so you can look at the room, not at yo
 - **Optional extras**, off until you turn them on: chat, answers about what's on screen, form
   filling with the Sotto Bridge browser extension, and agent mode.
 - English and Spanish interface. No account and no backend: your scripts stay on your computer.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%">
+      <img alt="The script editor: sections on the left, the text with timings in the middle, an overlay preview on the right" src="docs/images/editor.webp"><br>
+      <sub><b>Editor.</b> Sections, beats and cues, timed at your pace, with a live overlay preview.</sub>
+    </td>
+    <td width="50%">
+      <img alt="Q&amp;A prep: likely questions with prepared answers, and prep documents" src="docs/images/qa-prep.webp"><br>
+      <sub><b>Q&amp;A prep.</b> Likely questions get instant answers; prep documents ground the rest.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img alt="The go-live checklist: microphone, voice following, overlay, screen sharing and more" src="docs/images/preflight.webp"><br>
+      <sub><b>Pre-flight.</b> Everything checked before you go live, with a fix for what's missing.</sub>
+    </td>
+    <td width="50%">
+      <img alt="Appearance settings with a live preview of the text-only overlay over a video call" src="docs/images/appearance.webp"><br>
+      <sub><b>Appearance.</b> Outlined text that stays readable over slides and video calls.</sub>
+    </td>
+  </tr>
+</table>
 
 ## Platforms
 
